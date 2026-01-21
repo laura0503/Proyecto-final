@@ -1,0 +1,10 @@
+﻿Analyzing guardias_screen.dart...
+
+  error - guardias_screen.dart:106:31 - The named parameter 'fechaSeleccionada' is required, but there's no corresponding argument. Try adding the required argument. - missing_required_argument
+warning - guardias_screen.dart:19:8 - The value of the field '_mostrarEstadisticas' isn't used. Try removing the field, or using it. - unused_field
+   info - guardias_screen.dart:19:8 - The private field _mostrarEstadisticas could be 'final'. Try making the field 'final'. - prefer_final_fields
+   info - guardias_screen.dart:187:41 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - guardias_screen.dart:242:47 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - guardias_screen.dart:274:34 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+6 issues found.
