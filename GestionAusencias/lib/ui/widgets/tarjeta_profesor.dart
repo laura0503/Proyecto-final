@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../data/models/profesor_model.dart';
+import '../../domain/entities/profesor.dart';
 
 class TarjetaProfesor extends StatelessWidget {
-  final Profesores profesor;
+  final Profesor profesor;
   const TarjetaProfesor({super.key, required this.profesor});
 
   @override

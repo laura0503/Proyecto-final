@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:gestion_ausencias/data/models/profesor_model.dart';
+import 'package:gestion_ausencias/domain/entities/profesor.dart';
+import 'package:provider/provider.dart';
+import '../providers/config_provider.dart';
+import 'wallpaper_selector_screen.dart';
 
 class FormularioProfesorScreen extends StatefulWidget {
-  final Profesores? profesor;
+  final Profesor? profesor;
   const FormularioProfesorScreen({super.key, this.profesor});
 
   @override
@@ -63,88 +66,115 @@ class _FormularioProfesorScreenState extends State<FormularioProfesorScreen> {
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.wallpaper),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const WallpaperSelectorScreen(),
+              ),
+            ),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _key,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionTitle("Información de Acceso"),
-              const SizedBox(height: 16),
-              _buildCard([
-                _buildTextField(
-                  controller: _contrasena,
-                  label: "PIN de Acceso",
-                  icon: Icons.lock_outline,
-                  isPassword: _ocultarContrasena,
-                  keyboardType: TextInputType.number,
-                  suffix: IconButton(
-                    icon: Icon(
-                      _ocultarContrasena
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                      size: 20,
+      body: Consumer<ConfigProvider>(
+        builder: (context, config, child) {
+          return Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FA),
+              image: config.backgroundImageProvider != null
+                  ? DecorationImage(
+                      image: config.backgroundImageProvider!,
+                      fit: BoxFit.cover,
+                      opacity: 0.8,
+                    )
+                  : null,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _key,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle("Información de Acceso"),
+                    const SizedBox(height: 16),
+                    _buildCard([
+                      _buildTextField(
+                        controller: _contrasena,
+                        label: "PIN de Acceso",
+                        icon: Icons.lock_outline,
+                        isPassword: _ocultarContrasena,
+                        keyboardType: TextInputType.number,
+                        suffix: IconButton(
+                          icon: Icon(
+                            _ocultarContrasena
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            size: 20,
+                          ),
+                          onPressed: () => setState(
+                            () => _ocultarContrasena = !_ocultarContrasena,
+                          ),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 32),
+                    _buildSectionTitle("Datos Personales"),
+                    const SizedBox(height: 16),
+                    _buildCard([
+                      _buildTextField(
+                        controller: _nom,
+                        label: "Nombre Completo",
+                        icon: Icons.person_outline,
+                      ),
+                      const Divider(height: 32),
+                      _buildTextField(
+                        controller: _asig,
+                        label: "Especialidad / Asignatura",
+                        icon: Icons.school_outlined,
+                      ),
+                      const Divider(height: 32),
+                      _buildTextField(
+                        controller: _cur,
+                        label: "Curso (ej. 2º ESO)",
+                        icon: Icons.book_outlined,
+                      ),
+                      const Divider(height: 32),
+                      _buildDropdownField(),
+                    ]),
+                    const SizedBox(height: 48),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _guardar,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          isEditing ? "ACTUALIZAR DATOS" : "CREAR PROFESOR",
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
                     ),
-                    onPressed: () => setState(
-                      () => _ocultarContrasena = !_ocultarContrasena,
-                    ),
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 32),
-              _buildSectionTitle("Datos Personales"),
-              const SizedBox(height: 16),
-              _buildCard([
-                _buildTextField(
-                  controller: _nom,
-                  label: "Nombre Completo",
-                  icon: Icons.person_outline,
-                ),
-                const Divider(height: 32),
-                _buildTextField(
-                  controller: _asig,
-                  label: "Especialidad / Asignatura",
-                  icon: Icons.school_outlined,
-                ),
-                const Divider(height: 32),
-                _buildTextField(
-                  controller: _cur,
-                  label: "Curso (ej. 2º ESO)",
-                  icon: Icons.book_outlined,
-                ),
-                const Divider(height: 32),
-                _buildDropdownField(),
-              ]),
-              const SizedBox(height: 48),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _guardar,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    isEditing ? "ACTUALIZAR DATOS" : "CREAR PROFESOR",
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
-                  ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -233,8 +263,10 @@ class _FormularioProfesorScreenState extends State<FormularioProfesorScreen> {
 
   void _guardar() {
     if (_key.currentState!.validate()) {
-      final p = Profesores(
-        id: widget.profesor?.id ?? DateTime.now().toString(),
+      final p = Profesor(
+        id:
+            widget.profesor?.id ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
         nombre: _nom.text,
         asignatura: _asig.text,
         curso: _cur.text,

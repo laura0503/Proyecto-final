@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/core/utils/date.dart';
-import '../../data/models/profesor_model.dart';
-import '../../data/repositories/profesor_repository.dart';
+import '../../domain/entities/profesor.dart';
+import '../../domain/usecases/get_profesores_usecase.dart';
+import '../providers/config_provider.dart';
+import 'settings_screen.dart';
 
 class DatosSlot {
   final TextEditingController controller;
@@ -25,7 +28,7 @@ class PlanningScreen extends StatefulWidget {
 class _PlanningScreenState extends State<PlanningScreen> {
   DateTime _fechaSeleccionada = DateTime.now();
   final Map<String, DatosSlot> _registroFaltas = {};
-  List<Profesores> _profesoresReales = [];
+  List<Profesor> _profesoresReales = []; // Changed to Profesor
   bool _cargandoProfesores = true;
 
   final Color primaryColor = const Color(0xFF6C63FF);
@@ -40,13 +43,16 @@ class _PlanningScreenState extends State<PlanningScreen> {
 
   Future<void> _cargarProfesores() async {
     try {
-      final lista = await ProfesorRepository.obtenerProfesores();
-      setState(() {
-        _profesoresReales = lista;
-        _cargandoProfesores = false;
-      });
+      final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
+      final lista = await getProfesoresUseCase.execute();
+      if (mounted) {
+        setState(() {
+          _profesoresReales = lista;
+          _cargandoProfesores = false;
+        });
+      }
     } catch (e) {
-      setState(() => _cargandoProfesores = false);
+      if (mounted) setState(() => _cargandoProfesores = false);
     }
   }
 
@@ -64,26 +70,43 @@ class _PlanningScreenState extends State<PlanningScreen> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: _cargandoProfesores
-          ? Center(child: CircularProgressIndicator(color: primaryColor))
-          : Column(
-              children: [
-                _buildHeaderModerno(mesAno, nSemana),
-                _buildLeyendaEstilizada(),
-                _buildCabeceraDias(diasSemana),
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.only(top: 8),
-                    itemCount: _profesoresReales.length,
-                    itemBuilder: (context, index) => _filaProfesorArmonica(
-                      diasSemana,
-                      _profesoresReales[index],
-                      index,
-                    ),
-                  ),
-                ),
-              ],
+      body: Consumer<ConfigProvider>(
+        builder: (context, config, child) {
+          return Container(
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              image: config.backgroundImageProvider != null
+                  ? DecorationImage(
+                      image: config.backgroundImageProvider!,
+                      fit: BoxFit.cover,
+                      opacity: 0.8,
+                    )
+                  : null,
             ),
+            child: _cargandoProfesores
+                ? Center(child: CircularProgressIndicator(color: primaryColor))
+                : Column(
+                    children: [
+                      _buildHeaderModerno(mesAno, nSemana),
+                      _buildLeyendaEstilizada(),
+                      _buildCabeceraDias(diasSemana),
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.only(top: 8),
+                          itemCount: _profesoresReales.length,
+                          itemBuilder: (context, index) =>
+                              _filaProfesorArmonica(
+                                diasSemana,
+                                _profesoresReales[index],
+                                index,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+          );
+        },
+      ),
     );
   }
 
@@ -121,6 +144,15 @@ class _PlanningScreenState extends State<PlanningScreen> {
             ],
           ),
           const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            color: const Color(0xFF6C63FF),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            ),
+          ),
+          const SizedBox(width: 8),
           _selectorSemana(nSemana),
         ],
       ),
@@ -254,7 +286,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
 
   Widget _filaProfesorArmonica(
     List<DateTime> dias,
-    Profesores profesor,
+    Profesor profesor,
     int index,
   ) {
     return Container(

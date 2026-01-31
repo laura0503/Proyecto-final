@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:gestion_ausencias/data/repositories/profesor_repository.dart';
 import 'package:intl/intl.dart';
-import 'package:gestion_ausencias/ui/widgets/tarjeta_profesor.dart';
+import 'package:provider/provider.dart';
+import 'package:gestion_ausencias/ui/providers/config_provider.dart';
+import 'package:gestion_ausencias/ui/screens/settings_screen.dart';
+import '../../domain/entities/profesor.dart';
+import '../../domain/usecases/get_profesores_usecase.dart';
+import '../providers/auth_provider.dart';
 import 'package:gestion_ausencias/ui/screens/guardias_screen.dart';
 import 'package:gestion_ausencias/ui/screens/planning_screen.dart';
 import 'package:gestion_ausencias/ui/screens/profesor_screen.dart';
-import 'package:gestion_ausencias/data/models/profesor_model.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback alCambiarTema;
@@ -22,7 +25,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Profesores> listaProfesores = [];
+  List<Profesor> listaProfesores = []; // Changed to Profesor
   bool _cargando = true;
   String _departamentoSeleccionado = 'Todos';
 
@@ -35,20 +38,25 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _cargarProfesores() async {
     setState(() => _cargando = true);
     try {
-      final profesores = await ProfesorRepository.obtenerProfesores();
-      final usuario = await ProfesorRepository.obtenerSesionActual();
-      setState(() {
-        listaProfesores = profesores;
+      final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
+      final profesores = await getProfesoresUseCase.execute();
+      final authProvider = context.read<AuthProvider>();
+      final usuario = authProvider.profesorActual;
 
-        // Redirección automática al departamento del usuario al inicio
-        if (usuario != null && _departamentoSeleccionado == 'Todos') {
-          _departamentoSeleccionado = usuario.departamento;
-        }
+      if (mounted) {
+        setState(() {
+          listaProfesores = profesores;
 
-        _cargando = false;
-      });
+          // Redirección automática al departamento del usuario al inicio
+          if (usuario != null && _departamentoSeleccionado == 'Todos') {
+            _departamentoSeleccionado = usuario.departamento;
+          }
+
+          _cargando = false;
+        });
+      }
     } catch (e) {
-      setState(() => _cargando = false);
+      if (mounted) setState(() => _cargando = false);
     }
   }
 
@@ -64,9 +72,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final usuario = authProvider.profesorActual;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Centro Educativo San José'),
+        title: const Text('I.E.S Padre Suárez'),
         centerTitle: true,
         backgroundColor: Colors.indigo,
         actions: [
@@ -92,46 +103,61 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            ),
+          ),
+          IconButton(
             icon: Icon(
               widget.esModoOscuro ? Icons.light_mode : Icons.dark_mode,
             ),
             onPressed: widget.alCambiarTema,
           ),
 
-          // --- ESTE ES EL WIDGET QUE SE ACTUALIZA SOLO ---
-          FutureBuilder<Profesores?>(
-            future: ProfesorRepository.obtenerSesionActual(),
-            builder: (context, snapshot) {
-              final usuario = snapshot.data;
-              return Padding(
-                padding: const EdgeInsets.only(right: 15, left: 5),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Colors.white,
-                  backgroundImage: (usuario != null && usuario.foto.isNotEmpty)
-                      ? NetworkImage(usuario.foto)
-                      : null,
-                  child: (usuario == null || usuario.foto.isEmpty)
-                      ? Text(
-                          usuario != null
-                              ? _obtenerIniciales(usuario.nombre)
-                              : "?",
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.indigo,
-                          ),
-                        )
-                      : null,
-                ),
-              );
-            },
+          // --- WIDGET USUARIO ACTUAL ---
+          Padding(
+            padding: const EdgeInsets.only(right: 15, left: 5),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.white,
+              backgroundImage: (usuario != null && usuario.foto.isNotEmpty)
+                  ? NetworkImage(usuario.foto)
+                  : null,
+              child: (usuario == null || usuario.foto.isEmpty)
+                  ? Text(
+                      usuario != null ? _obtenerIniciales(usuario.nombre) : "?",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.indigo,
+                      ),
+                    )
+                  : null,
+            ),
           ),
         ],
       ),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : _buildContenido(),
+      body: Consumer<ConfigProvider>(
+        builder: (context, config, child) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              image: config.backgroundImageProvider != null
+                  ? DecorationImage(
+                      image: config.backgroundImageProvider!,
+                      fit: BoxFit.cover,
+                      opacity: 0.8, // Slightly more vibrant for better clarity
+                    )
+                  : null,
+            ),
+            child: _cargando
+                ? const Center(child: CircularProgressIndicator())
+                : _buildContenido(),
+          );
+        },
+      ),
     );
   }
 

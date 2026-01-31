@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:gestion_ausencias/data/models/profesor_model.dart';
-import 'package:gestion_ausencias/data/repositories/profesor_repository.dart';
-import 'package:gestion_ausencias/ui/screens/main_layout.dart'; // CORRECCIÓN: Solo un import
+import 'package:provider/provider.dart';
+import 'package:gestion_ausencias/domain/entities/profesor.dart';
+import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback alCambiarTema;
@@ -21,15 +20,13 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // Controladores para capturar el texto
   final _userController = TextEditingController();
   final _passController = TextEditingController();
   final _cursoController = TextEditingController();
   final _asigController = TextEditingController();
   final _depController = TextEditingController();
 
-  bool esModoRegistro = false; // Para alternar la interfaz
-  bool _estaCargando = false;
+  bool esModoRegistro = false;
 
   final List<String> _departamentos = [
     'General',
@@ -45,129 +42,69 @@ class _LoginScreenState extends State<LoginScreen> {
     'Otro',
   ];
 
-  // --- LÓGICA DE INICIO DE SESIÓN ---
+  void _mensaje(String texto, {bool esError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(texto),
+        backgroundColor: esError ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
   Future<void> _login() async {
     if (_userController.text.isEmpty || _passController.text.isEmpty) {
-      _mensaje("Por favor, completa todos los campos");
+      _mensaje("Por favor, completa todos los campos", esError: true);
       return;
     }
 
-    setState(() => _estaCargando = true);
+    final authProvider = context.read<AuthProvider>();
+    final success = await authProvider.login(
+      _userController.text,
+      _passController.text,
+    );
 
-    try {
-      final accesoConcedido = await ProfesorRepository.verificarLogin(
-        _userController.text,
-        _passController.text,
-      );
-
-      if (accesoConcedido) {
-        _navegarAlHome();
-      } else {
-        _mensaje("Nombre o PIN incorrectos");
-      }
-    } catch (e) {
-      _mensaje("Error al iniciar sesión: $e");
-    } finally {
-      setState(() => _estaCargando = false);
+    if (success) {
+      widget.onLoginSuccess();
+    } else {
+      _mensaje("Nombre o PIN incorrectos", esError: true);
     }
   }
 
-  // --- LÓGICA DE REGISTRO ---
   Future<void> _registrar() async {
     if (_userController.text.isEmpty ||
         _passController.text.isEmpty ||
         _cursoController.text.isEmpty ||
         _asigController.text.isEmpty ||
         _depController.text.isEmpty) {
-      _mensaje("Por favor, rellena todos los campos");
+      _mensaje("Por favor, rellena todos los campos", esError: true);
       return;
     }
 
     if (_passController.text.length < 4) {
-      _mensaje("El PIN debe tener al menos 4 dígitos");
+      _mensaje("El PIN debe tener al menos 4 dígitos", esError: true);
       return;
     }
 
-    setState(() => _estaCargando = true);
+    final nuevoProfe = Profesor(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      nombre: _userController.text.trim(),
+      asignatura: _asigController.text.trim(),
+      curso: _cursoController.text.trim(),
+      foto: "https://i.pravatar.cc/150?u=${_userController.text}",
+      contrasena: _passController.text,
+      departamento: _depController.text.trim(),
+      estadoAusente: false,
+    );
 
     try {
-      final nuevoProfe = Profesores(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        nombre: _userController.text.trim(),
-        asignatura: _asigController.text.trim(),
-        curso: _cursoController.text.trim(),
-        foto: "https://i.pravatar.cc/150?u=${_userController.text}",
-        contrasena: _passController.text,
-        departamento: _depController.text.trim(),
-        estadoAusente: false,
-      );
-
-      // Guardar usando el repositorio unificado
-      await ProfesorRepository.agregarProfesor(nuevoProfe);
-
+      await context.read<AuthProvider>().register(nuevoProfe);
       _mensaje("¡Registro con éxito! Ahora inicia sesión.");
       setState(() {
         esModoRegistro = false;
-        _estaCargando = false;
+        _passController.clear();
       });
     } catch (e) {
-      _mensaje("Error al registrar: $e");
-      setState(() => _estaCargando = false);
-    }
-  }
-
-  // --- CORREGIDO: Navegación al MainLayout ---
-  void _navegarAlHome() {
-    // Llama al callback para indicar que el login fue exitoso
-    widget.onLoginSuccess();
-
-    // Navega al MainLayout - CORRECCIÓN: No puede ser const
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MainLayout(
-          alCambiarTema: widget.alCambiarTema,
-          esModoOscuro: widget.esModoOscuro,
-          onLogout: () {
-            // Este callback será manejado por main.dart
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => LoginScreen(
-                  alCambiarTema: widget.alCambiarTema,
-                  esModoOscuro: widget.esModoOscuro,
-                  onLoginSuccess: widget.onLoginSuccess,
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  void _mensaje(String texto) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(texto),
-        backgroundColor: texto.contains("éxito") ? Colors.green : Colors.red,
-      ),
-    );
-  }
-
-  Future<void> _pegarDatos() async {
-    try {
-      final data = await Clipboard.getData(Clipboard.kTextPlain);
-      if (data != null && data.text != null) {
-        await ProfesorRepository.sobrescribirDesdeJson(data.text!);
-        _mensaje(
-          "¡Datos sincronizados con éxito! Ahora puedes iniciar sesión.",
-        );
-      } else {
-        throw Exception();
-      }
-    } catch (e) {
-      _mensaje("Error: El portapapeles no tiene datos válidos");
+      _mensaje("Error al registrar: $e", esError: true);
     }
   }
 
@@ -183,6 +120,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: Center(
@@ -214,7 +153,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Campo: Nombre Completo
                 TextField(
                   controller: _userController,
                   decoration: InputDecoration(
@@ -226,15 +164,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                // Campos adicionales (solo en registro)
                 if (esModoRegistro) ...[
                   TextField(
                     controller: _asigController,
@@ -246,10 +179,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
                     ),
                   ),
@@ -264,10 +193,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
                     ),
                   ),
@@ -284,10 +209,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
                     ),
                     items: _departamentos.map((String value) {
@@ -308,7 +229,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
                 ],
 
-                // Campo: PIN Numérico
                 TextField(
                   controller: _passController,
                   obscureText: true,
@@ -323,22 +243,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
                     counterText: "",
                   ),
                 ),
                 const SizedBox(height: 32),
 
-                // Mostrar indicador de carga
-                if (_estaCargando)
+                if (authProvider.isLoading)
                   const CircularProgressIndicator()
                 else ...[
-                  // --- BOTONES DINÁMICOS ---
                   if (!esModoRegistro) ...[
-                    // BOTÓN INICIAR SESIÓN
                     ElevatedButton(
                       onPressed: _login,
                       style: ElevatedButton.styleFrom(
@@ -358,7 +271,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // ENLACE PARA REGISTRARSE
                     TextButton(
                       onPressed: () => setState(() => esModoRegistro = true),
                       child: const Text(
@@ -367,7 +279,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ] else ...[
-                    // BOTÓN CONFIRMAR REGISTRO
                     ElevatedButton(
                       onPressed: _registrar,
                       style: ElevatedButton.styleFrom(
@@ -396,17 +307,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ],
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 16),
-                TextButton.icon(
-                  onPressed: _pegarDatos,
-                  icon: const Icon(Icons.paste, size: 18),
-                  label: const Text("Pegar datos de otra aplicación"),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.orange.shade700,
-                  ),
-                ),
               ],
             ),
           ),

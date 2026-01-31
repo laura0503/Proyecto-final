@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart'; // Import Provider
 import '../../data/models/guardia_model.dart';
-import '../../data/models/profesor_model.dart';
-import '../../data/repositories/profesor_repository.dart';
+import '../../domain/entities/profesor.dart'; // Import Profesor entity
+import '../../domain/usecases/get_profesores_usecase.dart'; // Import UseCase
 import 'detalle_guardia_screen.dart';
+import '../providers/config_provider.dart';
+import 'settings_screen.dart';
 
 class GuardiasScreen extends StatefulWidget {
   const GuardiasScreen({super.key});
@@ -17,7 +20,7 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
   String _filtroBusqueda = "";
   final TextEditingController _searchController = TextEditingController();
   List<Guardia> _guardias = [];
-  List<Profesores> _profesores = [];
+  List<Profesor> _profesores = []; // Change to Profesor
   bool _cargando = true;
 
   // Colores para mantener la armonía con PlanningScreen
@@ -63,7 +66,8 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
   Future<void> _cargarDatos() async {
     setState(() => _cargando = true);
     try {
-      final profesores = await ProfesorRepository.obtenerProfesores();
+      final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
+      final profesores = await getProfesoresUseCase.execute();
       setState(() {
         _profesores = profesores;
         _cargarGuardiasDePrueba();
@@ -168,38 +172,57 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: _cargando
-          ? Center(child: CircularProgressIndicator(color: primaryColor))
-          : Column(
-              children: [
-                _buildHeader(),
-                _buildSearchBar(),
-                _buildSelectorFecha(),
-                Expanded(
-                  child: guardiasDelDia.isEmpty && _filtroBusqueda.isNotEmpty
-                      ? _buildSinResultados()
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: _horarios.length,
-                          itemBuilder: (context, index) {
-                            final horario = _horarios[index];
-                            final guardiasDelSlot = guardiasDelDia
-                                .where(
-                                  (g) =>
-                                      '${g.horaInicio} - ${g.horaFin}' ==
-                                      horario,
-                                )
-                                .toList();
-
-                            return _buildTarjetaGuardia(
-                              horario,
-                              guardiasDelSlot,
-                            );
-                          },
-                        ),
-                ),
-              ],
+      body: Consumer<ConfigProvider>(
+        builder: (context, config, child) {
+          return Container(
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              image: config.backgroundImageProvider != null
+                  ? DecorationImage(
+                      image: config.backgroundImageProvider!,
+                      fit: BoxFit.cover,
+                      opacity: 0.8,
+                    )
+                  : null,
             ),
+            child: _cargando
+                ? Center(child: CircularProgressIndicator(color: primaryColor))
+                : Column(
+                    children: [
+                      _buildHeader(),
+                      _buildSearchBar(),
+                      _buildSelectorFecha(),
+                      Expanded(
+                        child:
+                            guardiasDelDia.isEmpty && _filtroBusqueda.isNotEmpty
+                            ? _buildSinResultados()
+                            : ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                itemCount: _horarios.length,
+                                itemBuilder: (context, index) {
+                                  final horario = _horarios[index];
+                                  final guardiasDelSlot = guardiasDelDia
+                                      .where(
+                                        (g) =>
+                                            '${g.horaInicio} - ${g.horaFin}' ==
+                                            horario,
+                                      )
+                                      .toList();
+
+                                  return _buildTarjetaGuardia(
+                                    horario,
+                                    guardiasDelSlot,
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navegarNuevaGuardia(null),
         backgroundColor: primaryColor,
@@ -233,7 +256,14 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
               color: primaryColor,
             ),
           ),
-          // Puedes añadir un icono o botón aquí si es necesario
+          IconButton(
+            icon: const Icon(Icons.settings),
+            color: primaryColor,
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            ),
+          ),
         ],
       ),
     );

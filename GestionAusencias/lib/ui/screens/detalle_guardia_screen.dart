@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // ← IMPORTACIÓN NECESARIA
+import 'package:intl/intl.dart';
 import '../../data/models/guardia_model.dart';
-import '../../data/models/profesor_model.dart';
+import '../../domain/entities/profesor.dart';
+import 'package:provider/provider.dart';
+import '../providers/config_provider.dart';
+import 'wallpaper_selector_screen.dart';
 
 class DetalleGuardiaScreen extends StatefulWidget {
   final Guardia? guardia;
-  final List<Profesores> profesores;
+  final List<Profesor> profesores;
   final DateTime fecha;
 
   const DetalleGuardiaScreen({
@@ -80,7 +83,7 @@ class _DetalleGuardiaScreenState extends State<DetalleGuardiaScreen> {
     if (widget.guardia?.profesorGuardia != null) {
       final profesor = widget.profesores.firstWhere(
         (p) => p.nombre == widget.guardia!.profesorGuardia,
-        orElse: () => Profesores(
+        orElse: () => const Profesor(
           id: '',
           nombre: '',
           asignatura: '',
@@ -105,274 +108,306 @@ class _DetalleGuardiaScreenState extends State<DetalleGuardiaScreen> {
         title: Text(
           widget.guardia == null ? 'Nueva Guardia' : 'Editar Guardia',
         ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Fecha
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today, color: Colors.blue),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Fecha: ${_formatearFecha(widget.fecha)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                      ),
-                    ),
-                  ],
-                ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.wallpaper),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const WallpaperSelectorScreen(),
               ),
-              const SizedBox(height: 20),
-
-              // Horario
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildDropdownHorario(
-                      controller: _horaInicioController,
-                      label: 'Hora inicio',
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildDropdownHorario(
-                      controller: _horaFinController,
-                      label: 'Hora fin',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Grupo y Aula
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _grupoController,
-                      decoration: const InputDecoration(
-                        labelText: 'Grupo',
-                        prefixIcon: Icon(Icons.group),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) =>
-                          value!.isEmpty ? 'Campo obligatorio' : null,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _aulaController,
-                      decoration: const InputDecoration(
-                        labelText: 'Aula',
-                        prefixIcon: Icon(Icons.meeting_room),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) =>
-                          value!.isEmpty ? 'Campo obligatorio' : null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Profesor ausente
-              TextFormField(
-                controller: _profesorAusenteController,
-                decoration: const InputDecoration(
-                  labelText: 'Profesor ausente',
-                  prefixIcon: Icon(Icons.person_off),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? 'Campo obligatorio' : null,
-              ),
-              const SizedBox(height: 16),
-
-              // Asignatura
-              TextFormField(
-                controller: _asignaturaController,
-                decoration: const InputDecoration(
-                  labelText: 'Asignatura',
-                  prefixIcon: Icon(Icons.book),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? 'Campo obligatorio' : null,
-              ),
-              const SizedBox(height: 20),
-
-              // Tipo de tarea
-              const Text(
-                'Tipo de tarea:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: ChoiceChip(
-                      label: const Text('Texto'),
-                      selected: _tipoTarea == 'texto',
-                      onSelected: (selected) {
-                        setState(() => _tipoTarea = 'texto');
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ChoiceChip(
-                      label: const Text('PDF'),
-                      selected: _tipoTarea == 'pdf',
-                      onSelected: (selected) {
-                        setState(() => _tipoTarea = 'pdf');
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Tarea
-              TextFormField(
-                controller: _tareaController,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Tarea',
-                  hintText: 'Describe la tarea o ejercicio...',
-                  prefixIcon: Icon(Icons.assignment),
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? 'Campo obligatorio' : null,
-              ),
-              const SizedBox(height: 20),
-
-              // Profesor de guardia (dropdown)
-              DropdownButtonFormField<String>(
-                value: _profesorGuardiaSeleccionado,
-                decoration: const InputDecoration(
-                  labelText: 'Prof. Guardia',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
-                ),
-                items: [
-                  const DropdownMenuItem(
-                    value: null,
-                    child: Text('Seleccionar profesor'),
-                  ),
-                  ...widget.profesores.map((profesor) {
-                    return DropdownMenuItem(
-                      value: profesor.id, // Usar ID único
-                      child: Text(profesor.nombre),
-                    );
-                  }).toList(),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _profesorGuardiaSeleccionado = value;
-                    if (value != null) {
-                      final profesorSeleccionado = widget.profesores.firstWhere(
-                        (p) => p.id == value,
-                        orElse: () => Profesores(
-                          id: '',
-                          nombre: '',
-                          asignatura: '',
-                          curso: '',
-                          foto: '',
-                          contrasena: '',
-                          departamento: 'General',
-                          estadoAusente: false,
-                        ),
-                      );
-                      _nombreProfesorSeleccionado = profesorSeleccionado.nombre;
-                    } else {
-                      _nombreProfesorSeleccionado = null;
-                    }
-                  });
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // Confirmación
-              Card(
-                elevation: 2,
-                child: SwitchListTile(
-                  title: const Text(
-                    'Confirmar guardia',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    _confirmada
-                        ? '✅ Guardia confirmada y realizada'
-                        : '⏳ Guardia pendiente de confirmación',
-                  ),
-                  value: _confirmada,
-                  onChanged: (value) {
-                    setState(() => _confirmada = value);
-                  },
-                  secondary: Icon(
-                    _confirmada ? Icons.check_circle : Icons.pending,
-                    color: _confirmada ? Colors.green : Colors.orange,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // Botones
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _guardarGuardia,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6C63FF),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      icon: const Icon(Icons.save, color: Colors.white),
-                      label: const Text(
-                        'GUARDAR GUARDIA',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (widget.guardia != null) ...[
-                    const SizedBox(width: 16),
-                    ElevatedButton.icon(
-                      onPressed: _eliminarGuardia,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      icon: const Icon(Icons.delete, color: Colors.white),
-                      label: const Text(
-                        'ELIMINAR',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
+      ),
+      body: Consumer<ConfigProvider>(
+        builder: (context, config, child) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              image: config.backgroundImageProvider != null
+                  ? DecorationImage(
+                      image: config.backgroundImageProvider!,
+                      fit: BoxFit.cover,
+                      opacity: 0.8,
+                    )
+                  : null,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Fecha
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today, color: Colors.blue),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Fecha: ${_formatearFecha(widget.fecha)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Horario
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDropdownHorario(
+                            controller: _horaInicioController,
+                            label: 'Hora inicio',
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildDropdownHorario(
+                            controller: _horaFinController,
+                            label: 'Hora fin',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Grupo y Aula
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _grupoController,
+                            decoration: const InputDecoration(
+                              labelText: 'Grupo',
+                              prefixIcon: Icon(Icons.group),
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) =>
+                                value!.isEmpty ? 'Campo obligatorio' : null,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _aulaController,
+                            decoration: const InputDecoration(
+                              labelText: 'Aula',
+                              prefixIcon: Icon(Icons.meeting_room),
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (value) =>
+                                value!.isEmpty ? 'Campo obligatorio' : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Profesor ausente
+                    TextFormField(
+                      controller: _profesorAusenteController,
+                      decoration: const InputDecoration(
+                        labelText: 'Profesor ausente',
+                        prefixIcon: Icon(Icons.person_off),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) =>
+                          value!.isEmpty ? 'Campo obligatorio' : null,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Asignatura
+                    TextFormField(
+                      controller: _asignaturaController,
+                      decoration: const InputDecoration(
+                        labelText: 'Asignatura',
+                        prefixIcon: Icon(Icons.book),
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) =>
+                          value!.isEmpty ? 'Campo obligatorio' : null,
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Tipo de tarea
+                    const Text(
+                      'Tipo de tarea:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('Texto'),
+                            selected: _tipoTarea == 'texto',
+                            onSelected: (selected) {
+                              setState(() => _tipoTarea = 'texto');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('PDF'),
+                            selected: _tipoTarea == 'pdf',
+                            onSelected: (selected) {
+                              setState(() => _tipoTarea = 'pdf');
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Tarea
+                    TextFormField(
+                      controller: _tareaController,
+                      maxLines: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Tarea',
+                        hintText: 'Describe la tarea o ejercicio...',
+                        prefixIcon: Icon(Icons.assignment),
+                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                      validator: (value) =>
+                          value!.isEmpty ? 'Campo obligatorio' : null,
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Profesor de guardia (dropdown)
+                    DropdownButtonFormField<String>(
+                      value: _profesorGuardiaSeleccionado,
+                      decoration: const InputDecoration(
+                        labelText: 'Prof. Guardia',
+                        prefixIcon: Icon(Icons.person),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text('Seleccionar profesor'),
+                        ),
+                        ...widget.profesores.map((profesor) {
+                          return DropdownMenuItem(
+                            value: profesor.id, // Usar ID único
+                            child: Text(profesor.nombre),
+                          );
+                        }).toList(),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _profesorGuardiaSeleccionado = value;
+                          if (value != null) {
+                            final profesorSeleccionado = widget.profesores
+                                .firstWhere(
+                                  (p) => p.id == value,
+                                  orElse: () => const Profesor(
+                                    id: '',
+                                    nombre: '',
+                                    asignatura: '',
+                                    curso: '',
+                                    foto: '',
+                                    contrasena: '',
+                                    departamento: 'General',
+                                    estadoAusente: false,
+                                  ),
+                                );
+                            _nombreProfesorSeleccionado =
+                                profesorSeleccionado.nombre;
+                          } else {
+                            _nombreProfesorSeleccionado = null;
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Confirmación
+                    Card(
+                      elevation: 2,
+                      child: SwitchListTile(
+                        title: const Text(
+                          'Confirmar guardia',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          _confirmada
+                              ? '✅ Guardia confirmada y realizada'
+                              : '⏳ Guardia pendiente de confirmación',
+                        ),
+                        value: _confirmada,
+                        onChanged: (value) {
+                          setState(() => _confirmada = value);
+                        },
+                        secondary: Icon(
+                          _confirmada ? Icons.check_circle : Icons.pending,
+                          color: _confirmada ? Colors.green : Colors.orange,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Botones
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _guardarGuardia,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6C63FF),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            icon: const Icon(Icons.save, color: Colors.white),
+                            label: const Text(
+                              'GUARDAR GUARDIA',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (widget.guardia != null) ...[
+                          const SizedBox(width: 16),
+                          ElevatedButton.icon(
+                            onPressed: _eliminarGuardia,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            icon: const Icon(Icons.delete, color: Colors.white),
+                            label: const Text(
+                              'ELIMINAR',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

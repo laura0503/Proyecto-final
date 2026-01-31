@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:gestion_ausencias/data/models/profesor_model.dart';
-import 'package:gestion_ausencias/data/repositories/profesor_repository.dart';
+import 'package:provider/provider.dart';
+import 'package:gestion_ausencias/domain/entities/profesor.dart';
+import 'package:gestion_ausencias/domain/repositories/profesor_repository.dart';
+import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 import 'package:gestion_ausencias/ui/screens/formulario_profesor.dart';
+import '../providers/config_provider.dart';
+import 'wallpaper_selector_screen.dart';
 
 class ProfesoresScreen extends StatefulWidget {
   const ProfesoresScreen({super.key});
@@ -12,8 +16,10 @@ class ProfesoresScreen extends StatefulWidget {
 }
 
 class _ProfesoresScreenState extends State<ProfesoresScreen> {
-  List<Profesores> _listaProfesores = [];
+  // Using Repository directly for special actions like copy/paste/update
+  // In a stricter clean architecture, these would be UseCases too.
   bool _cargando = true;
+  List<Profesor> _listaProfesores = [];
 
   @override
   void initState() {
@@ -24,19 +30,24 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
   Future<void> _cargarProfesores() async {
     setState(() => _cargando = true);
     try {
-      final profesores = await ProfesorRepository.obtenerProfesores();
-      setState(() {
-        _listaProfesores = profesores;
-        _cargando = false;
-      });
+      final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
+      final profesores = await getProfesoresUseCase.execute();
+      if (mounted) {
+        setState(() {
+          _listaProfesores = profesores;
+          _cargando = false;
+        });
+      }
     } catch (e) {
-      setState(() => _cargando = false);
+      if (mounted) setState(() => _cargando = false);
     }
   }
 
   Future<void> _copiarDatos() async {
     try {
-      final json = await ProfesorRepository.obtenerTodosComoJson();
+      // Access repository from provider
+      final repository = context.read<ProfesorRepository>();
+      final json = await repository.obtenerTodosComoJson();
       await Clipboard.setData(ClipboardData(text: json));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -59,7 +70,8 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
     try {
       final data = await Clipboard.getData(Clipboard.kTextPlain);
       if (data != null && data.text != null) {
-        await ProfesorRepository.sobrescribirDesdeJson(data.text!);
+        final repository = context.read<ProfesorRepository>();
+        await repository.sobrescribirDesdeJson(data.text!);
         await _cargarProfesores();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -112,48 +124,86 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
           IconButton(
             icon: const Icon(Icons.copy_all, color: Color(0xFF6C63FF)),
             tooltip: "Copiar datos",
-            onPressed: _copiarDatos,
+            onPressed: () => _copiarDatos(),
           ),
           IconButton(
             icon: const Icon(Icons.paste, color: Color(0xFFFFA726)),
             tooltip: "Pegar datos",
-            onPressed: _pegarDatos,
+            onPressed: () => _pegarDatos(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.wallpaper, color: Color(0xFF6C63FF)),
+            tooltip: "Cambiar fondo",
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const WallpaperSelectorScreen(),
+              ),
+            ),
           ),
           const SizedBox(width: 10),
         ],
       ),
       // REQUISITO: Botón de añadir eliminado para mayor limpieza visual
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : _listaProfesores.isEmpty
-          ? _buildEstadoVacio()
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              itemCount: _listaProfesores.length,
-              itemBuilder: (context, index) {
-                final profe = _listaProfesores[index];
-                return InkWell(
-                  onTap: () async {
-                    final resultado = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            FormularioProfesorScreen(profesor: profe),
-                      ),
-                    );
-                    if (resultado != null && resultado is Profesores) {
-                      await ProfesorRepository.actualizarProfesor(resultado);
-                      _cargarProfesores();
-                    }
-                  },
-                  child: _buildTarjetaOriginal(profe, index),
-                );
-              },
+      body: Consumer<ConfigProvider>(
+        builder: (context, config, child) {
+          return Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8F9FA),
+              image: config.backgroundImageProvider != null
+                  ? DecorationImage(
+                      image: config.backgroundImageProvider!,
+                      fit: BoxFit.cover,
+                      opacity: 0.8,
+                    )
+                  : null,
             ),
+            child: _cargando
+                ? const Center(child: CircularProgressIndicator())
+                : _listaProfesores.isEmpty
+                ? _buildEstadoVacio()
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    itemCount: _listaProfesores.length,
+                    itemBuilder: (context, index) {
+                      final profe = _listaProfesores[index];
+                      return InkWell(
+                        onTap: () async {
+                          final resultado = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  FormularioProfesorScreen(profesor: profe),
+                            ),
+                          );
+                          if (resultado != null && resultado is Profesor) {
+                            if (context.mounted) {
+                              try {
+                                // Using repository to update. Ideally creating UpdateUseCase would be better.
+                                final repository = context
+                                    .read<ProfesorRepository>();
+                                await repository.actualizarProfesor(resultado);
+                                _cargarProfesores();
+                              } catch (e) {
+                                // Handle error
+                              }
+                            }
+                          }
+                        },
+                        child: _buildTarjetaOriginal(profe, index),
+                      );
+                    },
+                  ),
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildTarjetaOriginal(Profesores profesor, int index) {
+  Widget _buildTarjetaOriginal(Profesor profesor, int index) {
     // Paleta de colores suaves para la armonía visual
     final List<Color> coloresArmonicos = [
       const Color(0xFF6C63FF),
@@ -278,7 +328,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
   }
 
   // Lógica para decidir si mostrar foto o iniciales
-  Widget _buildImagenOIniciales(Profesores profesor) {
+  Widget _buildImagenOIniciales(Profesor profesor) {
     if (profesor.foto.isNotEmpty) {
       return Image.network(
         profesor.foto,
@@ -326,6 +376,3 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
     );
   }
 }
-
-
-// estrucutuas a capas para la taehta sobresalga el color (stack). Esteticamente  ha sido el container y ListView.builder y por ultimo los Icon , ademas hemoc utilizado el widget del Avatar circular que sobresale

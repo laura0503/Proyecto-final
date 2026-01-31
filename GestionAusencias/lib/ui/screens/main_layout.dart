@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:gestion_ausencias/domain/entities/profesor.dart';
+import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
+import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
+import '../providers/config_provider.dart';
+import '../providers/notification_provider.dart';
+
+import 'package:gestion_ausencias/ui/screens/settings_screen.dart';
 import 'package:gestion_ausencias/ui/screens/guardias_screen.dart';
 import 'package:gestion_ausencias/ui/screens/planning_screen.dart';
 import 'package:gestion_ausencias/ui/screens/profesor_screen.dart';
-import 'package:gestion_ausencias/data/repositories/profesor_repository.dart';
-import 'package:gestion_ausencias/data/models/profesor_model.dart';
+// import 'package:gestion_ausencias/ui/screens/home_screen.dart'; // Circular dependency if not careful, but MainLayout imports HomeScreen logic via HomeContent usually.
 
 class MainLayout extends StatefulWidget {
   final VoidCallback alCambiarTema;
@@ -30,14 +37,13 @@ class _MainLayoutState extends State<MainLayout> {
   @override
   void initState() {
     super.initState();
-    _inicializarDepartamento();
-  }
-
-  Future<void> _inicializarDepartamento() async {
-    final usuario = await ProfesorRepository.obtenerSesionActual();
-    if (usuario != null) {
-      setState(() => _departamentoSeleccionado = usuario.departamento);
-    }
+    // Initialize department if user is logged in
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = context.read<AuthProvider>().profesorActual;
+      if (user != null) {
+        setState(() => _departamentoSeleccionado = user.departamento);
+      }
+    });
   }
 
   // Colores: Verde Musgo y Crema
@@ -53,6 +59,8 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    // Screens need to be rebuilt if state changes?
+    // Usually standard PageView keeps state.
     final List<Widget> _screens = [
       HomeContent(
         onNavigate: _irAPagina,
@@ -80,6 +88,7 @@ class _MainLayoutState extends State<MainLayout> {
                 _sidebarItem(Icons.calendar_month_rounded, "Planning", 1),
                 _sidebarItem(Icons.shield_rounded, "Guardias", 2),
                 _sidebarItem(Icons.people_alt_rounded, "Profesores", 3),
+                _sidebarItem(Icons.settings_rounded, "Ajustes", 4),
                 const Spacer(),
                 _sidebarItem(Icons.logout_rounded, "Salir", -1, isLogout: true),
                 const SizedBox(height: 30),
@@ -118,7 +127,16 @@ class _MainLayoutState extends State<MainLayout> {
       child: Tooltip(
         message: label,
         child: InkWell(
-          onTap: isLogout ? widget.onLogout : () => _irAPagina(index),
+          onTap: isLogout
+              ? widget.onLogout
+              : (index == 4
+                    ? () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(),
+                        ),
+                      )
+                    : () => _irAPagina(index)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -197,7 +215,7 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatar(Profesores profe, {double radius = 13}) {
+  Widget _buildAvatar(Profesor profe, {double radius = 13}) {
     return CircleAvatar(
       radius: radius + 2,
       backgroundColor: Colors.white,
@@ -227,7 +245,7 @@ class HomeContent extends StatelessWidget {
   void _mostrarDetalleDepartamento(
     BuildContext context,
     String dep,
-    List<Profesores> profes,
+    List<Profesor> profes,
   ) {
     showModalBottomSheet(
       context: context,
@@ -379,16 +397,18 @@ class HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: Future.wait([
-        ProfesorRepository.obtenerSesionActual(),
-        ProfesorRepository.obtenerProfesores(),
-      ]),
+    // Access providers
+    final authProvider = context.watch<AuthProvider>();
+    final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
+
+    // Using FutureBuilder to get professors is okay, but ideally this should be moved to a Provider/ViewModel
+    return FutureBuilder<List<Profesor>>(
+      future: getProfesoresUseCase.execute(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox();
 
-        final usuario = snapshot.data![0] as Profesores?;
-        final todosProfesores = snapshot.data![1] as List<Profesores>;
+        final usuario = authProvider.profesorActual;
+        final todosProfesores = snapshot.data!;
         final nombre = usuario?.nombre ?? "Profesor";
 
         // Departamentos únicos (base de datos + predefinidos)
@@ -402,68 +422,83 @@ class HomeContent extends StatelessWidget {
           ),
         ];
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSimpleHeader(nombre, usuario),
-              const SizedBox(height: 30),
-
-              // Fila de 3 tarjetas de información principales
-              Row(
-                children: [
-                  _infoCard(
-                    "Planning",
-                    "3 Ausencias hoy",
-                    Icons.calendar_month_outlined,
-                    const Color(0xFF6C63FF),
-                    () => onNavigate(1),
-                  ),
-                  const SizedBox(width: 20),
-                  _infoCard(
-                    "Guardias",
-                    "2 Pendientes",
-                    Icons.shield_outlined,
-                    const Color(0xFFFFA726),
-                    () => onNavigate(2),
-                  ),
-                  const SizedBox(width: 20),
-                  _infoCard(
-                    "Departamentos",
-                    "${todosDepartamentos.length - 1} Áreas",
-                    Icons.grid_view_rounded,
-                    const Color(0xFF66BB6A),
-                    () {},
-                  ),
-                ],
+        return Consumer<ConfigProvider>(
+          builder: (context, config, child) {
+            return Container(
+              decoration: BoxDecoration(
+                image: config.backgroundImageProvider != null
+                    ? DecorationImage(
+                        image: config.backgroundImageProvider!,
+                        fit: BoxFit.cover,
+                        opacity: 0.8,
+                      )
+                    : null,
               ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSimpleHeader(nombre, usuario),
+                    const SizedBox(height: 30),
 
-              const SizedBox(height: 48),
-              const Text(
-                "Departamentos y Personal",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF354231),
+                    // Fila de 3 tarjetas de información principales
+                    Row(
+                      children: [
+                        _infoCard(
+                          "Planning",
+                          "3 Ausencias hoy",
+                          Icons.calendar_month_outlined,
+                          const Color(0xFF6C63FF),
+                          () => onNavigate(1),
+                        ),
+                        const SizedBox(width: 20),
+                        _infoCard(
+                          "Guardias",
+                          "2 Pendientes",
+                          Icons.shield_outlined,
+                          const Color(0xFFFFA726),
+                          () => onNavigate(2),
+                        ),
+                        const SizedBox(width: 20),
+                        _infoCard(
+                          "Departamentos",
+                          "${todosDepartamentos.length - 1} Áreas",
+                          Icons.grid_view_rounded,
+                          const Color(0xFF66BB6A),
+                          () {},
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 48),
+                    const Text(
+                      "Departamentos y Personal",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF354231),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Lista vertical de departamentos con avatares de sus profesores
+                    _buildVerticalDepartmentList(
+                      context,
+                      todosDepartamentos,
+                      todosProfesores,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // Lista vertical de departamentos con avatares de sus profesores
-              _buildVerticalDepartmentList(
-                context,
-                todosDepartamentos,
-                todosProfesores,
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
   }
 
-  Widget _buildSimpleHeader(String nombre, Profesores? usuario) {
+  Widget _buildSimpleHeader(String nombre, Profesor? usuario) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -503,10 +538,52 @@ class HomeContent extends StatelessWidget {
               onPressed: () {},
               icon: Icon(Icons.search, color: Colors.grey[400]),
             ),
+            const SizedBox(width: 8),
+            Consumer<NotificationProvider>(
+              builder: (context, notifProvider, child) {
+                return Stack(
+                  children: [
+                    IconButton(
+                      onPressed: () =>
+                          _mostrarNotificaciones(context, notifProvider),
+                      icon: Icon(
+                        Icons.notifications_none_rounded,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                    if (notifProvider.unreadCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 14,
+                            minHeight: 14,
+                          ),
+                          child: Text(
+                            '${notifProvider.unreadCount}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
             const SizedBox(width: 15),
             _buildAvatar(
               usuario ??
-                  Profesores(
+                  const Profesor(
                     id: '0',
                     nombre: 'Invitado',
                     asignatura: '',
@@ -584,7 +661,7 @@ class HomeContent extends StatelessWidget {
   Widget _buildVerticalDepartmentList(
     BuildContext context,
     List<String> departamentos,
-    List<Profesores> profesores,
+    List<Profesor> profesores,
   ) {
     // 1. Filtrar 'Todos'
     final listaReal = departamentos.where((d) => d != 'Todos').toList();
@@ -691,6 +768,56 @@ class HomeContent extends StatelessWidget {
           ),
         );
       }).toList(),
+    );
+  }
+
+  void _mostrarNotificaciones(
+    BuildContext context,
+    NotificationProvider provider,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Notificaciones'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: provider.notifications.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Text(
+                    'No tienes notificaciones nuevas',
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: provider.notifications.length,
+                  itemBuilder: (context, index) {
+                    final n = provider.notifications[index];
+                    return ListTile(
+                      leading: Icon(
+                        n.isRead
+                            ? Icons.mark_chat_read
+                            : Icons.mark_chat_unread,
+                        color: n.isRead ? Colors.grey : Colors.indigo,
+                      ),
+                      title: Text(n.title),
+                      subtitle: Text(n.message),
+                      onTap: () {
+                        provider.markAsRead(n.id);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
     );
   }
 }

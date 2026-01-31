@@ -1,48 +1,43 @@
-class Profesores {
-  final String id;
-  final String nombre;
-  final String asignatura;
-  final String curso;
-  final String foto;
-  final String contrasena;
-  final String departamento;
-  final bool estadoAusente;
+import 'package:gestion_ausencias/domain/entities/profesor.dart';
 
-  Profesores({
-    required this.id,
-    required this.nombre,
-    required this.asignatura,
-    required this.curso,
-    required this.foto,
-    required this.contrasena,
-    required this.departamento,
-    required this.estadoAusente,
+class ProfesorModel extends Profesor {
+  const ProfesorModel({
+    required super.id,
+    required super.nombre,
+    required super.asignatura,
+    required super.curso,
+    required super.foto,
+    required super.contrasena,
+    required super.departamento,
+    required super.estadoAusente,
   });
 
-  // Método para crear copia con algunos valores actualizados
-  Profesores copyWith({
-    String? id,
-    String? nombre,
-    String? asignatura,
-    String? curso,
-    String? foto,
-    String? contrasena,
-    String? departamento,
-    bool? estadoAusente,
-  }) {
-    return Profesores(
-      id: id ?? this.id,
-      nombre: nombre ?? this.nombre,
-      asignatura: asignatura ?? this.asignatura,
-      curso: curso ?? this.curso,
-      foto: foto ?? this.foto,
-      contrasena: contrasena ?? this.contrasena,
-      departamento: departamento ?? this.departamento,
-      estadoAusente: estadoAusente ?? this.estadoAusente,
+  factory ProfesorModel.fromJson(Map<String, dynamic> json) {
+    return ProfesorModel(
+      id: json['id'] ?? '',
+      nombre: json['nombre'] ?? '',
+      asignatura: json['asignatura'] ?? '',
+      curso: json['curso'] ?? '',
+      foto: json['foto'] ?? '',
+      contrasena: json['contrasena'] ?? '',
+      departamento: json['departamento'] ?? 'General',
+      estadoAusente: json['estadoAusente'] ?? false,
     );
   }
 
-  // Convertir a JSON para SharedPreferences
+  factory ProfesorModel.fromEntity(Profesor profesor) {
+    return ProfesorModel(
+      id: profesor.id,
+      nombre: profesor.nombre,
+      asignatura: profesor.asignatura,
+      curso: profesor.curso,
+      foto: profesor.foto,
+      contrasena: profesor.contrasena,
+      departamento: profesor.departamento,
+      estadoAusente: profesor.estadoAusente,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -54,19 +49,5 @@ class Profesores {
       'departamento': departamento,
       'estadoAusente': estadoAusente,
     };
-  }
-
-  // Crear desde JSON
-  factory Profesores.fromJson(Map<String, dynamic> json) {
-    return Profesores(
-      id: json['id'] ?? '',
-      nombre: json['nombre'] ?? '',
-      asignatura: json['asignatura'] ?? '',
-      curso: json['curso'] ?? '',
-      foto: json['foto'] ?? '',
-      contrasena: json['contrasena'] ?? '',
-      departamento: json['departamento'] ?? 'General',
-      estadoAusente: json['estadoAusente'] ?? false,
-    );
   }
 }
