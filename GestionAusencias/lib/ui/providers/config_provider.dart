@@ -34,17 +34,39 @@ class ConfigProvider extends ChangeNotifier {
     _loadPreferences();
   }
 
+  Locale _appLocale = const Locale('es');
+  Locale get appLocale => _appLocale;
+
+  ThemeMode _themeMode = ThemeMode.light;
+  ThemeMode get themeMode => _themeMode;
+
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     final savedBg = prefs.getString('backgroundImage');
+    final savedLang = prefs.getString('app_language');
 
-    // Autocorrección: Si el fondo guardado ya no está en nuestra lista, lo quitamos
+    // Load Background
     if (savedBg != null && !_wallpapers.contains(savedBg)) {
       await prefs.remove('backgroundImage');
       _backgroundImage = null;
     } else {
       _backgroundImage = savedBg;
     }
+
+    // Load Language
+    if (savedLang != null) {
+      _appLocale = Locale(savedLang);
+    }
+
+    // Load Theme
+    final savedTheme = prefs.getString('app_theme');
+    if (savedTheme != null) {
+      if (savedTheme == 'dark')
+        _themeMode = ThemeMode.dark;
+      else
+        _themeMode = ThemeMode.light;
+    }
+
     notifyListeners();
   }
 
@@ -58,5 +80,22 @@ class ConfigProvider extends ChangeNotifier {
     }
     _backgroundImage = url; //actualiza inmediato
     notifyListeners(); //avisa a todos los widgets que esten escuchando que el valor ha cambiado, haciendo que se adapte al nuevo fondo
+  }
+
+  Future<void> changeLanguage(Locale locale) async {
+    _appLocale = locale;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_language', locale.languageCode);
+    notifyListeners();
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    _themeMode = mode;
+    final prefs = await SharedPreferences.getInstance();
+    String modeStr = 'system';
+    if (mode == ThemeMode.light) modeStr = 'light';
+    if (mode == ThemeMode.dark) modeStr = 'dark';
+    await prefs.setString('app_theme', modeStr);
+    notifyListeners();
   }
 }

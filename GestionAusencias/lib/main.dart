@@ -69,16 +69,6 @@ class GestionAusencias extends StatefulWidget {
 }
 
 class _GestionAusenciasState extends State<GestionAusencias> {
-  ThemeMode _temaActual = ThemeMode.light;
-
-  void _cambiarTema() {
-    setState(() {
-      _temaActual = _temaActual == ThemeMode.light
-          ? ThemeMode.dark
-          : ThemeMode.light;
-    });
-  }
-
   // Logout is now handled by AuthProvider, but we might pass a callback if needed by legacy code
   // or simply rely on AuthProvider state changes.
   void _logout(BuildContext context) {
@@ -87,6 +77,7 @@ class _GestionAusenciasState extends State<GestionAusencias> {
 
   @override
   Widget build(BuildContext context) {
+    final configProvider = context.watch<ConfigProvider>();
     final authProvider = context.watch<AuthProvider>();
 
     return MaterialApp(
@@ -107,23 +98,17 @@ class _GestionAusenciasState extends State<GestionAusencias> {
           bodyMedium: TextStyle(color: Color(0xFFF9F7F2)), // Texto en crema
         ),
       ),
-      themeMode: _temaActual,
+      themeMode: configProvider.themeMode,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('es', 'ES')],
-      locale: const Locale('es', 'ES'),
+      supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
+      locale: configProvider.appLocale,
       home: authProvider.isLoggedIn
-          ? MainLayout(
-              alCambiarTema: _cambiarTema,
-              esModoOscuro: _temaActual == ThemeMode.dark,
-              onLogout: () => _logout(context),
-            )
+          ? MainLayout(onLogout: () => _logout(context))
           : LoginScreen(
-              alCambiarTema: _cambiarTema,
-              esModoOscuro: _temaActual == ThemeMode.dark,
               onLoginSuccess: () {
                 // Now handled by AuthProvider state, but kept for compatibility if needed.
                 // Actually the redirection is done by 'home:' property listening to authProvider.isLoggedIn

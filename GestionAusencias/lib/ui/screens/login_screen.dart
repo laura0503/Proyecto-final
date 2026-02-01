@@ -4,16 +4,9 @@ import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
-  final VoidCallback alCambiarTema;
-  final bool esModoOscuro;
   final VoidCallback onLoginSuccess;
 
-  const LoginScreen({
-    super.key,
-    required this.alCambiarTema,
-    required this.esModoOscuro,
-    required this.onLoginSuccess,
-  });
+  const LoginScreen({super.key, required this.onLoginSuccess});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();

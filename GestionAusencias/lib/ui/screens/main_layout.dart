@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
@@ -7,6 +8,7 @@ import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 import '../providers/config_provider.dart';
 import '../providers/notification_provider.dart';
 
+import 'package:gestion_ausencias/ui/utils/app_strings.dart';
 import 'package:gestion_ausencias/ui/screens/settings_screen.dart';
 import 'package:gestion_ausencias/ui/screens/guardias_screen.dart';
 import 'package:gestion_ausencias/ui/screens/planning_screen.dart';
@@ -14,16 +16,9 @@ import 'package:gestion_ausencias/ui/screens/profesor_screen.dart';
 // import 'package:gestion_ausencias/ui/screens/home_screen.dart'; // Circular dependency if not careful, but MainLayout imports HomeScreen logic via HomeContent usually.
 
 class MainLayout extends StatefulWidget {
-  final VoidCallback alCambiarTema;
-  final bool esModoOscuro;
   final VoidCallback onLogout;
 
-  const MainLayout({
-    super.key,
-    required this.alCambiarTema,
-    required this.esModoOscuro,
-    required this.onLogout,
-  });
+  const MainLayout({super.key, required this.onLogout});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -57,10 +52,23 @@ class _MainLayoutState extends State<MainLayout> {
     _pageController.jumpToPage(index);
   }
 
+  // ... imports ...
+
   @override
   Widget build(BuildContext context) {
-    // Screens need to be rebuilt if state changes?
-    // Usually standard PageView keeps state.
+    // Global Wallpaper Provider
+    final configProvider = context.watch<ConfigProvider>();
+    final bgProvider = configProvider.backgroundImageProvider;
+
+    // Theme Logic
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final glassColor = isDark
+        ? const Color(0xFF1E293B).withOpacity(0.7)
+        : Colors.white.withOpacity(0.7);
+    final iconColorNormal = isDark
+        ? Colors.white70
+        : const Color(0xFF354231).withOpacity(0.6);
+
     final List<Widget> _screens = [
       HomeContent(
         onNavigate: _irAPagina,
@@ -74,34 +82,84 @@ class _MainLayoutState extends State<MainLayout> {
     ];
 
     return Scaffold(
-      backgroundColor: backgroundColor,
-      body: Row(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Stack(
         children: [
-          // SIDEBAR INTEGRADO (SIN MÁRGENES)
+          // 1. Global Wallpaper
           Container(
-            width: 90,
-            color: sidebarColor,
-            child: Column(
-              children: [
-                const SizedBox(height: 50),
-                _sidebarItem(Icons.dashboard_rounded, "Inicio", 0),
-                _sidebarItem(Icons.calendar_month_rounded, "Planning", 1),
-                _sidebarItem(Icons.shield_rounded, "Guardias", 2),
-                _sidebarItem(Icons.people_alt_rounded, "Profesores", 3),
-                _sidebarItem(Icons.settings_rounded, "Ajustes", 4),
-                const Spacer(),
-                _sidebarItem(Icons.logout_rounded, "Salir", -1, isLogout: true),
-                const SizedBox(height: 30),
-              ],
+            decoration: BoxDecoration(
+              color: bgProvider == null
+                  ? Theme.of(context).scaffoldBackgroundColor
+                  : null,
+              image: bgProvider != null
+                  ? DecorationImage(image: bgProvider, fit: BoxFit.cover)
+                  : null,
             ),
           ),
 
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: (index) => setState(() => _selectedIndex = index),
-              children: _screens,
-            ),
+          // 2. Glass Sidebar & Content
+          Row(
+            children: [
+              // SIDEBAR INTEGRADO (Glassmorphism)
+              ClipRRect(
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                  child: Container(
+                    width: 90,
+                    color: glassColor, // Dynamic Glass
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 50),
+                        _sidebarItem(
+                          Icons.dashboard_rounded,
+                          AppStrings.get(context, 'inicio'),
+                          0,
+                        ),
+                        _sidebarItem(
+                          Icons.calendar_month_rounded,
+                          AppStrings.get(context, 'planning'),
+                          1,
+                        ),
+                        _sidebarItem(
+                          Icons.shield_rounded,
+                          AppStrings.get(context, 'guardias'),
+                          2,
+                        ),
+                        _sidebarItem(
+                          Icons.people_alt_rounded,
+                          AppStrings.get(context, 'profesores'),
+                          3,
+                        ),
+                        _sidebarItem(
+                          Icons.settings_rounded,
+                          AppStrings.get(context, 'ajustes'),
+                          4,
+                        ),
+                        const Spacer(),
+                        _sidebarItem(
+                          Icons.logout_rounded,
+                          AppStrings.get(context, 'salir'),
+                          -1,
+                          isLogout: true,
+                        ),
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  physics:
+                      const NeverScrollableScrollPhysics(), // Disable swipe
+                  onPageChanged: (index) =>
+                      setState(() => _selectedIndex = index),
+                  children: _screens,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -114,7 +172,7 @@ class _MainLayoutState extends State<MainLayout> {
     super.dispose();
   }
 
-  // 1. CORRECCIÓN: Etiquetas debajo del icono
+  // 1. Sidebar Item corrección para estilo Glass (texto oscuro)
   Widget _sidebarItem(
     IconData icon,
     String label,
@@ -122,6 +180,23 @@ class _MainLayoutState extends State<MainLayout> {
     bool isLogout = false,
   }) {
     bool isSelected = _selectedIndex == index;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Darker colors for light glass background, lighter for dark
+    final Color iconColor = isSelected
+        ? Colors.white
+        : (isLogout
+              ? Colors.redAccent
+              : (isDark
+                    ? Colors.white70
+                    : const Color(0xFF354231).withOpacity(0.6)));
+
+    final Color textColor = isSelected
+        ? Colors.white
+        : (isLogout
+              ? Colors.redAccent
+              : (isDark ? Colors.white70 : const Color(0xFF354231)));
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: Tooltip(
@@ -146,22 +221,25 @@ class _MainLayoutState extends State<MainLayout> {
                 decoration: BoxDecoration(
                   color: isSelected ? activeTabColor : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: activeTabColor.withOpacity(0.4),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
                 ),
-                child: Icon(
-                  icon,
-                  color: isLogout
-                      ? Colors.redAccent
-                      : (isSelected ? Colors.white : Colors.white30),
-                  size: 24,
-                ),
+                child: Icon(icon, color: iconColor, size: 24),
               ),
               const SizedBox(height: 4),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.white30,
+                  color: textColor,
                   fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 ),
               ),
             ],
@@ -422,83 +500,87 @@ class HomeContent extends StatelessWidget {
           ),
         ];
 
-        return Consumer<ConfigProvider>(
-          builder: (context, config, child) {
-            return Container(
-              decoration: BoxDecoration(
-                image: config.backgroundImageProvider != null
-                    ? DecorationImage(
-                        image: config.backgroundImageProvider!,
-                        fit: BoxFit.cover,
-                        opacity: 0.8,
-                      )
-                    : null,
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSimpleHeader(context, nombre, usuario),
+              const SizedBox(height: 30),
+
+              // Fila de 3 tarjetas de información principales
+              Row(
+                children: [
+                  _infoCard(
+                    context,
+                    AppStrings.get(context, 'planning'),
+                    AppStrings.get(context, 'ausencias_hoy'),
+                    Icons.calendar_month_outlined,
+                    const Color(0xFF6C63FF),
+                    () => onNavigate(1),
+                    gradient: [
+                      const Color(0xFF6C63FF),
+                      const Color(0xFF9FA8DA).withOpacity(0.8),
+                    ],
+                  ),
+                  const SizedBox(width: 20),
+                  _infoCard(
+                    context,
+                    AppStrings.get(context, 'guardias'),
+                    AppStrings.get(context, 'pendientes'),
+                    Icons.shield_outlined,
+                    const Color(0xFFFFA726),
+                    () => onNavigate(2),
+                    gradient: [
+                      const Color(0xFFFFA726),
+                      const Color(0xFFFFCC80),
+                    ],
+                  ),
+                  const SizedBox(width: 20),
+                  _infoCard(
+                    context,
+                    AppStrings.get(context, 'departamentos'),
+                    "${todosDepartamentos.length - 1} ${AppStrings.get(context, 'areas')}",
+                    Icons.grid_view_rounded,
+                    const Color(0xFF66BB6A),
+                    () {},
+                    gradient: [
+                      const Color(0xFF66BB6A),
+                      const Color(0xFFA5D6A7),
+                    ],
+                  ),
+                ],
               ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(40),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSimpleHeader(nombre, usuario),
-                    const SizedBox(height: 30),
 
-                    // Fila de 3 tarjetas de información principales
-                    Row(
-                      children: [
-                        _infoCard(
-                          "Planning",
-                          "3 Ausencias hoy",
-                          Icons.calendar_month_outlined,
-                          const Color(0xFF6C63FF),
-                          () => onNavigate(1),
-                        ),
-                        const SizedBox(width: 20),
-                        _infoCard(
-                          "Guardias",
-                          "2 Pendientes",
-                          Icons.shield_outlined,
-                          const Color(0xFFFFA726),
-                          () => onNavigate(2),
-                        ),
-                        const SizedBox(width: 20),
-                        _infoCard(
-                          "Departamentos",
-                          "${todosDepartamentos.length - 1} Áreas",
-                          Icons.grid_view_rounded,
-                          const Color(0xFF66BB6A),
-                          () {},
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 48),
-                    const Text(
-                      "Departamentos y Personal",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF354231),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Lista vertical de departamentos con avatares de sus profesores
-                    _buildVerticalDepartmentList(
-                      context,
-                      todosDepartamentos,
-                      todosProfesores,
-                    ),
-                  ],
+              const SizedBox(height: 48),
+              Text(
+                AppStrings.get(context, 'dptos_personal'),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF354231),
                 ),
               ),
-            );
-          },
+              const SizedBox(height: 20),
+
+              // Lista vertical de departamentos con avatares de sus profesores
+              _buildVerticalDepartmentList(
+                context,
+                todosDepartamentos,
+                todosProfesores,
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildSimpleHeader(String nombre, Profesor? usuario) {
+  Widget _buildSimpleHeader(
+    BuildContext context,
+    String nombre,
+    Profesor? usuario,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -506,7 +588,7 @@ class HomeContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "San José Dashboard",
+              AppStrings.get(context, 'dashboard_title'),
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
@@ -602,56 +684,98 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _infoCard(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
+    Color color, // Use this for fallback or icon tint
+    VoidCallback onTap, {
+    List<Color>? gradient, // Add gradient support
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final glassColor = isDark
+        ? const Color(0xFF1E293B).withOpacity(0.7)
+        : Colors.white.withOpacity(0.6);
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.1)
+        : Colors.white.withOpacity(0.2);
+    final titleColor = isDark ? Colors.white : Colors.black;
+    final subtitleColor = isDark ? Colors.white70 : Colors.black54;
+
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: InkWell(
+            onTap: onTap,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: color, size: 22),
-              const SizedBox(height: 15),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Row(
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: glassColor, // Glass
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: borderColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
                   ),
                 ],
               ),
-            ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Icon with Gradient
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: gradient != null
+                          ? LinearGradient(
+                              colors: gradient,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                      color: gradient == null ? color.withOpacity(0.1) : null,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: gradient != null ? Colors.white : color,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: titleColor,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        subtitle,
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -673,6 +797,17 @@ class HomeContent extends StatelessWidget {
       return a.compareTo(b);
     });
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final glassColor = isDark
+        ? const Color(0xFF1E293B).withOpacity(0.7)
+        : Colors.white.withOpacity(0.6);
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.1)
+        : Colors.transparent;
+    final arrowColor = isDark ? Colors.white38 : Colors.grey.shade400;
+    final titleColor = isDark ? Colors.white : const Color(0xFF354231);
+    final subtitleColor = isDark ? Colors.white70 : Colors.grey.shade600;
+
     return Column(
       children: listaReal.map((dep) {
         final profesEnDep = dep == 'General'
@@ -680,90 +815,67 @@ class HomeContent extends StatelessWidget {
             : profesores.where((p) => p.departamento == dep).toList();
         final icon = depIcons[dep] ?? Icons.school_rounded;
 
-        return InkWell(
-          onTap: () => _mostrarDetalleDepartamento(context, dep, profesEnDep),
+        return ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: InkWell(
+              onTap: () =>
+                  _mostrarDetalleDepartamento(context, dep, profesEnDep),
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.01),
-                  blurRadius: 10,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: glassColor, // Glass
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: borderColor),
                 ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF9F7F2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: const Color(0xFF354231), size: 20),
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        dep == 'General' ? "General (Todos)" : dep,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Color(0xFF354231),
-                        ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(isDark ? 0.1 : 0.5),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      Text(
-                        dep == 'General'
-                            ? "Todo el personal: ${profesEnDep.length}"
-                            : "${profesEnDep.length} Profesores",
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 11,
-                        ),
+                      child: Icon(
+                        icon,
+                        size: 24,
+                        color: isDark ? Colors.white : const Color(0xFF354231),
                       ),
-                    ],
-                  ),
-                ),
-                // Avatares de los profesores en el departamento
-                SizedBox(
-                  height: 30,
-                  width: 100, // Ancho suficiente para los avatares apilados
-                  child: Stack(
-                    alignment: Alignment.centerRight,
-                    children: [
-                      for (int i = 0; i < profesEnDep.take(4).length; i++)
-                        Positioned(
-                          right: i * 18.0,
-                          child: _buildAvatar(profesEnDep[i], radius: 13),
-                        ),
-                      if (profesEnDep.length > 4)
-                        Positioned(
-                          right: 4 * 18.0,
-                          child: CircleAvatar(
-                            radius: 15,
-                            backgroundColor: const Color(0xFF354231),
-                            child: Text(
-                              "+${profesEnDep.length - 4}",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                              ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            dep,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: titleColor,
                             ),
                           ),
-                        ),
-                    ],
-                  ),
+                          Text(
+                            "${profesEnDep.length} ${AppStrings.get(context, 'profesores').toLowerCase()}",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: subtitleColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 16,
+                      color: arrowColor,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
-              ],
+              ),
             ),
           ),
         );
