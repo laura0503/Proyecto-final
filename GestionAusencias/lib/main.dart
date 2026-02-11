@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // Import dotenv
+import 'package:supabase_flutter/supabase_flutter.dart'; // Import Supabase
 
 // Domain & Data
 import 'package:gestion_ausencias/data/datasources/profesor_local_datasource.dart';
@@ -17,12 +19,22 @@ import 'package:gestion_ausencias/ui/screens/login_screen.dart';
 import 'package:gestion_ausencias/ui/screens/main_layout.dart';
 import 'package:gestion_ausencias/ui/providers/config_provider.dart';
 import 'package:gestion_ausencias/ui/providers/notification_provider.dart';
+import 'package:gestion_ausencias/core/theme/app_theme.dart'; // Import AppTheme
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es', null);
 
-  // 1. Initialize Data Layer
+  // 1. Load Environment Variables
+  await dotenv.load(fileName: ".env");
+
+  // 2. Initialize Supabase
+  await Supabase.initialize(
+    url: dotenv.env['URL']!,
+    anonKey: dotenv.env['KEY']!,
+  );
+
+  // 3. Initialize Data Layer (Local for now, will migrate later)
   final localDataSource = ProfesorLocalDataSource();
   final repository = ProfesorRepositoryImpl(localDataSource: localDataSource);
 
@@ -61,34 +73,18 @@ void main() async {
   );
 }
 
-class GestionAusencias extends StatefulWidget {
+class GestionAusencias extends StatelessWidget {
   const GestionAusencias({super.key});
 
   @override
-  State<GestionAusencias> createState() => _GestionAusenciasState();
-}
-
-class _GestionAusenciasState extends State<GestionAusencias> {
-  // Logout is now handled by AuthProvider, but we might pass a callback if needed by legacy code
-  // or simply rely on AuthProvider state changes.
-  void _logout(BuildContext context) {
-    context.read<AuthProvider>().logout();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final configProvider = context.watch<ConfigProvider>();
-    final authProvider = context.watch<AuthProvider>();
+    final configProvider = Provider.of<ConfigProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
 
     return MaterialApp(
-      title: 'Gestión de Profesores',
+      title: 'Gestión de Ausencias',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.light,
-        primaryColor: const Color(0xFF6C63FF),
-        scaffoldBackgroundColor: const Color(0xFFF9F7F2), // Crema
-        cardColor: Colors.white,
-      ),
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         primaryColor: const Color(0xFF6C63FF),
@@ -107,11 +103,10 @@ class _GestionAusenciasState extends State<GestionAusencias> {
       supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
       locale: configProvider.appLocale,
       home: authProvider.isLoggedIn
-          ? MainLayout(onLogout: () => _logout(context))
+          ? MainLayout(onLogout: () => authProvider.logout())
           : LoginScreen(
               onLoginSuccess: () {
-                // Now handled by AuthProvider state, but kept for compatibility if needed.
-                // Actually the redirection is done by 'home:' property listening to authProvider.isLoggedIn
+                // Navigation is handled by the home property relying on authProvider state
               },
             ),
     );
