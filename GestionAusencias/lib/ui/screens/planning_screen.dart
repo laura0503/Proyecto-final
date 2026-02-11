@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:gestion_ausencias/data/models/horario_model.dart';
-import 'package:gestion_ausencias/domain/usecases/get_horarios_usecase.dart';
 import 'package:gestion_ausencias/core/utils/date.dart';
 import '../../domain/entities/profesor.dart';
 import '../../domain/usecases/get_profesores_usecase.dart';
 import '../providers/config_provider.dart';
 import 'settings_screen.dart';
-// Direct DataSources for now as per plan
-import 'package:gestion_ausencias/data/datasources/aula_supabase_datasource.dart';
-import 'package:gestion_ausencias/data/datasources/grupo_supabase_datasource.dart';
 
 class DatosSlot {
   final TextEditingController controller;
@@ -33,10 +28,7 @@ class PlanningScreen extends StatefulWidget {
 class _PlanningScreenState extends State<PlanningScreen> {
   DateTime _fechaSeleccionada = DateTime.now();
   final Map<String, DatosSlot> _registroFaltas = {};
-  List<Profesor> _profesoresReales = [];
-  List<HorarioModel> _horarios = [];
-  Map<String, String> _nombresAulas = {};
-  Map<String, String> _nombresGrupos = {};
+  List<Profesor> _profesoresReales = []; // Changed to Profesor
   bool _cargandoProfesores = true;
 
   final Color primaryColor = const Color(0xFF6C63FF);
@@ -46,36 +38,20 @@ class _PlanningScreenState extends State<PlanningScreen> {
   @override
   void initState() {
     super.initState();
-    _cargarDatos();
+    _cargarProfesores();
   }
 
-  Future<void> _cargarDatos() async {
+  Future<void> _cargarProfesores() async {
     try {
       final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
-      final getHorariosUseCase = context.read<GetHorariosUseCase>();
-
-      // Accessing DataSources directly for simple name lookup
-      final aulaDataSource = context.read<AulaSupabaseDataSource>();
-      final grupoDataSource = context.read<GrupoSupabaseDataSource>();
-
-      final listaProfes = await getProfesoresUseCase.execute();
-      final listaHorarios = await getHorariosUseCase.execute();
-      final listaAulas = await aulaDataSource.getAulas();
-      final listaGrupos = await grupoDataSource.getGrupos();
-
+      final lista = await getProfesoresUseCase.execute();
       if (mounted) {
         setState(() {
-          _profesoresReales = listaProfes;
-          _horarios = listaHorarios;
-          // Create maps for O(1) lookup
-          _nombresAulas = {for (var a in listaAulas) a.id: a.nombre};
-          _nombresGrupos = {for (var g in listaGrupos) g.id: g.nombre};
-
+          _profesoresReales = lista;
           _cargandoProfesores = false;
         });
       }
     } catch (e) {
-      print("Error cargando datos: $e");
       if (mounted) setState(() => _cargandoProfesores = false);
     }
   }
@@ -340,9 +316,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
                     radius: 25,
                     backgroundColor: primaryColor.withOpacity(0.1),
                     child: Text(
-                      profesor.nombre.isNotEmpty
-                          ? profesor.nombre[0].toUpperCase()
-                          : '?',
+                      profesor.nombre[0],
                       style: TextStyle(
                         color: primaryColor,
                         fontWeight: FontWeight.bold,
@@ -366,7 +340,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
             ...dias.map(
               (fecha) => Expanded(
                 child: GestureDetector(
-                  onTap: () => _abrirAgenda(fecha, profesor),
+                  onTap: () => _abrirAgenda(fecha, profesor.nombre),
                   child: Container(
                     margin: const EdgeInsets.all(3),
                     constraints: const BoxConstraints(minHeight: 70),
@@ -436,7 +410,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
     );
   }
 
-  void _abrirAgenda(DateTime fecha, Profesor profesor) {
+  void _abrirAgenda(DateTime fecha, String profesor) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -467,23 +441,21 @@ class _PlanningScreenState extends State<PlanningScreen> {
                     child: const Icon(Icons.event_note, color: Colors.white),
                   ),
                   const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          profesor.nombre,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        profesor,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
-                        Text(
-                          DateFormat('EEEE, d MMMM', 'es').format(fecha),
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
+                      ),
+                      Text(
+                        DateFormat('EEEE, d MMMM', 'es').format(fecha),
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -502,64 +474,12 @@ class _PlanningScreenState extends State<PlanningScreen> {
     );
   }
 
-  Widget _buildFilaHora(Profesor profesor, DateTime fecha, int hora) {
-    String key =
-        "${profesor.nombre}_${DateFormat('yyyy-MM-dd').format(fecha)}_$hora";
-
-    // Buscar horario para este slot
-    HorarioModel? horarioEncontrado;
-    try {
-      final nombreDia = DateFormat(
-        'EEEE',
-        'es',
-      ).format(fecha); // lunes, martes...
-
-      if (_horarios.isNotEmpty) {
-        horarioEncontrado = _horarios.firstWhere(
-          (h) {
-            // Normalizar día (Supabase puede tener "Lunes" o "lunes")
-            bool diaMatch =
-                h.diaSemana.toLowerCase() == nombreDia.toLowerCase();
-
-            // Normalizar hora (h.horaInicio puede ser "08:15:00")
-            // Assuming format is HH:MM:SS or HH:MM
-            int hInicio = -1;
-            try {
-              hInicio = int.parse(h.horaInicio.split(":")[0]);
-            } catch (e) {}
-
-            bool horaMatch = hInicio == hora;
-
-            // Match profesor ID
-            bool profeMatch = h.profesorId == profesor.id;
-
-            return diaMatch && horaMatch && profeMatch;
-          },
-          orElse: () => HorarioModel(
-            id: '',
-            profesorId: '',
-            grupoId: '',
-            aulaId: '',
-            diaSemana: '',
-            horaInicio: '',
-            horaFin: '',
-          ),
-        );
-
-        if (horarioEncontrado != null && horarioEncontrado.id.isEmpty) {
-          horarioEncontrado = null;
-        }
-      }
-    } catch (e) {
-      horarioEncontrado = null;
-      print("Error buscando horario: $e");
-    }
-
+  Widget _buildFilaHora(String profesor, DateTime fecha, int hora) {
+    String key = "${profesor}_${DateFormat('yyyy-MM-dd').format(fecha)}_$hora";
     final datos = _registroFaltas.putIfAbsent(
       key,
       () => DatosSlot(controller: TextEditingController()),
     );
-
     return StatefulBuilder(
       builder: (context, setModalState) {
         return Container(
@@ -583,43 +503,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
                     border: Border.all(color: datos.color.withOpacity(0.2)),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (horarioEncontrado != null) ...[
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: primaryColor.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.class_rounded,
-                                size: 12,
-                                color: primaryColor,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                "${_nombresGrupos[horarioEncontrado!.grupoId] ?? 'Grupo'} - ${_nombresAulas[horarioEncontrado!.aulaId] ?? 'Aula'}",
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: primaryColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                       Row(
                         children: [
                           _dot(key, Colors.redAccent, "FALTA", setModalState),
@@ -693,3 +577,6 @@ class _PlanningScreenState extends State<PlanningScreen> {
     );
   }
 }
+//para poner el motivo de las horarios el widget que hemos utilizado IntrinsicHeight(Al envolver la fila del profesor con IntrinsicHeight, obligamos a que todas las celdas de esa fila (el nombre y los 5 días) se estiren hasta alcanzar la altura de la celda más larga.)
+//Aplicar hors--> column 
+//para los colores ha puesto esto Glassmorphism

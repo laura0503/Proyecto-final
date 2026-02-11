@@ -26,7 +26,17 @@ class AuthProvider extends ChangeNotifier {
        _repository = repository;
 
   Future<void> checkSession() async {
-    _profesorActual = await _repository.obtenerSesionActual();
+    // BYPASS LOGIN: Set dummy user directly
+    _profesorActual = const Profesor(
+      id: 'dummy_id',
+      nombre: 'Admin Local',
+      asignatura: 'Informática',
+      curso: '1',
+      foto: '',
+      contrasena: '',
+      departamento: 'Tecnología',
+      estadoAusente: false,
+    );
     notifyListeners();
   }
 

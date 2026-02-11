@@ -1,20 +1,21 @@
-import 'package:shared_preferences/shared_preferences.dart';
-
 class ProfesorLocalDataSource {
-  static const String _sessionKey = 'sesion_activa';
+  Future<List<String>> obtenerProfesoresRaw() async {
+    return [];
+  }
+
+  Future<void> guardarProfesoresRaw(List<String> profesores) async {
+    // No-op
+  }
 
   Future<String?> obtenerSesionRaw() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_sessionKey);
+    return null;
   }
 
   Future<void> guardarSesionRaw(String profesorJson) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_sessionKey, profesorJson);
+    // No-op
   }
 
   Future<void> eliminarSesion() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_sessionKey);
+    // No-op
   }
 }

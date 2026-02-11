@@ -1,44 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:gestion_ausencias/data/datasources/aula_supabase_datasource.dart';
-import 'package:gestion_ausencias/data/datasources/grupo_supabase_datasource.dart';
-import 'package:gestion_ausencias/data/datasources/horario_supabase_datasource.dart';
+import 'package:provider/provider.dart';
+
+// Domain & Data
 import 'package:gestion_ausencias/data/datasources/profesor_local_datasource.dart';
-import 'package:gestion_ausencias/data/datasources/profesor_supabase_datasource.dart';
 import 'package:gestion_ausencias/data/repositories/profesor_repository_impl.dart';
-import 'package:gestion_ausencias/data/repositories/horario_repository_impl.dart';
 import 'package:gestion_ausencias/domain/repositories/profesor_repository.dart';
-import 'package:gestion_ausencias/domain/repositories/horario_repository.dart';
-import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
-import 'package:gestion_ausencias/domain/usecases/get_horarios_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/login_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/register_profesor_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
+
+// Providers & UI
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
-import 'package:gestion_ausencias/ui/providers/config_provider.dart';
-import 'package:gestion_ausencias/ui/providers/notification_provider.dart';
 import 'package:gestion_ausencias/ui/screens/login_screen.dart';
 import 'package:gestion_ausencias/ui/screens/main_layout.dart';
-import 'package:intl/date_symbol_data_local.dart';
-import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gestion_ausencias/ui/providers/config_provider.dart';
+import 'package:gestion_ausencias/ui/providers/notification_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await Supabase.initialize(
-    url: 'https://sqvnwbyciampgixlubxc.supabase.co',
-    anonKey: 'sb_publishable_uMVpbZ__VJtoKDZexSSMGA_ov-HFCmN',
-  );
-
   await initializeDateFormatting('es', null);
 
   // 1. Initialize Data Layer
   final localDataSource = ProfesorLocalDataSource();
-  final supabaseDataSource = ProfesorSupabaseDataSource();
-  final repository = ProfesorRepositoryImpl(
-    localDataSource: localDataSource,
-    remoteDataSource: supabaseDataSource,
-  );
+  final repository = ProfesorRepositoryImpl(localDataSource: localDataSource);
 
   runApp(
     MultiProvider(
@@ -55,27 +41,6 @@ void main() async {
         ),
         Provider<GetProfesoresUseCase>(
           create: (_) => GetProfesoresUseCase(repository),
-        ),
-
-        // DataSources Providers (Simple injection for now)
-        Provider<AulaSupabaseDataSource>(
-          create: (_) => AulaSupabaseDataSource(),
-        ),
-        Provider<GrupoSupabaseDataSource>(
-          create: (_) => GrupoSupabaseDataSource(),
-        ),
-        Provider<HorarioSupabaseDataSource>(
-          create: (_) => HorarioSupabaseDataSource(),
-        ),
-
-        // Repositories
-        ProxyProvider<HorarioSupabaseDataSource, HorarioRepository>(
-          update: (_, dataSource, __) =>
-              HorarioRepositoryImpl(remoteDataSource: dataSource),
-        ),
-
-        ProxyProvider<HorarioRepository, GetHorariosUseCase>(
-          update: (_, repo, __) => GetHorariosUseCase(repo),
         ),
 
         // Logic/State Management Injection

@@ -81,34 +81,7 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
 
   void _cargarGuardiasDePrueba() {
     setState(() {
-      _guardias = [
-        Guardia(
-          id: '1',
-          fecha: DateTime.now(),
-          horaInicio: '8:00',
-          horaFin: '9:00',
-          grupo: '1A',
-          aula: 'A10',
-          profesorAusente: 'Carlos Ruiz',
-          asignaturaAusente: 'Física',
-          tarea: 'Ejercicios página 45-47',
-          profesorGuardia: 'Ana García',
-          confirmada: true,
-        ),
-        Guardia(
-          id: '2',
-          fecha: DateTime.now(),
-          horaInicio: '9:00',
-          horaFin: '10:00',
-          grupo: '2B',
-          aula: 'B05',
-          profesorAusente: 'María López',
-          asignaturaAusente: 'Matemáticas',
-          tarea: 'Control tema 3',
-          profesorGuardia: 'Pedro Sánchez',
-          confirmada: false,
-        ),
-      ];
+      _guardias = [];
     });
   }
 

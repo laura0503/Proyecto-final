@@ -18,8 +18,7 @@ class ConfigProvider extends ChangeNotifier {
     'https://i.pinimg.com/736x/ae/c7/0a/aec70ad497b05a56d70f0d3337803eaf.jpg',
   ];
 
-  String? get backgroundImage =>
-      _backgroundImage; //otras partes de la app puedan acceder a este fondo, pero no permite que lo modifique , además le esta inficando que tambien puede estar vacia
+  String? get backgroundImage => _backgroundImage;
   List<String> get wallpapers => _wallpapers;
 
   ImageProvider? get backgroundImageProvider {
@@ -71,15 +70,14 @@ class ConfigProvider extends ChangeNotifier {
   }
 
   Future<void> setWallpaper(String? url) async {
-    final prefs =
-        await SharedPreferences.getInstance(); //acceder almacenamiento del telefono, cuando cierre la app se guarde el fondo
+    final prefs = await SharedPreferences.getInstance();
     if (url == null) {
       await prefs.remove('backgroundImage');
     } else {
       await prefs.setString('backgroundImage', url);
     }
-    _backgroundImage = url; //actualiza inmediato
-    notifyListeners(); //avisa a todos los widgets que esten escuchando que el valor ha cambiado, haciendo que se adapte al nuevo fondo
+    _backgroundImage = url;
+    notifyListeners();
   }
 
   Future<void> changeLanguage(Locale locale) async {
