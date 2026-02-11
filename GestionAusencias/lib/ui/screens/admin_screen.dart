@@ -16,6 +16,114 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen> {
   int _selectedSectionIndex = 0;
+  final TextEditingController _searchController = TextEditingController();
+  List<Profesor> _allProfesores = [];
+  List<Profesor> _filteredProfesores = [];
+  List<String> _availableDepartments = ["Todos"];
+  String _selectedDepartment = "Todos";
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_applyFilters);
+    _loadProfesores();
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_applyFilters);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String _normalize(String text) {
+    return text
+        .toLowerCase()
+        .trim()
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u');
+  }
+
+  void _applyFilters() {
+    setState(() {
+      _filteredProfesores = _allProfesores.where((p) {
+        final query = _normalize(_searchController.text);
+        final matchesSearch =
+            query.isEmpty ||
+            _normalize(p.nombre).contains(query) ||
+            _normalize(p.asignatura).contains(query);
+
+        final matchesDept =
+            _selectedDepartment == "Todos" ||
+            _normalize(p.departamento) == _normalize(_selectedDepartment);
+
+        return matchesSearch && matchesDept;
+      }).toList();
+    });
+  }
+
+  void _selectDepartment(String dept) {
+    if (_selectedDepartment == dept) return;
+    setState(() {
+      _selectedDepartment = dept;
+      _applyFilters();
+    });
+  }
+
+  Future<void> _loadProfesores() async {
+    final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
+    try {
+      final list = await getProfesoresUseCase.execute();
+
+      // Departamentos por defecto para asegurar el scroll y la estética
+      final List<String> defaultDepts = [
+        "Todos",
+        "Matemáticas",
+        "Historia",
+        "Educación Física",
+        "Ciencias",
+        "Lengua",
+        "Ciencias Sociales",
+        "Religión",
+        "Informática",
+        "Música",
+        "Tecnología",
+        "Artes",
+        "Filosofía",
+        "Inglés",
+        "Francés",
+        "Alemán",
+        "Latín",
+        "Griego",
+        "Economía",
+        "Física",
+        "Química",
+        "Biología",
+        "Idiomas",
+      ];
+
+      // Extraer departamentos únicos de la base de datos
+      final dbDepts = list.map((p) => p.departamento).toSet().toList();
+
+      // Combinar ambos sin duplicados
+      final allDepts = {...defaultDepts, ...dbDepts}.toList();
+
+      setState(() {
+        _allProfesores = list;
+        _availableDepartments = allDepts;
+        _isLoading = false;
+        _applyFilters();
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,128 +133,68 @@ class _AdminScreenState extends State<AdminScreen> {
 
     final glassColor = isDark
         ? const Color(0xFF1E293B).withOpacity(0.7)
-        : Colors.white.withOpacity(0.7);
+        : const Color(0xFFF8F5F2).withOpacity(0.7); // Beige modern tint
     final borderColor = isDark
         ? Colors.white.withOpacity(0.1)
-        : Colors.white.withOpacity(0.3);
-    final textColor = isDark ? Colors.white : const Color(0xFF1C1C1E);
-    final iconColor = isDark ? Colors.white70 : const Color(0xFF1C1C1E);
+        : const Color(0xFFE5E0D8); // Softer beige border
+    final textColor = isDark
+        ? Colors.white
+        : const Color(0xFF4A443C); // Darker beige-ish text
+    final iconColor = isDark ? Colors.white70 : const Color(0xFF4A443C);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 900;
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFFBFBF9), // Beige background
+      body: Stack(
+        children: [
+          // 1. Background Wallpaper
+          if (bgProvider != null)
+            Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(image: bgProvider, fit: BoxFit.cover),
+              ),
+            ),
 
-          return Stack(
+          // 2. Glass UI Layer
+          Row(
             children: [
-              // 1. Background Wallpaper
-              if (bgProvider != null)
-                Container(
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: bgProvider,
-                      fit: BoxFit.cover,
+              // 2.1 Sidebar with Glass Effect
+              ClipRRect(
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                  child: Container(
+                    width: 280,
+                    decoration: BoxDecoration(
+                      color: glassColor,
+                      border: Border(
+                        right: BorderSide(color: borderColor, width: 1),
+                      ),
                     ),
-                  ),
-                ),
-
-              // 2. Adaptive UI Layer
-              Column(
-                children: [
-                  Expanded(
-                    child: Row(
+                    child: Column(
                       children: [
-                        // SIDEBAR (Only Desktop)
-                        if (!isMobile)
-                          ClipRRect(
-                            child: BackdropFilter(
-                              filter: ui.ImageFilter.blur(
-                                sigmaX: 20.0,
-                                sigmaY: 20.0,
-                              ),
-                              child: Container(
-                                width: 280,
-                                decoration: BoxDecoration(
-                                  color: glassColor,
-                                  border: Border(
-                                    right: BorderSide(
-                                      color: borderColor,
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    _buildSidebarHeader(textColor),
-                                    Expanded(
-                                      child: ListView(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 20,
-                                          horizontal: 16,
-                                        ),
-                                        children: [
-                                          _buildSidebarSectionHeader(
-                                            "GESTIÓN",
-                                            isDark,
-                                          ),
-                                          _buildSidebarItem(
-                                            Icons.people_alt_rounded,
-                                            "Profesores",
-                                            0,
-                                            textColor,
-                                            iconColor,
-                                          ),
-                                          _buildSidebarItem(
-                                            Icons.calendar_today_rounded,
-                                            "Horarios",
-                                            1,
-                                            textColor,
-                                            iconColor,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-
-                        // CONTENT AREA
+                        _buildSidebarHeader(textColor),
                         Expanded(
-                          child: Column(
+                          child: ListView(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 20,
+                              horizontal: 16,
+                            ),
                             children: [
-                              _buildContentHeader(context, isDark, isMobile),
-                              Expanded(
-                                child: SingleChildScrollView(
-                                  padding: EdgeInsets.all(isMobile ? 16 : 40),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (_selectedSectionIndex == 0)
-                                        _buildProfesoresSection(
-                                          context,
-                                          isDark,
-                                        ),
-                                      if (_selectedSectionIndex == 1)
-                                        _buildHorariosSection(context, isDark),
-
-                                      const SizedBox(height: 50),
-                                      Center(
-                                        child: Text(
-                                          "© 2026 Sistema de Gestión de Sustituciones",
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                              _buildSidebarSectionHeader("GESTIÓN", isDark),
+                              _buildSidebarItem(
+                                Icons.people_alt_rounded,
+                                "Profesores",
+                                0,
+                                textColor,
+                                iconColor,
+                              ),
+                              _buildSidebarItem(
+                                Icons.calendar_today_rounded,
+                                "Horarios",
+                                1,
+                                textColor,
+                                iconColor,
                               ),
                             ],
                           ),
@@ -154,29 +202,46 @@ class _AdminScreenState extends State<AdminScreen> {
                       ],
                     ),
                   ),
-                ],
+                ),
+              ),
+
+              // 2.2 Content Area
+              Expanded(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(40, 20, 40, 40),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (_selectedSectionIndex == 0)
+                              _buildProfesoresSection(context, isDark),
+                            if (_selectedSectionIndex == 1)
+                              _buildHorariosSection(context, isDark),
+
+                            const SizedBox(height: 50),
+                            Center(
+                              child: Text(
+                                "© 2026 Sistema de Gestión de Sustituciones",
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
-          );
-        },
+          ),
+        ],
       ),
-      bottomNavigationBar: MediaQuery.of(context).size.width < 900
-          ? BottomNavigationBar(
-              currentIndex: _selectedSectionIndex,
-              onTap: (index) => setState(() => _selectedSectionIndex = index),
-              selectedItemColor: Colors.blue,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.people_alt_rounded),
-                  label: "Profesores",
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.calendar_today_rounded),
-                  label: "Horarios",
-                ),
-              ],
-            )
-          : null,
     );
   }
 
@@ -254,84 +319,198 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  Widget _buildContentHeader(BuildContext context, bool isDark, bool isMobile) {
-    String title = _selectedSectionIndex == 0 ? "Profesores" : "Horarios";
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        isMobile ? 16 : 40,
-        isMobile ? 40 : 40,
-        isMobile ? 16 : 40,
-        20,
-      ),
-      alignment: Alignment.centerLeft,
-      child: Row(
-        children: [
-          if (isMobile)
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: isDark ? Colors.white : Colors.black,
-              ),
-            ),
-          Expanded(
-            child: Text(
-              title,
+  Widget _buildProfesoresSection(BuildContext context, bool isDark) {
+    final textColor = isDark ? Colors.white : Colors.black;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header with Badge
+        Row(
+          children: [
+            Text(
+              "Cuerpo Docente",
               style: TextStyle(
-                fontSize: isMobile ? 24 : 34,
+                fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black,
-                letterSpacing: -0.5,
+                color: textColor,
               ),
             ),
+            const SizedBox(width: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                "${_filteredProfesores.length} Profesores",
+                style: TextStyle(
+                  color: textColor.withOpacity(0.8),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 30),
+
+        // Search and Filters in a single row
+        Row(
+          children: [
+            Expanded(
+              flex: 1,
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : const Color(0xFFE5E0D8),
+                  ),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: "Buscar por nombre...",
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: textColor.withOpacity(0.5),
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    hintStyle: TextStyle(color: textColor.withOpacity(0.3)),
+                  ),
+                  style: TextStyle(color: textColor),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 3,
+              child: SizedBox(
+                height: 48,
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(
+                    dragDevices: {
+                      ui.PointerDeviceKind.touch,
+                      ui.PointerDeviceKind.mouse,
+                      ui.PointerDeviceKind.trackpad,
+                    },
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      children: _availableDepartments.map((dept) {
+                        return _buildFilterChip(
+                          dept,
+                          _selectedDepartment == dept,
+                          isDark,
+                        );
+                      }).toList()..add(_buildFilterIconButton(isDark)),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 40),
+
+        // Grid of Cards (using filtered state)
+        if (_isLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_filteredProfesores.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.person_search_rounded,
+                    size: 64,
+                    color: isDark ? Colors.white10 : Colors.black12,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "No se han encontrado profesores en este departamento",
+                    style: TextStyle(
+                      color: isDark ? Colors.white38 : Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 5,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
+              childAspectRatio: 0.78,
+            ),
+            itemCount: _filteredProfesores.length,
+            itemBuilder: (context, index) {
+              final p = _filteredProfesores[index];
+              return _buildModernTeacherCard(context, p, isDark);
+            },
           ),
-        ],
+      ],
+    );
+  }
+
+  Widget _buildFilterChip(String label, bool isSelected, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (val) => _selectDepartment(label),
+        backgroundColor: isDark
+            ? Colors.white.withOpacity(0.05)
+            : const Color(0xFFEBE6DF), // Beige chip background
+        selectedColor: const Color(0xFF007AFF),
+        labelStyle: TextStyle(
+          color: isSelected
+              ? Colors.white
+              : (isDark ? Colors.white70 : const Color(0xFF4A443C)),
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide.none,
+        ),
+        showCheckmark: false,
       ),
     );
   }
 
-  Widget _buildProfesoresSection(BuildContext context, bool isDark) {
-    final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle("CUERPO DOCENTE"),
-        FutureBuilder<List<Profesor>>(
-          future: getProfesoresUseCase.execute(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-            final profes = snapshot.data ?? [];
-            return Column(
-              children: profes
-                  .map(
-                    (p) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildCardItem(
-                        context,
-                        icon: Icons.person_rounded,
-                        iconBg: const Color(0xFF5AC8FA),
-                        title: p.nombre,
-                        subtitle: "${p.asignatura} • ${p.departamento}",
-                        status: p.estadoAusente ? "Ausente" : "Activo",
-                        statusColor: p.estadoAusente
-                            ? Colors.orange
-                            : Colors.green,
-                        onTap: () {},
-                      ),
-                    ),
-                  )
-                  .toList(),
-            );
-          },
-        ),
-      ],
+  Widget _buildFilterIconButton(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.black.withOpacity(0.05),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.tune_rounded,
+        size: 20,
+        color: isDark ? Colors.white70 : Colors.black87,
+      ),
     );
   }
 
@@ -473,94 +652,166 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  Widget _buildCardItem(
-    BuildContext context, {
-    required IconData icon,
-    required Color iconBg,
-    required String title,
-    required String subtitle,
-    String? status,
-    Color? statusColor,
-    required VoidCallback onTap,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final glassColor = isDark
-        ? const Color(0xFF1E293B).withOpacity(0.7)
-        : Colors.white.withOpacity(0.6);
-    final borderColor = isDark
-        ? Colors.white.withOpacity(0.1)
-        : Colors.white.withOpacity(0.2);
-    final titleColor = isDark ? Colors.white : Colors.black;
-    final subtitleColor = isDark ? Colors.white70 : const Color(0xFF6D6D72);
+  Widget _buildModernTeacherCard(
+    BuildContext context,
+    Profesor p,
+    bool isDark,
+  ) {
+    final cardBgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF4A443C);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: glassColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: borderColor),
+    // Mocking some data from screenshot for visual fidelity
+    final String status = p.estadoAusente ? "Ausente" : "En clase";
+    final Color statusColor = p.estadoAusente
+        ? Colors.redAccent
+        : Colors.greenAccent;
+    final String location = p.estadoAusente ? "Baja médica" : "Pabellón A";
+    final String time = "08:00 - 14:30";
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBgColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
-          child: ListTile(
-            onTap: onTap,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
-            ),
-            leading: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(8),
+        ],
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Avatar with Status Indicator
+          Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: statusColor.withOpacity(0.5),
+                    width: 3,
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 35,
+                  backgroundColor: Colors.grey[200],
+                  child: Icon(
+                    Icons.person_rounded,
+                    size: 40,
+                    color: Colors.grey[400],
+                  ),
+                ),
               ),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
-            title: Text(
-              title,
-              style: TextStyle(
-                fontSize: 17,
-                color: titleColor,
-                letterSpacing: -0.4,
-              ),
-            ),
-            subtitle: Text(
-              subtitle,
-              style: TextStyle(fontSize: 13, color: subtitleColor),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (status != null)
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor?.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      status,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: statusColor,
-                      ),
+              Positioned(
+                bottom: 5,
+                right: 5,
+                child: Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      width: 2,
                     ),
                   ),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Colors.grey,
-                  size: 14,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: 16),
+
+          // Name and Subject
+          Text(
+            p.nombre,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 17,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            p.asignatura,
+            style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 13),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          _buildBadge(
+            p.departamento,
+            isDark ? Colors.orange.withOpacity(0.2) : const Color(0xFFFEF3C7),
+            isDark ? Colors.orangeAccent : const Color(0xFFD97706),
+          ),
+          const SizedBox(height: 12),
+
+          // Badges
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildBadge(status, statusColor.withOpacity(0.2), statusColor),
+              const SizedBox(width: 8),
+              _buildBadge(location, Colors.blue.withOpacity(0.1), Colors.blue),
+            ],
+          ),
+          const Spacer(),
+
+          // Footer
+          Row(
+            children: [
+              Icon(
+                Icons.access_time_rounded,
+                size: 14,
+                color: textColor.withOpacity(0.4),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                time,
+                style: TextStyle(
+                  color: textColor.withOpacity(0.4),
+                  fontSize: 12,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () {},
+                icon: Icon(
+                  Icons.more_horiz_rounded,
+                  size: 18,
+                  color: textColor.withOpacity(0.4),
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBadge(String label, Color bg, Color text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: text,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
