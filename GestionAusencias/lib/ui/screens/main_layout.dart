@@ -13,6 +13,7 @@ import 'package:gestion_ausencias/ui/screens/settings_screen.dart';
 import 'package:gestion_ausencias/ui/screens/guardias_screen.dart';
 import 'package:gestion_ausencias/ui/screens/planning_screen.dart';
 import 'package:gestion_ausencias/ui/screens/profesor_screen.dart';
+import 'package:gestion_ausencias/ui/screens/admin_screen.dart';
 // import 'package:gestion_ausencias/ui/screens/home_screen.dart'; // Circular dependency if not careful, but MainLayout imports HomeScreen logic via HomeContent usually.
 
 class MainLayout extends StatefulWidget {
@@ -56,18 +57,12 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   Widget build(BuildContext context) {
-    // Global Wallpaper Provider
     final configProvider = context.watch<ConfigProvider>();
     final bgProvider = configProvider.backgroundImageProvider;
-
-    // Theme Logic
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final glassColor = isDark
         ? const Color(0xFF1E293B).withOpacity(0.7)
         : Colors.white.withOpacity(0.7);
-    final iconColorNormal = isDark
-        ? Colors.white70
-        : const Color(0xFF354231).withOpacity(0.6);
 
     final List<Widget> _screens = [
       HomeContent(
@@ -83,85 +78,177 @@ class _MainLayoutState extends State<MainLayout> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          // 1. Global Wallpaper
-          Container(
-            decoration: BoxDecoration(
-              color: bgProvider == null
-                  ? Theme.of(context).scaffoldBackgroundColor
-                  : null,
-              image: bgProvider != null
-                  ? DecorationImage(image: bgProvider, fit: BoxFit.cover)
-                  : null,
-            ),
-          ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          bool isMobile = constraints.maxWidth < 900;
 
-          // 2. Glass Sidebar & Content
-          Row(
+          return Stack(
             children: [
-              // SIDEBAR INTEGRADO (Glassmorphism)
-              ClipRRect(
-                child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                  child: Container(
-                    width: 90,
-                    color: glassColor, // Dynamic Glass
-                    child: Column(
+              // 1. Global Wallpaper
+              Container(
+                decoration: BoxDecoration(
+                  color: bgProvider == null
+                      ? Theme.of(context).scaffoldBackgroundColor
+                      : null,
+                  image: bgProvider != null
+                      ? DecorationImage(image: bgProvider, fit: BoxFit.cover)
+                      : null,
+                ),
+              ),
+
+              // 2. Adaptive Layout
+              Column(
+                children: [
+                  Expanded(
+                    child: Row(
                       children: [
-                        const SizedBox(height: 50),
-                        _sidebarItem(
-                          Icons.dashboard_rounded,
-                          AppStrings.get(context, 'inicio'),
-                          0,
+                        if (!isMobile)
+                          // SIDEBAR (Desktop/Tablet)
+                          ClipRRect(
+                            child: BackdropFilter(
+                              filter: ui.ImageFilter.blur(
+                                sigmaX: 20.0,
+                                sigmaY: 20.0,
+                              ),
+                              child: Container(
+                                width: 90,
+                                color: glassColor,
+                                child: Column(
+                                  children: [
+                                    const SizedBox(height: 50),
+                                    _sidebarItem(
+                                      Icons.dashboard_rounded,
+                                      AppStrings.get(context, 'inicio'),
+                                      0,
+                                    ),
+                                    _sidebarItem(
+                                      Icons.calendar_month_rounded,
+                                      AppStrings.get(context, 'planning'),
+                                      1,
+                                    ),
+                                    _sidebarItem(
+                                      Icons.shield_rounded,
+                                      AppStrings.get(context, 'guardias'),
+                                      2,
+                                    ),
+                                    _sidebarItem(
+                                      Icons.people_alt_rounded,
+                                      AppStrings.get(context, 'profesores'),
+                                      3,
+                                    ),
+                                    _sidebarItem(
+                                      Icons.admin_panel_settings_rounded,
+                                      AppStrings.get(context, 'admin'),
+                                      4,
+                                    ),
+                                    _sidebarItem(
+                                      Icons.settings_rounded,
+                                      AppStrings.get(context, 'ajustes'),
+                                      5,
+                                    ),
+                                    const Spacer(),
+                                    _sidebarItem(
+                                      Icons.logout_rounded,
+                                      AppStrings.get(context, 'salir'),
+                                      -1,
+                                      isLogout: true,
+                                    ),
+                                    const SizedBox(height: 30),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        // MAIN CONTENT
+                        Expanded(
+                          child: PageView(
+                            controller: _pageController,
+                            physics: const NeverScrollableScrollPhysics(),
+                            onPageChanged: (index) =>
+                                setState(() => _selectedIndex = index),
+                            children: _screens,
+                          ),
                         ),
-                        _sidebarItem(
-                          Icons.calendar_month_rounded,
-                          AppStrings.get(context, 'planning'),
-                          1,
-                        ),
-                        _sidebarItem(
-                          Icons.shield_rounded,
-                          AppStrings.get(context, 'guardias'),
-                          2,
-                        ),
-                        _sidebarItem(
-                          Icons.people_alt_rounded,
-                          AppStrings.get(context, 'profesores'),
-                          3,
-                        ),
-                        _sidebarItem(
-                          Icons.settings_rounded,
-                          AppStrings.get(context, 'ajustes'),
-                          4,
-                        ),
-                        const Spacer(),
-                        _sidebarItem(
-                          Icons.logout_rounded,
-                          AppStrings.get(context, 'salir'),
-                          -1,
-                          isLogout: true,
-                        ),
-                        const SizedBox(height: 30),
                       ],
                     ),
                   ),
-                ),
-              ),
-
-              Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  physics:
-                      const NeverScrollableScrollPhysics(), // Disable swipe
-                  onPageChanged: (index) =>
-                      setState(() => _selectedIndex = index),
-                  children: _screens,
-                ),
+                ],
               ),
             ],
-          ),
-        ],
+          );
+        },
+      ),
+      bottomNavigationBar: LayoutBuilder(
+        builder: (context, constraints) {
+          final isMobile = MediaQuery.of(context).size.width < 900;
+          if (!isMobile) return const SizedBox.shrink();
+
+          return ClipRRect(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: glassColor,
+                  border: Border(
+                    top: BorderSide(
+                      color: isDark ? Colors.white10 : Colors.black12,
+                    ),
+                  ),
+                ),
+                child: BottomNavigationBar(
+                  currentIndex: _selectedIndex < 4 ? _selectedIndex : 0,
+                  onTap: (index) {
+                    if (index == 4) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminScreen(),
+                        ),
+                      );
+                    } else if (index == 5) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(),
+                        ),
+                      );
+                    } else {
+                      _irAPagina(index);
+                    }
+                  },
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  type: BottomNavigationBarType.fixed,
+                  selectedItemColor: isDark ? Colors.white : Colors.blue,
+                  unselectedItemColor: isDark ? Colors.white54 : Colors.grey,
+                  items: [
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.dashboard_rounded),
+                      label: AppStrings.get(context, 'inicio'),
+                    ),
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.calendar_month_rounded),
+                      label: AppStrings.get(context, 'planning'),
+                    ),
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.shield_rounded),
+                      label: AppStrings.get(context, 'guardias'),
+                    ),
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.admin_panel_settings_rounded),
+                      label: AppStrings.get(context, 'admin'),
+                    ),
+                    BottomNavigationBarItem(
+                      icon: const Icon(Icons.settings_rounded),
+                      label: AppStrings.get(context, 'ajustes'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -208,10 +295,17 @@ class _MainLayoutState extends State<MainLayout> {
                     ? () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const SettingsScreen(),
+                          builder: (context) => const AdminScreen(),
                         ),
                       )
-                    : () => _irAPagina(index)),
+                    : (index == 5
+                          ? () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsScreen(),
+                              ),
+                            )
+                          : () => _irAPagina(index))),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

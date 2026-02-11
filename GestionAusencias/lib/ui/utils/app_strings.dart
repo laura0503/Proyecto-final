@@ -26,6 +26,8 @@ class AppStrings {
       'theme_dark': 'Oscuro',
       'theme_system': 'Sistema',
       'change_password': 'Cambiar contraseña',
+      'admin': 'Administrador',
+      'horarios': 'Horarios',
     },
     'en': {
       'dashboard_title': 'San José Dashboard',
@@ -51,6 +53,8 @@ class AppStrings {
       'theme_dark': 'Dark',
       'theme_system': 'System',
       'change_password': 'Change password',
+      'admin': 'Admin',
+      'horarios': 'Schedules',
     },
   };
 

@@ -7,11 +7,13 @@ import 'package:supabase_flutter/supabase_flutter.dart'; // Import Supabase
 
 // Domain & Data
 import 'package:gestion_ausencias/data/datasources/profesor_local_datasource.dart';
+import 'package:gestion_ausencias/data/datasources/profesor_remote_datasource.dart';
 import 'package:gestion_ausencias/data/repositories/profesor_repository_impl.dart';
 import 'package:gestion_ausencias/domain/repositories/profesor_repository.dart';
 import 'package:gestion_ausencias/domain/usecases/login_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/register_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_horarios_usecase.dart';
 
 // Providers & UI
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
@@ -19,7 +21,6 @@ import 'package:gestion_ausencias/ui/screens/login_screen.dart';
 import 'package:gestion_ausencias/ui/screens/main_layout.dart';
 import 'package:gestion_ausencias/ui/providers/config_provider.dart';
 import 'package:gestion_ausencias/ui/providers/notification_provider.dart';
-import 'package:gestion_ausencias/core/theme/app_theme.dart'; // Import AppTheme
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,9 +35,13 @@ void main() async {
     anonKey: dotenv.env['KEY']!,
   );
 
-  // 3. Initialize Data Layer (Local for now, will migrate later)
+  // 3. Initialize Data Layer
   final localDataSource = ProfesorLocalDataSource();
-  final repository = ProfesorRepositoryImpl(localDataSource: localDataSource);
+  final remoteDataSource = ProfesorRemoteDataSource(Supabase.instance.client);
+  final repository = ProfesorRepositoryImpl(
+    localDataSource: localDataSource,
+    remoteDataSource: remoteDataSource,
+  );
 
   runApp(
     MultiProvider(
@@ -53,6 +58,9 @@ void main() async {
         ),
         Provider<GetProfesoresUseCase>(
           create: (_) => GetProfesoresUseCase(repository),
+        ),
+        Provider<GetHorariosUseCase>(
+          create: (_) => GetHorariosUseCase(repository),
         ),
 
         // Logic/State Management Injection
