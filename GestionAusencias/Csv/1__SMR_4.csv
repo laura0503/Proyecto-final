@@ -1,0 +1,84 @@
+1º SMR;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";"APLOF
+Alguacil Jiménez, Sergio A.
+(119)";"MOMAE
+Alguacil Jiménez, Sergio A.
+(119)";"DASPGM
+Alguacil Jiménez, Sergio A.
+(119)";"SASP
+Alguacil Jiménez, Sergio A.
+(119)";"REDLO
+Pérez Ruiz, Andrea
+(119)"
+"17:00
+18:00";"APLOF
+Alguacil Jiménez, Sergio A.
+(119)";"MOMAE
+Alguacil Jiménez, Sergio A.
+(119)";"IPE I
+Durán Piña, María de la O
+(119)";"IPE I
+Durán Piña, María de la O
+(119)";"SIOPM
+Cerrillo Ruiz, Pablo
+(119)"
+"18:00
+19:00";"REDLO
+Pérez Ruiz, Andrea
+(119)";"APLOF
+Alguacil Jiménez, Sergio A.
+(119)";"APLOF
+Alguacil Jiménez, Sergio A.
+(119)";"REDLO
+Pérez Ruiz, Andrea
+(119)";"APLOF
+Alguacil Jiménez, Sergio A.
+(119)"
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";"REDLO
+Pérez Ruiz, Andrea
+(119)";"REDLO
+Pérez Ruiz, Andrea
+(119)";"APLOF
+Alguacil Jiménez, Sergio A.
+(119)";"REDLO
+Pérez Ruiz, Andrea
+(119)";"APLOF
+Alguacil Jiménez, Sergio A.
+(119)"
+"20:10
+21:05";"SIOPM
+Cerrillo Ruiz, Pablo
+(119)";"REDLO
+Pérez Ruiz, Andrea
+(119)";"SIOPM
+Cerrillo Ruiz, Pablo
+(119)";"MOMAE
+Alguacil Jiménez, Sergio A.
+(119)";"MOMAE
+Alguacil Jiménez, Sergio A.
+(119)"
+"21:05
+22:00";"SIOPM
+Cerrillo Ruiz, Pablo
+(119)";"IPE I
+Durán Piña, María de la O
+(119)";"SIOPM
+Cerrillo Ruiz, Pablo
+(119)";"MOMAE
+Alguacil Jiménez, Sergio A.
+(119)";"MOMAE
+Alguacil Jiménez, Sergio A.
+(119)"
+Lectivas: 30;;;;;
+ 30;Profesores;;;Materias;
+  7;Alguacil Jiménez, Sergio A.;;;APLICACIONES OFIMÁTICAS (APLOF);
+  6;    '';;;MONTAJE Y MANTENIMIENTO DE EQU (MOMAE);
+  1;    '';;;DIGITALIZACIÓN APLICADA A SECT (DASPGM);
+  1;    '';;;SOSTENIBILIDAD APLICADA SISTEM (SASP);
+  5;Cerrillo Ruiz, Pablo;;;SISTEMAS OPERATIVOS MONOPUESTO (SIOPM);
+  3;Durán Piña, María de la O;;;ITINERARIO PERSONAL EMPLEABILI (IPE I);
+  7;Pérez Ruiz, Andrea;;;REDES LOCALES (REDLO);

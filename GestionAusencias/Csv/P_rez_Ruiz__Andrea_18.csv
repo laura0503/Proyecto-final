@@ -1,0 +1,60 @@
+Pérez Ruiz, Andrea;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";;;;"PROG
+1º DAM
+(203)";"REDLO
+1º SMR
+(119)"
+"17:00
+18:00";"TICO I
+1º BAC i C-T
+1º BAC j H-CS
+(217)";"PROG
+1º DAM
+(203)";;"PROG
+1º DAM
+(203)";"GUARDIA
+GUARDIA"
+"18:00
+19:00";"REDLO
+1º SMR
+(119)";"PROG
+1º DAM
+(203)";"PROG
+1º DAM
+(203)";"REDLO
+1º SMR
+(119)";
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";"REDLO
+1º SMR
+(119)";"REDLO
+1º SMR
+(119)";"PROG
+1º DAM
+(203)";"REDLO
+1º SMR
+(119)";"TICO I
+1º BAC i C-T
+1º BAC j H-CS
+(217)"
+"20:10
+21:05";"GUARDIA
+GUARDIA";"REDLO
+1º SMR
+(119)";"PROG
+1º DAM
+(203)";;
+"21:05
+22:00";"PROG
+1º DAM
+(203)";;"GUARDIA
+GUARDIA";;
+Lectivas: 17  +  Guardias:  3;;;;;
+ 20;Materias;;;Grupos de alumnos;
+  3;GUARDIA (Guardia de aula);;;;
+  8;PROGRAMACIÓN (PROG);;;1º DAM;
+  7;REDES LOCALES (REDLO);;;1º SMR;
+  2;TECNOLOGÍA, INFORMACIÓN Y COMUNICACIÓN I (TICO I);;;1º BAC i C-T, 1º BAC j H-CS;

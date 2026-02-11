@@ -1,0 +1,85 @@
+203;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";"DASPGS
+Palos Cid-Fuentes, Rosa María
+1º DAM";"IPE I
+Durán Piña, María de la O
+1º DAM";"BADAT
+Ibáñez Porcel, Pablo
+1º DAM";"PROG
+Pérez Ruiz, Andrea
+1º DAM";"BADAT
+Ibáñez Porcel, Pablo
+1º DAM"
+"17:00
+18:00";"SIINF
+Palos Cid-Fuentes, Rosa María
+1º DAM";"PROG
+Pérez Ruiz, Andrea
+1º DAM";"BADAT
+Ibáñez Porcel, Pablo
+1º DAM";"PROG
+Pérez Ruiz, Andrea
+1º DAM";"BADAT
+Ibáñez Porcel, Pablo
+1º DAM"
+"18:00
+19:00";"SIINF
+Palos Cid-Fuentes, Rosa María
+1º DAM";"PROG
+Pérez Ruiz, Andrea
+1º DAM";"PROG
+Pérez Ruiz, Andrea
+1º DAM";"IPE I
+Durán Piña, María de la O
+1º DAM";"ENDES
+Cerrillo Ruiz, Pablo
+1º DAM"
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";"ENDES
+Cerrillo Ruiz, Pablo
+1º DAM";"LENMAR
+Sánchez Palacios, Manuel
+1º DAM";"PROG
+Pérez Ruiz, Andrea
+1º DAM";"SIINF
+Palos Cid-Fuentes, Rosa María
+1º DAM";"ENDES
+Cerrillo Ruiz, Pablo
+1º DAM"
+"20:10
+21:05";"SASP
+Palos Cid-Fuentes, Rosa María
+1º DAM";"BADAT
+Ibáñez Porcel, Pablo
+1º DAM";"PROG
+Pérez Ruiz, Andrea
+1º DAM";"SIINF
+Palos Cid-Fuentes, Rosa María
+1º DAM";"LENMAR
+Sánchez Palacios, Manuel
+1º DAM"
+"21:05
+22:00";"PROG
+Pérez Ruiz, Andrea
+1º DAM";"BADAT
+Ibáñez Porcel, Pablo
+1º DAM";"IPE I
+Durán Piña, María de la O
+1º DAM";"SIINF
+Palos Cid-Fuentes, Rosa María
+1º DAM";"LENMAR
+Sánchez Palacios, Manuel
+1º DAM"
+Lectivas: 30;;;;;
+ 30;Profesores;;;Grupos de alumnos;
+  3;Cerrillo Ruiz, Pablo;;;1º DAM (ENDES);
+  3;Durán Piña, María de la O;;;1º DAM (IPE I);
+  6;Ibañez Porcel, Pablo (Ibáñez Porcel, Pablo);;;1º DAM (BADAT);
+  1;Palos Cid-Fuentes, Rosa María;;;1º DAM (DASPGS);
+  5;    '';;;1º DAM (SIINF);
+  1;    '';;;1º DAM (SASP);
+  8;Pérez Ruiz, Andrea;;;1º DAM (PROG);
+  3;Sánchez Palacios, Manuel;;;1º DAM (LENMAR);

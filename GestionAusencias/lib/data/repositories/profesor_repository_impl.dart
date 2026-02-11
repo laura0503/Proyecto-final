@@ -1,20 +1,22 @@
 import 'dart:convert';
 import 'package:gestion_ausencias/data/datasources/profesor_local_datasource.dart';
+import 'package:gestion_ausencias/data/datasources/profesor_supabase_datasource.dart';
 import 'package:gestion_ausencias/data/models/profesor_model.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/domain/repositories/profesor_repository.dart';
 
 class ProfesorRepositoryImpl implements ProfesorRepository {
+  final ProfesorSupabaseDataSource remoteDataSource;
   final ProfesorLocalDataSource localDataSource;
 
-  ProfesorRepositoryImpl({required this.localDataSource});
+  ProfesorRepositoryImpl({
+    required this.remoteDataSource,
+    required this.localDataSource,
+  });
 
   @override
   Future<List<Profesor>> obtenerProfesores() async {
-    final rawList = await localDataSource.obtenerProfesoresRaw();
-    return rawList
-        .map((jsonStr) => ProfesorModel.fromJson(jsonDecode(jsonStr)))
-        .toList();
+    return await remoteDataSource.getProfesores();
   }
 
   @override
@@ -26,7 +28,6 @@ class ProfesorRepositoryImpl implements ProfesorRepository {
 
   @override
   Future<void> guardarSesionActual(Profesor profesor) async {
-    // Convert entity to model to get toJson logic
     final model = ProfesorModel.fromEntity(profesor);
     await localDataSource.guardarSesionRaw(jsonEncode(model.toJson()));
   }
@@ -38,49 +39,27 @@ class ProfesorRepositoryImpl implements ProfesorRepository {
 
   @override
   Future<void> agregarProfesor(Profesor profesor) async {
-    final rawList = await localDataSource.obtenerProfesoresRaw();
-    // Check if exists
-    final exists = rawList.any((jsonStr) {
-      final p = ProfesorModel.fromJson(jsonDecode(jsonStr));
-      return p.id == profesor.id;
-    });
-
-    if (!exists) {
-      final model = ProfesorModel.fromEntity(profesor);
-      rawList.add(jsonEncode(model.toJson()));
-      await localDataSource.guardarProfesoresRaw(rawList);
-    }
+    final model = ProfesorModel.fromEntity(profesor);
+    await remoteDataSource.addProfesor(model);
   }
 
   @override
   Future<void> actualizarProfesor(Profesor profesor) async {
-    final rawList = await localDataSource.obtenerProfesoresRaw();
-    final index = rawList.indexWhere((jsonStr) {
-      final p = ProfesorModel.fromJson(jsonDecode(jsonStr));
-      return p.id == profesor.id;
-    });
-
-    if (index != -1) {
-      final model = ProfesorModel.fromEntity(profesor);
-      rawList[index] = jsonEncode(model.toJson());
-      await localDataSource.guardarProfesoresRaw(rawList);
-    }
+    final model = ProfesorModel.fromEntity(profesor);
+    await remoteDataSource.updateProfesor(model);
   }
 
   @override
   Future<void> eliminarProfesor(String id) async {
-    final rawList = await localDataSource.obtenerProfesoresRaw();
-    rawList.removeWhere((jsonStr) {
-      final p = ProfesorModel.fromJson(jsonDecode(jsonStr));
-      return p.id == id;
-    });
-    await localDataSource.guardarProfesoresRaw(rawList);
+    await remoteDataSource.deleteProfesor(id);
   }
 
   @override
   Future<bool> verificarLogin(String nombre, String contrasena) async {
-    final profesores = await obtenerProfesores();
     try {
+      final profesores = await remoteDataSource.getProfesores();
+      // Simple verification against the list fetched from Supabase
+      // In a real production app, this should be handled by Supabase Auth (RPC or Auth User)
       final profesor = profesores.firstWhere(
         (p) => p.nombre == nombre && p.contrasena == contrasena,
       );
@@ -93,21 +72,17 @@ class ProfesorRepositoryImpl implements ProfesorRepository {
 
   @override
   Future<void> sobrescribirDesdeJson(String jsonInput) async {
-    try {
-      final List<dynamic> decoded = jsonDecode(jsonInput);
-      // Validate structure implies implementing a check,
-      // here we just cast as list of strings assuming input is compatible list
-      final List<String> profesoresList = List<String>.from(decoded);
-      await localDataSource.guardarProfesoresRaw(profesoresList);
-    } catch (e) {
-      throw Exception("Formato de datos inválido");
-    }
+    // This method was for local bulk import.
+    // Implementing it for remote would require batch inserts.
+    // For now, we leave it empty or throw not implemented as it's likely a dev tool.
+    throw UnimplementedError(
+      "Importación masiva no implementada para Supabase aún.",
+    );
   }
 
   @override
   Future<String> obtenerTodosComoJson() async {
-    final rawList = await localDataSource.obtenerProfesoresRaw();
-    // Return the raw list directly as a JSON string
-    return jsonEncode(rawList);
+    final profesores = await remoteDataSource.getProfesores();
+    return jsonEncode(profesores.map((p) => p.toJson()).toList());
   }
 }

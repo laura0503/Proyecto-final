@@ -1,0 +1,85 @@
+1º DAM;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";"DASPGS
+Palos Cid-Fuentes, Rosa María
+(203)";"IPE I
+Durán Piña, María de la O
+(203)";"BADAT
+Ibáñez Porcel, Pablo
+(203)";"PROG
+Pérez Ruiz, Andrea
+(203)";"BADAT
+Ibáñez Porcel, Pablo
+(203)"
+"17:00
+18:00";"SIINF
+Palos Cid-Fuentes, Rosa María
+(203)";"PROG
+Pérez Ruiz, Andrea
+(203)";"BADAT
+Ibáñez Porcel, Pablo
+(203)";"PROG
+Pérez Ruiz, Andrea
+(203)";"BADAT
+Ibáñez Porcel, Pablo
+(203)"
+"18:00
+19:00";"SIINF
+Palos Cid-Fuentes, Rosa María
+(203)";"PROG
+Pérez Ruiz, Andrea
+(203)";"PROG
+Pérez Ruiz, Andrea
+(203)";"IPE I
+Durán Piña, María de la O
+(203)";"ENDES
+Cerrillo Ruiz, Pablo
+(203)"
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";"ENDES
+Cerrillo Ruiz, Pablo
+(203)";"LENMAR
+Sánchez Palacios, Manuel
+(203)";"PROG
+Pérez Ruiz, Andrea
+(203)";"SIINF
+Palos Cid-Fuentes, Rosa María
+(203)";"ENDES
+Cerrillo Ruiz, Pablo
+(203)"
+"20:10
+21:05";"SASP
+Palos Cid-Fuentes, Rosa María
+(203)";"BADAT
+Ibáñez Porcel, Pablo
+(203)";"PROG
+Pérez Ruiz, Andrea
+(203)";"SIINF
+Palos Cid-Fuentes, Rosa María
+(203)";"LENMAR
+Sánchez Palacios, Manuel
+(203)"
+"21:05
+22:00";"PROG
+Pérez Ruiz, Andrea
+(203)";"BADAT
+Ibáñez Porcel, Pablo
+(203)";"IPE I
+Durán Piña, María de la O
+(203)";"SIINF
+Palos Cid-Fuentes, Rosa María
+(203)";"LENMAR
+Sánchez Palacios, Manuel
+(203)"
+Lectivas: 30;;;;;
+ 30;Profesores;;;Materias;
+  3;Cerrillo Ruiz, Pablo;;;ENTERONO DE DESARROLLO (ENDES);
+  3;Durán Piña, María de la O;;;ITINERARIO PERSONAL EMPLEABILI (IPE I);
+  6;Ibañez Porcel, Pablo (Ibáñez Porcel, Pablo);;;BASE DE DATOS (BADAT);
+  1;Palos Cid-Fuentes, Rosa María;;;DIGITALIZACIÓN APLICADA A SECT (DASPGS);
+  5;    '';;;SISTEMAS INFORMÁTICOS (SIINF);
+  1;    '';;;SOSTENIBILIDAD APLICADA SISTEM (SASP);
+  8;Pérez Ruiz, Andrea;;;PROGRAMACIÓN (PROG);
+  3;Sánchez Palacios, Manuel;;;LENGUAJE DE MARCAS Y SISTEMAS  (LENMAR);

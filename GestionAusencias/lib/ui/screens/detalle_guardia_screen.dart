@@ -81,7 +81,7 @@ class _DetalleGuardiaScreenState extends State<DetalleGuardiaScreen> {
 
     // Inicializar profesor de guardia seleccionado
     if (widget.guardia?.profesorGuardia != null) {
-      final profesor = widget.profesores.firstWhere(
+      final profesor = widget.profesores.cast<Profesor>().firstWhere(
         (p) => p.nombre == widget.guardia!.profesorGuardia,
         orElse: () => const Profesor(
           id: '',

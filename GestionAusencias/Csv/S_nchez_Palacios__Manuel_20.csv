@@ -1,0 +1,55 @@
+Sánchez Palacios, Manuel;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";;;;;
+"17:00
+18:00";"DEINT
+2º DAM
+(218)";"PMDMO
+2º DAM
+(218)";"DEINT
+2º DAM
+(218)";;
+"18:00
+19:00";"DEINT
+2º DAM
+(218)";"GUARDIA
+GUARDIA";"GUARDIA
+GUARDIA";;"DEINT
+2º DAM
+(218)"
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";;"LENMAR
+1º DAM
+(203)";;;"DEINT
+2º DAM
+(218)"
+"20:10
+21:05";"GUARDIA
+GUARDIA";"PSPRO
+2º DAM
+(218)";;"PMDMO
+2º DAM
+(218)";"LENMAR
+1º DAM
+(203)"
+"21:05
+22:00";"PSPRO
+2º DAM
+(218)";"DEINT
+2º DAM
+(218)";"PSPRO
+2º DAM
+(218)";"PMDMO
+2º DAM
+(218)";"LENMAR
+1º DAM
+(203)"
+Lectivas: 15  +  Guardias:  3;;;;;
+ 18;Materias;;;Grupos de alumnos;
+  6;DESARROLLO DE INTERFACES (DEINT);;;2º DAM;
+  3;GUARDIA (Guardia de aula);;;;
+  3;LENGUAJE DE MARCAS Y SISTEMAS DE GESTIÓN DE INFORMACIÓN (LENMAR);;;1º DAM;
+  3;PROGRAMACIÓN DE SERVICIOS Y PROCESOS (PSPRO);;;2º DAM;
+  3;PROGRAMACIÓN MULTIMEDIA DISPOSITIVOS MÓVILES (PMDMO);;;2º DAM;

@@ -1,0 +1,85 @@
+2º SMR;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";"SEGIN
+Cerrillo Ruiz, Pablo
+(118)";"SERRE
+Manzano Herrero, Paloma
+(118)";"APLWE
+Cordón Villarejo, Manuel
+(118)";"SIOPR
+Valderas Siles, María Carmen
+(118)";"OGM
+Cordón Villarejo, Manuel
+(118)"
+"17:00
+18:00";"SEGIN
+Cerrillo Ruiz, Pablo
+(118)";"IPE II
+Durán Piña, María de la O
+(118)";"APLWE
+Cordón Villarejo, Manuel
+(118)";"SIOPR
+Valderas Siles, María Carmen
+(118)";"OGM
+Cordón Villarejo, Manuel
+(118)"
+"18:00
+19:00";"SERRE
+Manzano Herrero, Paloma
+(118)";"IP GM
+Sola Castaño, Dolores María
+(118)";"IPE II
+Durán Piña, María de la O
+(118)";"SIOPR
+Valderas Siles, María Carmen
+(118)";"APLWE
+Cordón Villarejo, Manuel
+(118)"
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";"SERRE
+Manzano Herrero, Paloma
+(118)";"SIOPR
+Valderas Siles, María Carmen
+(118)";"OGM
+Cordón Villarejo, Manuel
+(118)";"SERRE
+Manzano Herrero, Paloma
+(118)";"APLWE
+Cordón Villarejo, Manuel
+(118)"
+"20:10
+21:05";"PGM
+Manzano Herrero, Paloma
+(118)";"SIOPR
+Valderas Siles, María Carmen
+(118)";"SERRE
+Manzano Herrero, Paloma
+(118)";"IP GM
+Sola Castaño, Dolores María
+(118)";"SEGIN
+Cerrillo Ruiz, Pablo
+(118)"
+"21:05
+22:00";"PGM
+Manzano Herrero, Paloma
+(118)";"SIOPR
+Valderas Siles, María Carmen
+(118)";"SERRE
+Manzano Herrero, Paloma
+(118)";"IPE II
+Durán Piña, María de la O
+(118)";"SEGIN
+Cerrillo Ruiz, Pablo
+(118)"
+Lectivas: 30;;;;;
+ 30;Profesores;;;Materias;
+  4;Cerrillo Ruiz, Pablo;;;SEGURIDAD INFORMÁTICA (SEGIN);
+  4;Cordón Villarejo, Manuel;;;APLICACIONES WEB (APLWE);
+  3;    '';;;OPTATIVA GRADO MEDIO (OGM);
+  3;Durán Piña, María de la O;;;ITINERARIO PERSONAL EMPLEABILI (IPE II);
+  6;Manzano Herrero, Paloma;;;SERVICIOS EN RED (SERRE);
+  2;    '';;;PROYECTO GRADO MEDIO (PGM);
+  2;Sola Castaño, Dolores María;;;INGLÉS PROFESIONAL GRADO MEDIO (IP GM);
+  6;Valderas Siles, María Carmen;;;SISTEMAS OPERATIVOS EN RED (SIOPR);
