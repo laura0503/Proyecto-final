@@ -9,9 +9,11 @@ class AppTheme {
   static const Color naranjaPendientes = Colors.orange;
 
   static ThemeData get temaClaro {
+    //para los widgets
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: Colors.white,
+      scaffoldBackgroundColor:
+          Colors.white, // todas las pantallas de la app sean blancas
       colorScheme: ColorScheme.fromSeed(
         seedColor: primary,
         surface: blancoSuperficie,

@@ -14,7 +14,9 @@ class ProfesorModel extends Profesor {
 
   factory ProfesorModel.fromJson(Map<String, dynamic> json) {
     return ProfesorModel(
-      id: json['id'] ?? '',
+      id:
+          json['id'] ??
+          '', //si existe y tiene valor se utiliza, pero si no existe se utiliza ''
       nombre: json['nombre'] ?? '',
       asignatura: json['asignatura'] ?? '',
       curso: json['curso'] ?? '',

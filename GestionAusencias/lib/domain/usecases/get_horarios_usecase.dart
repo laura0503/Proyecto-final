@@ -1,12 +1,12 @@
-import '../../domain/entities/horario.dart';
-import '../../domain/repositories/profesor_repository.dart';
+import 'package:gestion_ausencias/domain/entities/horario.dart';
+import 'package:gestion_ausencias/domain/repositories/horario_repository.dart';
 
 class GetHorariosUseCase {
-  final ProfesorRepository _repository;
+  final HorarioRepository repository;
 
-  GetHorariosUseCase(this._repository);
+  GetHorariosUseCase(this.repository);
 
-  Future<List<Horario>> execute() async {
-    return await _repository.obtenerHorarios();
+  Future<List<Horario>> call() async {
+    return await repository.obtenerHorarios();
   }
 }

@@ -522,7 +522,7 @@ class _AdminScreenState extends State<AdminScreen> {
       children: [
         _buildSectionTitle("CONFIGURACIÓN DE FRANJAS HORARIAS"),
         FutureBuilder<List<Horario>>(
-          future: getHorariosUseCase.execute(),
+          future: getHorariosUseCase.call(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -660,7 +660,6 @@ class _AdminScreenState extends State<AdminScreen> {
     final cardBgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF4A443C);
 
-    // Mocking some data from screenshot for visual fidelity
     final String status = p.estadoAusente ? "Ausente" : "En clase";
     final Color statusColor = p.estadoAusente
         ? Colors.redAccent
