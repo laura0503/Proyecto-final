@@ -1,88 +1,103 @@
+// ─── Paquetes externos ───
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart'; // Import dotenv
-import 'package:supabase_flutter/supabase_flutter.dart'; // Import Supabase
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+// ─── Data Sources ───
+import 'package:gestion_ausencias/data/datasources/profesor_remote_datasource.dart';
 import 'package:gestion_ausencias/data/datasources/horario_remote_datasource.dart';
 
-import 'package:gestion_ausencias/data/repositories/horario_repository_impl.dart';
-import 'package:gestion_ausencias/domain/repositories/horario_repository.dart';
-
-// Domain & Data
-
-import 'package:gestion_ausencias/data/datasources/profesor_remote_datasource.dart';
+// ─── Repositorios (implementaciones) ───
 import 'package:gestion_ausencias/data/repositories/profesor_repository_impl.dart';
+import 'package:gestion_ausencias/data/repositories/horario_repository_impl.dart';
+import 'package:gestion_ausencias/data/repositories/aula_repository_impl.dart';
+
+// ─── Repositorios (interfaces) ───
 import 'package:gestion_ausencias/domain/repositories/profesor_repository.dart';
+import 'package:gestion_ausencias/domain/repositories/horario_repository.dart';
+import 'package:gestion_ausencias/domain/repositories/aula_repository.dart';
+
+// ─── Casos de uso ───
 import 'package:gestion_ausencias/domain/usecases/login_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/register_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horarios_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/update_profesor_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_aulas_usecase.dart';
 
-// Providers & UI
+// ─── Proveedores y pantallas (UI) ───
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
-import 'package:gestion_ausencias/ui/screens/login_screen.dart';
-import 'package:gestion_ausencias/ui/screens/main_layout.dart';
 import 'package:gestion_ausencias/ui/providers/config_provider.dart';
 import 'package:gestion_ausencias/ui/providers/notification_provider.dart';
+import 'package:gestion_ausencias/ui/screens/login_screen.dart';
+import 'package:gestion_ausencias/ui/screens/main_layout.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es', null);
 
-  // 1. Load Environment Variables
+  // 1. Cargar variables de entorno
   await dotenv.load(fileName: ".env");
 
-  // 2. Initialize Supabase
+  // 2. Inicializar Supabase
   await Supabase.initialize(
     url: dotenv.env['URL']!,
     anonKey: dotenv.env['KEY']!,
   );
 
-  // 3. Initialize Data Layer
+  // 3. Inicializar capa de datos
   // ignore: no_leading_underscores_for_local_identifiers
   final _supabase = Supabase.instance.client;
-  final remoteDataSource = ProfesorRemoteDataSource(_supabase);
-  final horarioRemoteDataSource = HorarioRemoteDataSource(_supabase);
 
-  final repository = ProfesorRepositoryImpl(remoteDataSource: remoteDataSource);
+  final profesorDataSource = ProfesorRemoteDataSource(_supabase);
+  final horarioDataSource = HorarioRemoteDataSource(_supabase);
 
-  final horarioRepository = HorarioRepositoryImpl(
-    remoteDataSource: horarioRemoteDataSource,
+  final profesorRepository = ProfesorRepositoryImpl(
+    remoteDataSource: profesorDataSource,
   );
+  final horarioRepository = HorarioRepositoryImpl(
+    remoteDataSource: horarioDataSource,
+  );
+  final aulaRepository = AulaRepositoryImpl(_supabase);
 
+  // 4. Ejecutar la app con inyección de dependencias
   runApp(
     MultiProvider(
       providers: [
-        // Repository Injection
-        Provider<ProfesorRepository>.value(value: repository),
+        // ── Repositorios ──
+        Provider<ProfesorRepository>.value(value: profesorRepository),
         Provider<HorarioRepository>.value(value: horarioRepository),
+        Provider<AulaRepository>.value(value: aulaRepository),
 
-        // Use Cases Injection
+        // ── Casos de uso ──
         Provider<LoginProfesorUseCase>(
-          create: (_) => LoginProfesorUseCase(repository),
+          create: (_) => LoginProfesorUseCase(profesorRepository),
         ),
         Provider<RegisterProfesorUseCase>(
-          create: (_) => RegisterProfesorUseCase(repository),
+          create: (_) => RegisterProfesorUseCase(profesorRepository),
         ),
         Provider<GetProfesoresUseCase>(
-          create: (_) => GetProfesoresUseCase(repository),
+          create: (_) => GetProfesoresUseCase(profesorRepository),
         ),
         Provider<GetHorariosUseCase>(
           create: (_) => GetHorariosUseCase(horarioRepository),
         ),
         Provider<UpdateProfesorUseCase>(
-          create: (_) => UpdateProfesorUseCase(repository),
+          create: (_) => UpdateProfesorUseCase(profesorRepository),
+        ),
+        Provider<GetAulasUseCase>(
+          create: (_) => GetAulasUseCase(aulaRepository),
         ),
 
-        // Logic/State Management Injection
+        // ── Proveedores de estado ──
         ChangeNotifierProvider<AuthProvider>(
           create: (context) => AuthProvider(
             loginUseCase: context.read<LoginProfesorUseCase>(),
             registerUseCase: context.read<RegisterProfesorUseCase>(),
-            repository: repository,
+            repository: profesorRepository,
           )..checkSession(),
         ),
         ChangeNotifierProvider<ConfigProvider>(create: (_) => ConfigProvider()),
@@ -109,10 +124,10 @@ class GestionAusencias extends StatelessWidget {
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         primaryColor: const Color(0xFF6C63FF),
-        scaffoldBackgroundColor: const Color(0xFF0F172A), // Azul profundo
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
         cardColor: const Color(0xFF1E293B),
         textTheme: const TextTheme(
-          bodyMedium: TextStyle(color: Color(0xFFF9F7F2)), // Texto en crema
+          bodyMedium: TextStyle(color: Color(0xFFF9F7F2)),
         ),
       ),
       themeMode: configProvider.themeMode,
@@ -125,11 +140,7 @@ class GestionAusencias extends StatelessWidget {
       locale: configProvider.appLocale,
       home: authProvider.isLoggedIn
           ? MainLayout(onLogout: () => authProvider.logout())
-          : LoginScreen(
-              onLoginSuccess: () {
-                // Navigation is handled by the home property relying on authProvider state
-              },
-            ),
+          : LoginScreen(onLoginSuccess: () {}),
     );
   }
 }

@@ -5,6 +5,8 @@ import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 import 'package:gestion_ausencias/domain/entities/horario.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horarios_usecase.dart';
+import 'package:gestion_ausencias/domain/entities/aula.dart';
+import 'package:gestion_ausencias/domain/usecases/get_aulas_usecase.dart';
 import '../providers/config_provider.dart';
 
 class AdminScreen extends StatefulWidget {
@@ -15,13 +17,21 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  int _selectedSectionIndex = 0;
+  String _selectedSection = 'Profesores'; // 'Profesores', 'Horarios', 'Aulas'
   final TextEditingController _searchController = TextEditingController();
   List<Profesor> _allProfesores = [];
   List<Profesor> _filteredProfesores = [];
   List<String> _availableDepartments = ["Todos"];
   String _selectedDepartment = "Todos";
   bool _isLoading = true;
+  String _selectedDay = 'Lunes'; // Default day for schedule view
+  final List<String> _days = [
+    'Lunes',
+    'Martes',
+    'Miércoles',
+    'Jueves',
+    'Viernes',
+  ];
 
   @override
   void initState() {
@@ -183,18 +193,34 @@ class _AdminScreenState extends State<AdminScreen> {
                             children: [
                               _buildSidebarSectionHeader("GESTIÓN", isDark),
                               _buildSidebarItem(
-                                Icons.people_alt_rounded,
-                                "Profesores",
-                                0,
-                                textColor,
-                                iconColor,
+                                icon: Icons.people_alt_rounded,
+                                text: "Profesores",
+                                isSelected: _selectedSection == 'Profesores',
+                                onTap: () {
+                                  setState(() {
+                                    _selectedSection = 'Profesores';
+                                  });
+                                },
                               ),
                               _buildSidebarItem(
-                                Icons.calendar_today_rounded,
-                                "Horarios",
-                                1,
-                                textColor,
-                                iconColor,
+                                icon: Icons.calendar_today_rounded,
+                                text: "Horarios",
+                                isSelected: _selectedSection == 'Horarios',
+                                onTap: () {
+                                  setState(() {
+                                    _selectedSection = 'Horarios';
+                                  });
+                                },
+                              ),
+                              _buildSidebarItem(
+                                icon: Icons.meeting_room,
+                                text: 'Aulas',
+                                isSelected: _selectedSection == 'Aulas',
+                                onTap: () {
+                                  setState(() {
+                                    _selectedSection = 'Aulas';
+                                  });
+                                },
                               ),
                             ],
                           ),
@@ -215,10 +241,12 @@ class _AdminScreenState extends State<AdminScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (_selectedSectionIndex == 0)
-                              _buildProfesoresSection(context, isDark),
-                            if (_selectedSectionIndex == 1)
-                              _buildHorariosSection(context, isDark),
+                            if (_selectedSection == 'Profesores')
+                              _buildProfesoresSection(context, isDark)
+                            else if (_selectedSection == 'Horarios')
+                              _buildHorariosSection(isDark)
+                            else if (_selectedSection == 'Aulas')
+                              _buildAulasSection(isDark),
 
                             const SizedBox(height: 50),
                             Center(
@@ -285,14 +313,19 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  Widget _buildSidebarItem(
-    IconData icon,
-    String title,
-    int index,
-    Color textColor,
-    Color iconColor,
-  ) {
-    final bool isSelected = _selectedSectionIndex == index;
+  Widget _buildSidebarItem({
+    required IconData icon,
+    required String text,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final textColor = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF4A443C);
+    final iconColor = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white70
+        : const Color(0xFF4A443C);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       decoration: BoxDecoration(
@@ -300,7 +333,7 @@ class _AdminScreenState extends State<AdminScreen> {
         borderRadius: BorderRadius.circular(10),
       ),
       child: ListTile(
-        onTap: () => setState(() => _selectedSectionIndex = index),
+        onTap: onTap,
         dense: true,
         leading: Icon(
           icon,
@@ -308,7 +341,7 @@ class _AdminScreenState extends State<AdminScreen> {
           size: 22,
         ),
         title: Text(
-          title,
+          text,
           style: TextStyle(
             color: isSelected ? Colors.white : textColor,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -514,50 +547,28 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
-  Widget _buildHorariosSection(BuildContext context, bool isDark) {
-    final getHorariosUseCase = context.read<GetHorariosUseCase>();
-
+  Widget _buildHorariosSection(bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle("CONFIGURACIÓN DE FRANJAS HORARIAS"),
+        _buildDaySelector(isDark),
+        const SizedBox(height: 16),
         FutureBuilder<List<Horario>>(
-          future: getHorariosUseCase.call(),
+          future: Provider.of<GetHorariosUseCase>(
+            context,
+            listen: false,
+          ).call(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-            final schedules = snapshot.data ?? [];
-
-            if (schedules.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 48,
-                        color: isDark ? Colors.white24 : Colors.grey[300],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        "No hay franjas horarias registradas en la tabla 'horario'",
-                        style: TextStyle(
-                          color: isDark ? Colors.white54 : Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text("No hay horarios definidos"));
             }
 
+            final schedules = snapshot.data!;
             return _buildHorarioTable(schedules, isDark);
           },
         ),
@@ -565,8 +576,96 @@ class _AdminScreenState extends State<AdminScreen> {
     );
   }
 
+  Widget _buildAulasSection(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle("LISTADO DE AULAS"),
+        const SizedBox(height: 16),
+        FutureBuilder<List<Aula>>(
+          future: Provider.of<GetAulasUseCase>(context, listen: false).call(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text("No hay aulas registradas"));
+            }
+
+            final aulas = snapshot.data!;
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 1.5,
+              ),
+              itemCount: aulas.length,
+              itemBuilder: (context, index) {
+                final aula = aulas[index];
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF1E293B)
+                        : Colors.white, // Dark Blue or White
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF334155) : Colors.black12,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.meeting_room,
+                        color: isDark
+                            ? const Color(0xFF22D3EE)
+                            : const Color(0xFF0891B2),
+                        size: 32,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        aula.nombre,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Capacidad: ${aula.capacidad}",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _buildHorarioTable(List<Horario> schedules, bool isDark) {
-    final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    // Blue Range palette
+    const bgColor = Color(0xFF0F172A); // Slate-900 (Dark Blue Surface)
+    const headerColor = Color(0xFF1E293B); // Slate-800 (Lighter Blue Header)
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
@@ -575,10 +674,12 @@ class _AdminScreenState extends State<AdminScreen> {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+          border: Border.all(
+            color: const Color(0xFF334155),
+          ), // Slate-700 Border
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withOpacity(0.5),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -587,49 +688,75 @@ class _AdminScreenState extends State<AdminScreen> {
         child: DataTable(
           horizontalMargin: 20,
           columnSpacing: 20,
-          headingRowColor: WidgetStateProperty.all(
-            isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.black.withOpacity(0.05),
-          ),
+          headingRowColor: WidgetStateProperty.all(headerColor),
+          dataRowColor: WidgetStateProperty.resolveWith<Color?>((states) {
+            return null;
+          }),
           columns: const [
-            DataColumn(label: Text("ID")),
-            DataColumn(label: Text("Descripción")),
-            DataColumn(label: Text("Inicio")),
-            DataColumn(label: Text("Fin")),
-            DataColumn(label: Text("Guardia")),
-            DataColumn(label: Text("Recreo")),
+            DataColumn(
+              label: Text(
+                "Descripción",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                "Inicio",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                "Fin",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ],
           rows: schedules.map((h) {
+            // Apply special coloring for Recreo
+            final isRecreo = h.recreo;
+            // Cool Cyan overlay for recreo
+            final rowColor = isRecreo
+                ? const Color(0xFF06B6D4).withOpacity(
+                    0.15,
+                  ) // Cyan-500 low opacity
+                : null;
+
             return DataRow(
+              color: WidgetStateProperty.all(rowColor),
               cells: [
-                DataCell(Text(h.idHorario.toString())),
                 DataCell(
                   Text(
                     h.texto,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataCell(Text(h.horarioInicio)),
-                DataCell(Text(h.horarioFin)),
-                DataCell(
-                  Icon(
-                    h.esGuardia
-                        ? Icons.check_circle_rounded
-                        : Icons.cancel_outlined,
-                    color: h.esGuardia ? Colors.green : Colors.grey,
-                    size: 18,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isRecreo
+                          ? const Color(0xFF22D3EE) // Cyan-400 (Vibrant text)
+                          : Colors.white,
+                    ),
                   ),
                 ),
                 DataCell(
-                  Icon(
-                    h.recreo
-                        ? Icons.check_circle_rounded
-                        : Icons.cancel_outlined,
-                    color: h.recreo ? Colors.green : Colors.grey,
-                    size: 18,
+                  Text(
+                    h.horarioInicio,
+                    style: const TextStyle(color: Color(0xFFCBD5E1)),
                   ),
-                ),
+                ), // Slate-300
+                DataCell(
+                  Text(
+                    h.horarioFin,
+                    style: const TextStyle(color: Color(0xFFCBD5E1)),
+                  ),
+                ), // Slate-300
               ],
             );
           }).toList(),
@@ -794,6 +921,72 @@ class _AdminScreenState extends State<AdminScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDaySelector(bool isDark) {
+    final List<String> days = [
+      "Lunes",
+      "Martes",
+      "Miércoles",
+      "Jueves",
+      "Viernes",
+    ];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      height: 50,
+      decoration: BoxDecoration(
+        color: const Color(0xFF020617), // Slate-950 (Deep Navy)
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF1E293B), // Slate-800 border
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: days.map((day) {
+          final isSelected = _selectedDay == day;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedDay = day),
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFF0891B2) // Cyan-600 (Vibrant Selected)
+                      : const Color(0xFF1E293B), // Slate-800 (Unselected Blue)
+                  borderRadius: BorderRadius.circular(10),
+                  border: isSelected
+                      ? Border.all(
+                          color: const Color(0xFF22D3EE),
+                          width: 1,
+                        ) // Cyan-400 border
+                      : Border.all(
+                          color: Colors.transparent,
+                          width: 1,
+                        ), // Maintain size
+                ),
+                margin: const EdgeInsets.all(4),
+                child: Text(
+                  day,
+                  style: TextStyle(
+                    color: isSelected
+                        ? Colors.white
+                        : const Color(
+                            0xFF94A3B8,
+                          ), // Slate-400 (Muted Blue Text)
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
