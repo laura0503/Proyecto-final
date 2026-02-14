@@ -7,10 +7,9 @@ import 'package:gestion_ausencias/domain/entities/horario.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horarios_usecase.dart';
 import 'package:gestion_ausencias/domain/entities/aula.dart';
 import 'package:gestion_ausencias/domain/usecases/get_aulas_usecase.dart';
-import 'package:gestion_ausencias/domain/usecases/get_horario_aula_usecase.dart';
-import 'package:gestion_ausencias/domain/entities/horario_aula.dart';
-import 'package:gestion_ausencias/ui/screens/aula_horario_screen.dart';
+
 import '../providers/config_provider.dart';
+import 'package:gestion_ausencias/ui/widgets/aula_card.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -581,10 +580,6 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _buildAulasSection(bool isDark) {
     final aulasUseCase = Provider.of<GetAulasUseCase>(context, listen: false);
-    final horarioAulaUseCase = Provider.of<GetHorarioAulaUseCase>(
-      context,
-      listen: false,
-    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -607,120 +602,15 @@ class _AdminScreenState extends State<AdminScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
+                crossAxisCount: 5,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 1.2,
+                childAspectRatio: 1.0,
               ),
               itemCount: aulas.length,
               itemBuilder: (context, index) {
                 final aula = aulas[index];
-                return InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AulaHorarioScreen(aula: aula),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isDark
-                            ? const Color(0xFF334155)
-                            : Colors.black12,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.meeting_room,
-                          color: isDark
-                              ? const Color(0xFF22D3EE)
-                              : const Color(0xFF0891B2),
-                          size: 28,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          aula.nombre,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        // Profesor y grupo desde horario_aula
-                        FutureBuilder<List<HorarioAula>>(
-                          future: horarioAulaUseCase.call(aula.id),
-                          builder: (context, hSnapshot) {
-                            if (!hSnapshot.hasData || hSnapshot.data!.isEmpty) {
-                              return Text(
-                                "Capacidad: ${aula.capacidad}",
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark
-                                      ? Colors.white70
-                                      : Colors.black54,
-                                ),
-                              );
-                            }
-                            // Buscar el primer registro con profesor no vacío
-                            final first = hSnapshot.data!.firstWhere(
-                              (h) =>
-                                  h.profesor != null && h.profesor!.isNotEmpty,
-                              orElse: () => hSnapshot.data!.first,
-                            );
-                            return Column(
-                              children: [
-                                if (first.profesor != null &&
-                                    first.profesor!.isNotEmpty)
-                                  Text(
-                                    first.profesor!,
-                                    textAlign: TextAlign.center,
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: isDark
-                                          ? Colors.white70
-                                          : Colors.black54,
-                                    ),
-                                  ),
-                                if (first.grupo != null &&
-                                    first.grupo!.isNotEmpty)
-                                  Text(
-                                    first.grupo!,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontStyle: FontStyle.italic,
-                                      color: isDark
-                                          ? const Color(0xFF22D3EE)
-                                          : const Color(0xFF0891B2),
-                                    ),
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+                return AulaCard(aula: aula, isDark: isDark);
               },
             );
           },
