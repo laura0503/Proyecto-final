@@ -6,7 +6,7 @@ class AulaModel extends Aula {
 
   factory AulaModel.fromJson(Map<String, dynamic> json) {
     return AulaModel(
-      id: json['id'] ?? 0,
+      id: json['id_aulas'] ?? 0,
       nombre: json['nombre'] ?? '',
       capacidad: json['capacidad'] ?? 0,
     );

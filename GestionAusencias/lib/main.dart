@@ -14,11 +14,13 @@ import 'package:gestion_ausencias/data/datasources/horario_remote_datasource.dar
 import 'package:gestion_ausencias/data/repositories/profesor_repository_impl.dart';
 import 'package:gestion_ausencias/data/repositories/horario_repository_impl.dart';
 import 'package:gestion_ausencias/data/repositories/aula_repository_impl.dart';
+import 'package:gestion_ausencias/data/repositories/horario_aula_repository_impl.dart';
 
 // ─── Repositorios (interfaces) ───
 import 'package:gestion_ausencias/domain/repositories/profesor_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/horario_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/aula_repository.dart';
+import 'package:gestion_ausencias/domain/repositories/horario_aula_repository.dart';
 
 // ─── Casos de uso ───
 import 'package:gestion_ausencias/domain/usecases/login_profesor_usecase.dart';
@@ -27,6 +29,7 @@ import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horarios_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/update_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_aulas_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_horario_aula_usecase.dart';
 
 // ─── Proveedores y pantallas (UI) ───
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
@@ -62,6 +65,7 @@ void main() async {
     remoteDataSource: horarioDataSource,
   );
   final aulaRepository = AulaRepositoryImpl(_supabase);
+  final horarioAulaRepository = HorarioAulaRepositoryImpl(_supabase);
 
   // 4. Ejecutar la app con inyección de dependencias
   runApp(
@@ -71,6 +75,7 @@ void main() async {
         Provider<ProfesorRepository>.value(value: profesorRepository),
         Provider<HorarioRepository>.value(value: horarioRepository),
         Provider<AulaRepository>.value(value: aulaRepository),
+        Provider<HorarioAulaRepository>.value(value: horarioAulaRepository),
 
         // ── Casos de uso ──
         Provider<LoginProfesorUseCase>(
@@ -90,6 +95,9 @@ void main() async {
         ),
         Provider<GetAulasUseCase>(
           create: (_) => GetAulasUseCase(aulaRepository),
+        ),
+        Provider<GetHorarioAulaUseCase>(
+          create: (_) => GetHorarioAulaUseCase(horarioAulaRepository),
         ),
 
         // ── Proveedores de estado ──
