@@ -7,6 +7,7 @@ class Profesor {
   final String contrasena;
   final String departamento;
   final bool estadoAusente;
+  final String? tutoria; // Nullable if no tutorship
 
   const Profesor({
     required this.id,
@@ -17,6 +18,7 @@ class Profesor {
     required this.contrasena,
     required this.departamento,
     required this.estadoAusente,
+    this.tutoria,
   });
 
   Profesor copyWith({
@@ -28,6 +30,7 @@ class Profesor {
     String? contrasena,
     String? departamento,
     bool? estadoAusente,
+    String? tutoria,
   }) {
     return Profesor(
       id: id ?? this.id,
@@ -38,6 +41,7 @@ class Profesor {
       contrasena: contrasena ?? this.contrasena,
       departamento: departamento ?? this.departamento,
       estadoAusente: estadoAusente ?? this.estadoAusente,
+      tutoria: tutoria ?? this.tutoria,
     );
   }
 }

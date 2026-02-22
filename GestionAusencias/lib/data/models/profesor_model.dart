@@ -10,6 +10,7 @@ class ProfesorModel extends Profesor {
     required super.contrasena,
     required super.departamento,
     required super.estadoAusente,
+    super.tutoria,
   });
 
   factory ProfesorModel.fromJson(Map<String, dynamic> json) {
@@ -24,6 +25,7 @@ class ProfesorModel extends Profesor {
       contrasena: json['contrasena'] ?? '',
       departamento: json['departamento'] ?? 'General',
       estadoAusente: json['estadoAusente'] ?? false,
+      tutoria: json['tutoria'], // Can be null
     );
   }
 
@@ -37,6 +39,7 @@ class ProfesorModel extends Profesor {
       contrasena: profesor.contrasena,
       departamento: profesor.departamento,
       estadoAusente: profesor.estadoAusente,
+      tutoria: profesor.tutoria,
     );
   }
 
@@ -50,6 +53,7 @@ class ProfesorModel extends Profesor {
       'contrasena': contrasena,
       'departamento': departamento,
       'estadoAusente': estadoAusente,
+      'tutoria': tutoria,
     };
   }
 }

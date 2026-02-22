@@ -9,7 +9,7 @@ class HorarioRemoteDataSource {
 
   Future<List<HorarioModel>> obtenerHorarios() async {
     final response = await _supabase
-        .from('horario')
+        .from('horario_tramo')
         .select()
         .order('id_horario', ascending: true);
 
@@ -20,6 +20,6 @@ class HorarioRemoteDataSource {
 
   Future<void> guardarHorario(Horario horario) async {
     final model = HorarioModel.fromEntity(horario);
-    await _supabase.from('horario').upsert(model.toJson());
+    await _supabase.from('horario_tramo').upsert(model.toJson());
   }
 }

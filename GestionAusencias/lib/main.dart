@@ -9,18 +9,23 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // ─── Data Sources ───
 import 'package:gestion_ausencias/data/datasources/profesor_remote_datasource.dart';
 import 'package:gestion_ausencias/data/datasources/horario_remote_datasource.dart';
+import 'package:gestion_ausencias/data/datasources/asignatura_remote_datasource.dart';
 
 // ─── Repositorios (implementaciones) ───
 import 'package:gestion_ausencias/data/repositories/profesor_repository_impl.dart';
 import 'package:gestion_ausencias/data/repositories/horario_repository_impl.dart';
 import 'package:gestion_ausencias/data/repositories/aula_repository_impl.dart';
 import 'package:gestion_ausencias/data/repositories/horario_aula_repository_impl.dart';
+import 'package:gestion_ausencias/data/repositories/grupo_repository_impl.dart';
+import 'package:gestion_ausencias/data/repositories/asignatura_repository_impl.dart';
 
 // ─── Repositorios (interfaces) ───
 import 'package:gestion_ausencias/domain/repositories/profesor_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/horario_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/aula_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/horario_aula_repository.dart';
+import 'package:gestion_ausencias/domain/repositories/grupo_repository.dart';
+import 'package:gestion_ausencias/domain/repositories/asignatura_repository.dart';
 
 // ─── Casos de uso ───
 import 'package:gestion_ausencias/domain/usecases/login_profesor_usecase.dart';
@@ -30,6 +35,8 @@ import 'package:gestion_ausencias/domain/usecases/get_horarios_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/update_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_aulas_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_aula_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_grupos_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_asignaturas_usecase.dart';
 
 // ─── Proveedores y pantallas (UI) ───
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
@@ -57,6 +64,7 @@ void main() async {
 
   final profesorDataSource = ProfesorRemoteDataSource(_supabase);
   final horarioDataSource = HorarioRemoteDataSource(_supabase);
+  final asignaturaDataSource = AsignaturaRemoteDataSource(_supabase);
 
   final profesorRepository = ProfesorRepositoryImpl(
     remoteDataSource: profesorDataSource,
@@ -66,6 +74,8 @@ void main() async {
   );
   final aulaRepository = AulaRepositoryImpl(_supabase);
   final horarioAulaRepository = HorarioAulaRepositoryImpl(_supabase);
+  final grupoRepository = GrupoRepositoryImpl(_supabase);
+  final asignaturaRepository = AsignaturaRepositoryImpl(asignaturaDataSource);
 
   // 4. Ejecutar la app con inyección de dependencias
   runApp(
@@ -76,6 +86,8 @@ void main() async {
         Provider<HorarioRepository>.value(value: horarioRepository),
         Provider<AulaRepository>.value(value: aulaRepository),
         Provider<HorarioAulaRepository>.value(value: horarioAulaRepository),
+        Provider<GrupoRepository>.value(value: grupoRepository),
+        Provider<AsignaturaRepository>.value(value: asignaturaRepository),
 
         // ── Casos de uso ──
         Provider<LoginProfesorUseCase>(
@@ -98,6 +110,12 @@ void main() async {
         ),
         Provider<GetHorarioAulaUseCase>(
           create: (_) => GetHorarioAulaUseCase(horarioAulaRepository),
+        ),
+        Provider<GetGruposUseCase>(
+          create: (_) => GetGruposUseCase(grupoRepository),
+        ),
+        Provider<GetAsignaturasUseCase>(
+          create: (_) => GetAsignaturasUseCase(asignaturaRepository),
         ),
 
         // ── Proveedores de estado ──

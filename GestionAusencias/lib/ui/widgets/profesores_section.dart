@@ -1,0 +1,588 @@
+import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../domain/entities/profesor.dart';
+import '../../domain/usecases/get_profesores_usecase.dart';
+
+class ProfesoresSection extends StatefulWidget {
+  final bool isDark;
+
+  const ProfesoresSection({super.key, required this.isDark});
+
+  @override
+  State<ProfesoresSection> createState() => _ProfesoresSectionState();
+}
+
+class _ProfesoresSectionState extends State<ProfesoresSection> {
+  final TextEditingController _searchController = TextEditingController();
+  List<Profesor> _allProfesores = [];
+  List<Profesor> _filteredProfesores = [];
+  List<String> _availableDepartments = ["Todos"];
+  String _selectedDepartment = "Todos";
+  bool _isLoading = true;
+  bool _showOnlyTutors = false; // New filter state
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_applyFilters);
+    _loadProfesores();
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_applyFilters);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String _normalize(String text) {
+    return text
+        .toLowerCase()
+        .trim()
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u');
+  }
+
+  void _applyFilters() {
+    setState(() {
+      _filteredProfesores = _allProfesores.where((p) {
+        final query = _normalize(_searchController.text);
+        final matchesSearch =
+            query.isEmpty ||
+            _normalize(p.nombre).contains(query) ||
+            _normalize(p.asignatura).contains(query);
+
+        final matchesDept =
+            _selectedDepartment == "Todos" ||
+            _normalize(p.departamento) == _normalize(_selectedDepartment);
+
+        final matchesTutor =
+            !_showOnlyTutors || (p.tutoria != null && p.tutoria!.isNotEmpty);
+
+        return matchesSearch && matchesDept && matchesTutor;
+      }).toList();
+    });
+  }
+
+  void _toggleTutorFilter() {
+    setState(() {
+      _showOnlyTutors = !_showOnlyTutors;
+      _applyFilters();
+    });
+  }
+
+  void _selectDepartment(String dept) {
+    if (_selectedDepartment == dept) return;
+    setState(() {
+      _selectedDepartment = dept;
+      _applyFilters();
+    });
+  }
+
+  Future<void> _loadProfesores() async {
+    final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
+    try {
+      final list = await getProfesoresUseCase.execute();
+
+      final List<String> defaultDepts = [
+        "Todos",
+        "Matemáticas",
+        "Historia y Geografía",
+        "Educación Física",
+        "Ciencias",
+        "Lengua",
+        "Religión",
+        "Informática",
+        "Música",
+        "Tecnología",
+        "Artes",
+        "Filosofía",
+        "Latín y Griego",
+        "Economía",
+        "Física y Química",
+        "Biología y Geología",
+        "Idiomas",
+      ];
+
+      final dbDepts = list.map((p) => p.departamento).toSet().toList();
+
+      // Deduplicate ignoring case/accents, preferring default list styling
+      final Set<String> uniqueDepts = {...defaultDepts};
+
+      for (var dbDept in dbDepts) {
+        // Check if this department already exists in uniqueDepts (ignoring case/normalization)
+        bool exists = uniqueDepts.any(
+          (existing) => _normalize(existing) == _normalize(dbDept),
+        );
+        if (!exists) {
+          uniqueDepts.add(dbDept);
+        }
+      }
+
+      final allDepts = uniqueDepts.toList();
+
+      if (mounted) {
+        setState(() {
+          _allProfesores = list;
+          _availableDepartments = allDepts;
+          _isLoading = false;
+          _applyFilters();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = widget.isDark ? Colors.white : Colors.black;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header with Badge
+        Row(
+          children: [
+            Text(
+              "Cuerpo Docente",
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                "${_filteredProfesores.length} Profesores",
+                style: TextStyle(
+                  color: textColor.withOpacity(0.8),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 30),
+
+        // Search and Filters
+        Row(
+          children: [
+            Expanded(
+              flex: 1,
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: widget.isDark
+                        ? Colors.white10
+                        : const Color(0xFFE5E0D8),
+                  ),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: "Buscar por nombre...",
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: textColor.withOpacity(0.5),
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    hintStyle: TextStyle(color: textColor.withOpacity(0.3)),
+                  ),
+                  style: TextStyle(color: textColor),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 3,
+              child: SizedBox(
+                height: 48,
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(
+                    dragDevices: {
+                      ui.PointerDeviceKind.touch,
+                      ui.PointerDeviceKind.mouse,
+                      ui.PointerDeviceKind.trackpad,
+                    },
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      children: [
+                        // Botón de filtro de Tutoría
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: InkWell(
+                            onTap: _toggleTutorFilter,
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _showOnlyTutors
+                                    ? const Color(0xFF007AFF)
+                                    : (widget.isDark
+                                          ? Colors.white.withOpacity(0.05)
+                                          : const Color(0xFFEBE6DF)),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: _showOnlyTutors
+                                      ? Colors.transparent
+                                      : (widget.isDark
+                                            ? Colors.white10
+                                            : Colors.black12),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    "Tutores",
+                                    style: TextStyle(
+                                      color: _showOnlyTutors
+                                          ? Colors.white
+                                          : (widget.isDark
+                                                ? Colors.white70
+                                                : const Color(0xFF4A443C)),
+                                      fontWeight: _showOnlyTutors
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Lista de departamentos
+                        ..._availableDepartments.map((dept) {
+                          return _buildFilterChip(
+                            dept,
+                            _selectedDepartment == dept,
+                            widget.isDark,
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 40),
+
+        // Grid
+        if (_isLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_filteredProfesores.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.person_search_rounded,
+                    size: 64,
+                    color: widget.isDark ? Colors.white10 : Colors.black12,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "No se han encontrado profesores",
+                    style: TextStyle(
+                      color: widget.isDark ? Colors.white38 : Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 5,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
+              childAspectRatio: 1.15, // Significantly more compact height
+            ),
+            itemCount: _filteredProfesores.length,
+            itemBuilder: (context, index) {
+              final p = _filteredProfesores[index];
+              return _buildModernTeacherCard(context, p, widget.isDark);
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildFilterChip(String label, bool isSelected, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (val) => _selectDepartment(label),
+        backgroundColor: isDark
+            ? Colors.white.withOpacity(0.05)
+            : const Color(0xFFEBE6DF),
+        selectedColor: const Color(0xFF007AFF),
+        labelStyle: TextStyle(
+          color: isSelected
+              ? Colors.white
+              : (isDark ? Colors.white70 : const Color(0xFF4A443C)),
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide.none,
+        ),
+        showCheckmark: false,
+      ),
+    );
+  }
+
+  Widget _buildModernTeacherCard(
+    BuildContext context,
+    Profesor p,
+    bool isDark,
+  ) {
+    final cardBgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF4A443C);
+
+    final String status = p.estadoAusente ? "Ausente" : "En clase";
+    final Color statusColor = p.estadoAusente
+        ? Colors.redAccent
+        : Colors.greenAccent;
+    final String location = p.estadoAusente ? "Baja médica" : "Pabellón A";
+
+    final bool isTutor = p.tutoria != null && p.tutoria!.isNotEmpty;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBgColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 8,
+      ), // Minimal padding
+      child: Column(
+        children: [
+          // Avatar
+          const SizedBox(height: 4),
+          Text(
+            p.nombre,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            p.asignatura.toUpperCase(),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: textColor.withOpacity(0.6),
+              letterSpacing: 0.5,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+
+          // Chips (Baja + Ubicación + Asignatura)
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              // Estado
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: statusColor.withOpacity(0.2)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      status,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Ubicación
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.location_on_rounded,
+                      size: 9,
+                      color: Color(0xFF2563EB),
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      location,
+                      style: const TextStyle(
+                        fontSize: 9,
+                        color: Color(0xFF1D4ED8),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Departamento (Nuevo Botón)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.business_rounded,
+                      size: 9,
+                      color: Colors.purple[700],
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      p.departamento.length > 10
+                          ? "${p.departamento.substring(0, 10)}..."
+                          : p.departamento,
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: Colors.purple[800],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (isTutor) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+              ),
+              child: Text(
+                "Tutor: ${p.tutoria}",
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueAccent,
+                ),
+              ),
+            ),
+          ],
+          const Spacer(),
+          const SizedBox(height: 8),
+          // Horario (Time Range)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.access_time_rounded,
+                  size: 16,
+                  color: textColor.withOpacity(0.4),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "08:00 - 14:30",
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: textColor.withOpacity(0.6),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.more_horiz_rounded,
+                  size: 20,
+                  color: textColor.withOpacity(0.3),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
