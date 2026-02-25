@@ -26,8 +26,8 @@ class AulaCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black12, width: 1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black.withOpacity(0.08), width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -36,16 +36,17 @@ class AulaCard extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Estado
             FutureBuilder<List<HorarioAula>>(
               future: horarioAulaUseCase.call(aula.id),
               builder: (context, hSnapshot) {
                 if (!hSnapshot.hasData) {
-                  return const SizedBox(height: 10);
+                  return const SizedBox(height: 5);
                 }
 
                 HorarioAula? currentClass;
@@ -66,118 +67,98 @@ class AulaCard extends StatelessWidget {
                 final statusText = isOccupied ? "OCUPADO" : "LIBRE";
 
                 return Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
+                        horizontal: 4,
+                        vertical: 1,
                       ),
                       decoration: BoxDecoration(
                         color: statusBg,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         border: Border.all(color: statusColor.withOpacity(0.3)),
                       ),
                       child: Text(
                         statusText,
                         style: TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
+                          fontSize: 6,
+                          fontWeight: FontWeight.w900,
                           color: statusColor,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 2),
                     Text(
                       aula.nombre,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
                         color: Colors.black87,
-                        letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 8),
                     if (isOccupied) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1), // Orange
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: Colors.orange.withOpacity(0.3),
+                      const SizedBox(height: 2),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                currentClass!.grupo ?? "",
+                                style: TextStyle(
+                                  fontSize: 7,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange[800],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          currentClass!.grupo ?? "Sin grupo",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange[800], // Dark Orange
+                          const SizedBox(width: 2),
+                          Flexible(
+                            child: Text(
+                              currentClass.profesor ?? "",
+                              style: const TextStyle(
+                                fontSize: 7,
+                                color: Color(0xFF7C3AED),
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF7C3AED).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: const Color(0xFF7C3AED).withOpacity(0.3),
-                          ),
-                        ),
-                        child: Text(
-                          currentClass.profesor ?? "Sin profesor",
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF7C3AED), // Violet
-                          ),
-                        ),
-                      ),
-                    ] else ...[
-                      const Text(
-                        "Disponible",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: Colors.black26,
-                          fontStyle: FontStyle.italic,
-                        ),
+                        ],
                       ),
                     ],
                   ],
                 );
               },
             ),
-            const Spacer(),
-            // Capacidad
+            const SizedBox(height: 4),
+            // Capacidad reducida
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(
                   Icons.groups_outlined,
-                  size: 12,
+                  size: 8,
                   color: Colors.black38,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 2),
                 const Text(
-                  '28 Alumnos',
+                  '28',
                   style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 7,
+                    fontWeight: FontWeight.w600,
                     color: Colors.black45,
                   ),
                 ),

@@ -329,10 +329,10 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              crossAxisSpacing: 20,
-              mainAxisSpacing: 20,
-              childAspectRatio: 1.15, // Significantly more compact height
+              crossAxisCount: 7,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1.7,
             ),
             itemCount: _filteredProfesores.length,
             itemBuilder: (context, index) {
@@ -551,35 +551,26 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
               ),
             ),
           ],
-          const Spacer(),
-          const SizedBox(height: 8),
-          // Horario (Time Range)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.access_time_rounded,
-                  size: 16,
-                  color: textColor.withOpacity(0.4),
+          const SizedBox(height: 4),
+          // Horario (Time Range) compact
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.access_time_rounded,
+                size: 10,
+                color: textColor.withOpacity(0.4),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                "08:00 - 14:30",
+                style: TextStyle(
+                  fontSize: 10,
+                  color: textColor.withOpacity(0.6),
+                  fontWeight: FontWeight.w500,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  "08:00 - 14:30",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: textColor.withOpacity(0.6),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const Spacer(),
-                Icon(
-                  Icons.more_horiz_rounded,
-                  size: 20,
-                  color: textColor.withOpacity(0.3),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

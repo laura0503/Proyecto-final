@@ -36,7 +36,7 @@ class ConfigProvider extends ChangeNotifier {
   Locale _appLocale = const Locale('es');
   Locale get appLocale => _appLocale;
 
-  ThemeMode _themeMode = ThemeMode.light;
+  ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
 
   Future<void> _loadPreferences() async {
@@ -60,10 +60,13 @@ class ConfigProvider extends ChangeNotifier {
     // Load Theme
     final savedTheme = prefs.getString('app_theme');
     if (savedTheme != null) {
-      if (savedTheme == 'dark')
+      if (savedTheme == 'dark') {
         _themeMode = ThemeMode.dark;
-      else
+      } else if (savedTheme == 'light') {
         _themeMode = ThemeMode.light;
+      } else {
+        _themeMode = ThemeMode.system;
+      }
     }
 
     notifyListeners();

@@ -135,13 +135,6 @@ class _MainLayoutState extends State<MainLayout> {
                           AppStrings.get(context, 'ajustes'),
                           5,
                         ),
-                        const Spacer(),
-                        _sidebarItem(
-                          Icons.logout_rounded,
-                          AppStrings.get(context, 'salir'),
-                          -1,
-                          isLogout: true,
-                        ),
                         const SizedBox(height: 30),
                       ],
                     ),

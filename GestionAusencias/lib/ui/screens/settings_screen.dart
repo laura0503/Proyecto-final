@@ -2,11 +2,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/notification_provider.dart';
-
 import '../providers/config_provider.dart';
 import '../utils/app_strings.dart';
-import 'wallpaper_selector_screen.dart';
+import 'settings/sections/personalization_section.dart';
+import 'settings/sections/privacy_section.dart';
+import 'settings/sections/profile_section.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -18,21 +18,11 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   int _selectedSectionIndex = 0;
 
-  final Color sidebarColor = const Color(
-    0xFFF0F2F5,
-  ); // Gris muy claro para sidebar
-  final Color activeItemColor = const Color(0xFF3B82F6); // Azul vibrante
-  final Color scaffoldColor = const Color(0xFFE5E7EB); // Gris fondo
-  final Color textColor = const Color(0xFF1F2937); // Gris oscuro texto
-
   @override
   Widget build(BuildContext context) {
-    // Usamos LayoutBuilder para adaptar si es necesario,
-    // pero el diseño solicitado es claramente desktop/tablet landscape.
     final configProvider = context.watch<ConfigProvider>();
     final bgProvider = configProvider.backgroundImageProvider;
 
-    // Theme logic for Glassmorphism
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final glassColor = isDark
         ? const Color(0xFF1E293B).withOpacity(0.7)
@@ -47,7 +37,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // 1. Global Background Wallpaper
           Container(
             decoration: BoxDecoration(
               color: bgProvider == null
@@ -58,22 +47,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   : null,
             ),
           ),
-
-          // 2. Glass UI Layer
           Row(
             children: [
-              // 2.1 Sidebar with Glass Effect
               ClipRRect(
-                // Clip for the blur effect
                 child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(
-                    sigmaX: 20.0,
-                    sigmaY: 20.0,
-                  ), // Blur
+                  filter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
                   child: Container(
                     width: 280,
                     decoration: BoxDecoration(
-                      color: glassColor, // Dynamic Glass
+                      color: glassColor,
                       border: Border(
                         right: BorderSide(color: borderColor, width: 1),
                       ),
@@ -106,17 +88,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 textColor,
                                 iconColor,
                               ),
+                              _buildSidebarItem(
+                                Icons.person_rounded,
+                                "Perfil",
+                                2,
+                                textColor,
+                                iconColor,
+                              ),
                             ],
                           ),
                         ),
-                        _buildSidebarFooter(context),
                       ],
                     ),
                   ),
                 ),
               ),
-
-              // 2.2 Content Area (Transparent to show wallpaper)
               Expanded(
                 child: Column(
                   children: [
@@ -127,88 +113,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (_selectedSectionIndex == 0) ...[
-                              _buildSectionTitle("PERSONALIZACIÓN"),
-                              _buildCardItem(
-                                context,
-                                icon: Icons.wallpaper_rounded,
-                                gradientColors: [
-                                  const Color(0xFF3B82F6),
-                                  const Color(0xFF8B5CF6),
-                                ], // Blue -> Purple
-                                title: "Fondo de pantalla",
-                                subtitle:
-                                    "Cambia el fondo de la aplicación por imágenes o colores sólidos.",
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const WallpaperSelectorScreen(),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Theme Switcher
-                              Consumer<ConfigProvider>(
-                                builder: (context, config, _) {
-                                  String currentTheme =
-                                      config.themeMode == ThemeMode.dark
-                                      ? AppStrings.get(context, 'theme_dark')
-                                      : AppStrings.get(context, 'theme_light');
-
-                                  return _buildCardItem(
-                                    context,
-                                    icon: Icons.brightness_6_rounded,
-                                    gradientColors: [
-                                      const Color(0xFFFFD700),
-                                      const Color(0xFFFF8C00),
-                                    ], // Yellow -> Orange
-                                    title: AppStrings.get(context, 'theme'),
-                                    subtitle: currentTheme,
-                                    onTap: () =>
-                                        _showThemeDialog(context, config),
-                                  );
-                                },
-                              ),
-                            ],
-                            if (_selectedSectionIndex == 1) ...[
-                              _buildSectionTitle("PRIVACIDAD Y DATOS"),
-                              _buildCardItem(
-                                context,
-                                icon: Icons.delete_sweep_rounded,
-                                gradientColors: [
-                                  const Color(0xFFEF4444),
-                                  const Color(0xFFF97316),
-                                ], // Red -> Orange
-                                title: "Eliminar notificaciones",
-                                subtitle:
-                                    "Borra el historial de avisos locales y libera espacio.",
-                                onTap: () =>
-                                    _confirmClearNotifications(context),
-                              ),
-                              const SizedBox(height: 12),
-                              // Language Switcher
-                              Consumer<ConfigProvider>(
-                                builder: (context, config, _) {
-                                  final currentLang =
-                                      config.appLocale.languageCode == 'es'
-                                      ? 'Español'
-                                      : 'English';
-                                  return _buildCardItem(
-                                    context,
-                                    icon: Icons.language,
-                                    gradientColors: [
-                                      const Color(0xFF007AFF),
-                                      const Color(0xFF5AC8FA),
-                                    ],
-                                    title: AppStrings.get(context, 'language'),
-                                    subtitle: currentLang,
-                                    onTap: () =>
-                                        _showLanguageDialog(context, config),
-                                  );
-                                },
-                              ),
-                            ],
+                            if (_selectedSectionIndex == 0)
+                              const PersonalizationSection(),
+                            if (_selectedSectionIndex == 1)
+                              const PrivacySection(),
+                            if (_selectedSectionIndex == 2)
+                              const ProfileSection(),
                             const SizedBox(height: 50),
                             Center(
                               child: Text(
@@ -233,10 +143,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
-  // --- Widgets Sidebar ---
-
-  // --- Widgets Sidebar ---
 
   Widget _buildSidebarHeader(Color textColor) {
     return Container(
@@ -264,10 +170,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSidebarFooter(BuildContext context) {
-    return const SizedBox.shrink();
-  }
-
   Widget _buildSidebarSectionHeader(String title, bool isDark) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 16, 16, 8),
@@ -290,7 +192,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Color iconColor,
   ) {
     final bool isSelected = _selectedSectionIndex == index;
-    // Highlight color usually stays bright blue for selection
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       decoration: BoxDecoration(
@@ -319,12 +220,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // --- Widgets Content ---
-
   Widget _buildContentHeader(BuildContext context) {
-    // Theme logic locally or passed? Let's check theme here for simplicity or pass it.
-    // Passing is better for consistency with build method logic.
-    // But I can just check brightness again.
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = isDark ? Colors.white : Colors.black;
 
@@ -332,6 +228,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (_selectedSectionIndex == 0)
       title = AppStrings.get(context, 'personalization');
     if (_selectedSectionIndex == 1) title = AppStrings.get(context, 'privacy');
+    if (_selectedSectionIndex == 2) title = "Mi Perfil";
 
     return Container(
       padding: const EdgeInsets.fromLTRB(40, 40, 40, 20),
@@ -349,302 +246,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, left: 16, top: 20),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 13,
-          color: isDark ? Colors.white54 : const Color(0xFF6D6D72),
-        ),
-      ),
-    );
-  }
-
-  // Apple-style List Item with Glassmorphism and Gradients
-  Widget _buildCardItem(
-    BuildContext context, {
-    required IconData icon,
-    Color? iconBg, // Made optional
-    List<Color>? gradientColors, // Added optional gradient
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final glassColor = isDark
-        ? const Color(0xFF1E293B).withOpacity(0.7)
-        : Colors.white.withOpacity(0.6);
-    final borderColor = isDark
-        ? Colors.white.withOpacity(0.1)
-        : Colors.white.withOpacity(0.2);
-    final titleColor = isDark ? Colors.white : Colors.black;
-    final subtitleColor = isDark ? Colors.white70 : const Color(0xFF6D6D72);
-    final arrowColor = isDark ? Colors.white38 : const Color(0xFFC7C7CC);
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: glassColor, // Glass effect
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: borderColor),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                offset: const Offset(0, 4),
-                blurRadius: 10,
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                child: Row(
-                  children: [
-                    // Config Icon Square with Gradient
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: gradientColors == null
-                            ? (iconBg ?? Colors.grey)
-                            : null,
-                        gradient: gradientColors != null
-                            ? LinearGradient(
-                                colors: gradientColors,
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                            : null,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        icon,
-                        color: Colors.white, // Icon is always white
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w400,
-                              color: titleColor,
-                              letterSpacing: -0.4,
-                            ),
-                          ),
-                          if (subtitle.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitle,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: subtitleColor, // Slightly darker grey
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: arrowColor,
-                      size: 16,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmClearNotifications(BuildContext context) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('¿Eliminar notificaciones?'),
-        content: const Text(
-          'Se borrarán todos los avisos y mensajes del historial local.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true && context.mounted) {
-      context.read<NotificationProvider>().clearAll();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Notificaciones eliminadas'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  void _showLanguageDialog(BuildContext context, ConfigProvider config) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                AppStrings.get(context, 'language'),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: const Text("🇪🇸", style: TextStyle(fontSize: 24)),
-                title: const Text("Español"),
-                trailing: config.appLocale.languageCode == 'es'
-                    ? const Icon(Icons.check, color: Colors.blue)
-                    : null,
-                onTap: () {
-                  config.changeLanguage(const Locale('es'));
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Text("🇺🇸", style: TextStyle(fontSize: 24)),
-                title: const Text("English"),
-                trailing: config.appLocale.languageCode == 'en'
-                    ? const Icon(Icons.check, color: Colors.blue)
-                    : null,
-                onTap: () {
-                  config.changeLanguage(const Locale('en'));
-                  Navigator.pop(context);
-                },
-              ),
-              const SizedBox(height: 30),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showThemeDialog(BuildContext context, ConfigProvider config) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 40,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                AppStrings.get(context, 'theme'),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _buildThemeOption(
-                context,
-                config,
-                ThemeMode.light,
-                Icons.wb_sunny_rounded,
-                'theme_light',
-              ),
-              _buildThemeOption(
-                context,
-                config,
-                ThemeMode.dark,
-                Icons.nightlight_round,
-                'theme_dark',
-              ),
-              const SizedBox(height: 30),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildThemeOption(
-    BuildContext context,
-    ConfigProvider config,
-    ThemeMode mode,
-    IconData icon,
-    String labelKey,
-  ) {
-    final isSelected = config.themeMode == mode;
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? Colors.blue : Colors.grey),
-      title: Text(AppStrings.get(context, labelKey)),
-      trailing: isSelected ? const Icon(Icons.check, color: Colors.blue) : null,
-      onTap: () {
-        config.setThemeMode(mode);
-        Navigator.pop(context);
-      },
     );
   }
 }
