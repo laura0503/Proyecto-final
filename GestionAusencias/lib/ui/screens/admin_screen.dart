@@ -8,6 +8,7 @@ import '../widgets/horarios_section.dart';
 import '../widgets/aulas_section.dart';
 import '../widgets/grupo_section.dart';
 import '../widgets/asignaturas_section.dart';
+import '../widgets/admin_profesores_section.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -74,56 +75,66 @@ class _AdminScreenState extends State<AdminScreen> {
                             ),
                             children: [
                               _buildSidebarSectionHeader("GESTIÓN", isDark),
-                              _buildSidebarItem(
-                                icon: Icons.people_alt_rounded,
-                                text: "Profesores",
-                                isSelected: _selectedSection == 'Profesores',
-                                onTap: () {
-                                  setState(() {
-                                    _selectedSection = 'Profesores';
-                                  });
-                                },
-                              ),
-                              _buildSidebarItem(
-                                icon: Icons.calendar_today_rounded,
-                                text: "Horarios",
-                                isSelected: _selectedSection == 'Horarios',
-                                onTap: () {
-                                  setState(() {
-                                    _selectedSection = 'Horarios';
-                                  });
-                                },
-                              ),
-                              _buildSidebarItem(
-                                icon: Icons.meeting_room,
-                                text: 'Aulas',
-                                isSelected: _selectedSection == 'Aulas',
-                                onTap: () {
-                                  setState(() {
-                                    _selectedSection = 'Aulas';
-                                  });
-                                },
-                              ),
-                              _buildSidebarItem(
-                                icon: Icons.groups_rounded,
-                                text: 'Grupos',
-                                isSelected: _selectedSection == 'Grupos',
-                                onTap: () {
-                                  setState(() {
-                                    _selectedSection = 'Grupos';
-                                  });
-                                },
-                              ),
-                              _buildSidebarItem(
-                                icon: Icons.auto_stories_rounded,
-                                text: 'Asignaturas',
-                                isSelected: _selectedSection == 'Asignaturas',
-                                onTap: () {
-                                  setState(() {
-                                    _selectedSection = 'Asignaturas';
-                                  });
-                                },
-                              ),
+                                _buildSidebarItem(
+                                  icon: Icons.people_alt_rounded,
+                                  text: "Profesores",
+                                  isSelected: _selectedSection == 'Profesores',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'Profesores';
+                                    });
+                                  },
+                                ),
+                                _buildSidebarItem(
+                                  icon: Icons.calendar_today_rounded,
+                                  text: "Horarios",
+                                  isSelected: _selectedSection == 'Horarios',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'Horarios';
+                                    });
+                                  },
+                                ),
+                                _buildSidebarItem(
+                                  icon: Icons.meeting_room,
+                                  text: 'Aulas',
+                                  isSelected: _selectedSection == 'Aulas',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'Aulas';
+                                    });
+                                  },
+                                ),
+                                _buildSidebarItem(
+                                  icon: Icons.groups_rounded,
+                                  text: 'Grupos',
+                                  isSelected: _selectedSection == 'Grupos',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'Grupos';
+                                    });
+                                  },
+                                ),
+                                _buildSidebarItem(
+                                  icon: Icons.auto_stories_rounded,
+                                  text: 'Asignaturas',
+                                  isSelected: _selectedSection == 'Asignaturas',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'Asignaturas';
+                                    });
+                                  },
+                                ),
+                                _buildSidebarItem(
+                                  icon: Icons.manage_accounts_rounded,
+                                  text: "Gestión Prof.",
+                                  isSelected: _selectedSection == 'GestionProf',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'GestionProf';
+                                    });
+                                  },
+                                ),
                             ],
                           ),
                         ),
@@ -143,7 +154,9 @@ class _AdminScreenState extends State<AdminScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (_selectedSection == 'Profesores')
+                            if (_selectedSection == 'GestionProf')
+                              AdminProfesoradoSection(isDark: isDark)
+                            else if (_selectedSection == 'Profesores')
                               ProfesoresSection(isDark: isDark)
                             else if (_selectedSection == 'Horarios')
                               HorariosSection(isDark: isDark)

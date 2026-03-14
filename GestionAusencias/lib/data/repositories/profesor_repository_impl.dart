@@ -42,8 +42,7 @@ class ProfesorRepositoryImpl implements ProfesorRepository {
 
   @override
   Future<void> eliminarProfesor(String id) async {
-    // Supabase delete not implemented in DS yet, but upsert/save covers most needs.
-    // Adding delete to DS if needed later.
+    await remoteDataSource.eliminarProfesor(id);
   }
 
   @override

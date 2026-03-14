@@ -11,13 +11,15 @@ class ProfesorModel extends Profesor {
     required super.departamento,
     required super.estadoAusente,
     super.tutoria,
+    super.horarioEntrada,
+    super.horarioSalida,
+    super.ubicacionActual,
+    super.estadoActual,
   });
 
   factory ProfesorModel.fromJson(Map<String, dynamic> json) {
     return ProfesorModel(
-      id:
-          json['id'] ??
-          '', //si existe y tiene valor se utiliza, pero si no existe se utiliza ''
+      id: json['id']?.toString() ?? '',
       nombre: json['nombre'] ?? '',
       asignatura: json['asignatura'] ?? '',
       curso: json['curso'] ?? '',
@@ -25,7 +27,11 @@ class ProfesorModel extends Profesor {
       contrasena: json['contrasena'] ?? '',
       departamento: json['departamento'] ?? 'General',
       estadoAusente: json['estadoAusente'] ?? false,
-      tutoria: json['tutoria'], // Can be null
+      tutoria: json['tutoria'],
+      horarioEntrada: json['horario_entrada']?.toString(),
+      horarioSalida: json['horario_salida']?.toString(),
+      ubicacionActual: json['ubicacion_actual']?.toString(),
+      estadoActual: json['estado_actual']?.toString(),
     );
   }
 
@@ -40,6 +46,10 @@ class ProfesorModel extends Profesor {
       departamento: profesor.departamento,
       estadoAusente: profesor.estadoAusente,
       tutoria: profesor.tutoria,
+      horarioEntrada: profesor.horarioEntrada,
+      horarioSalida: profesor.horarioSalida,
+      ubicacionActual: profesor.ubicacionActual,
+      estadoActual: profesor.estadoActual,
     );
   }
 
@@ -54,6 +64,10 @@ class ProfesorModel extends Profesor {
       'departamento': departamento,
       'estadoAusente': estadoAusente,
       'tutoria': tutoria,
+      'horario_entrada': horarioEntrada,
+      'horario_salida': horarioSalida,
+      'ubicacion_actual': ubicacionActual,
+      'estado_actual': estadoActual,
     };
   }
 }

@@ -44,24 +44,8 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   Future<void> _loadNotifications() async {
-    // For now, initializing with some dummy data if empty to show it working
-    // In a real app, this would come from SharedPreferences or an API
-    if (_notifications.isEmpty) {
-      _notifications = [
-        AppNotification(
-          id: '1',
-          title: 'Ausencia Registrada',
-          message: 'Carlos Ruiz ha registrado una ausencia para mañana.',
-          timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-        ),
-        AppNotification(
-          id: '2',
-          title: 'Guardia Asignada',
-          message: 'Se te ha asignado una guardia en el Aula A10.',
-          timestamp: DateTime.now().subtract(const Duration(days: 1)),
-        ),
-      ];
-    }
+    // Las notificaciones ahora empiezan vacías hasta que se reciban de forma real
+    _notifications = [];
     notifyListeners();
   }
 

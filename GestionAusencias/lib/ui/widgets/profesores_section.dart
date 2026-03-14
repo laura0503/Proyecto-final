@@ -378,11 +378,11 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
     final cardBgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF4A443C);
 
-    final String status = p.estadoAusente ? "Ausente" : "En clase";
-    final Color statusColor = p.estadoAusente
-        ? Colors.redAccent
-        : Colors.greenAccent;
-    final String location = p.estadoAusente ? "Baja médica" : "Pabellón A";
+    final String status = p.estadoActual ?? (p.estadoAusente ? "Ausente" : "En clase");
+    final Color statusColor = status == "Ausente" 
+        ? Colors.redAccent 
+        : (status == "Disponible" ? Colors.blueAccent : Colors.greenAccent);
+    final String location = p.ubicacionActual ?? (p.estadoAusente ? "Baja médica" : "Pabellón A");
 
     final bool isTutor = p.tutoria != null && p.tutoria!.isNotEmpty;
 
@@ -558,20 +558,22 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
               children: [
-                Icon(
-                  Icons.access_time_rounded,
-                  size: 16,
-                  color: textColor.withOpacity(0.4),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  "08:00 - 14:30",
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: textColor.withOpacity(0.6),
-                    fontWeight: FontWeight.w500,
+                if (p.horarioEntrada != null && p.horarioSalida != null) ...[
+                  Icon(
+                    Icons.access_time_rounded,
+                    size: 16,
+                    color: textColor.withOpacity(0.4),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "${p.horarioEntrada!.substring(0, 5)} - ${p.horarioSalida!.substring(0, 5)}",
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: textColor.withOpacity(0.6),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 Icon(
                   Icons.more_horiz_rounded,

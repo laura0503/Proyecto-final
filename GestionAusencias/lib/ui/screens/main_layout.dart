@@ -106,7 +106,6 @@ class _MainLayoutState extends State<MainLayout> {
                     color: glassColor,
                     child: Column(
                       children: [
-                        const SizedBox(height: 50),
                         _sidebarItem(
                           Icons.dashboard_rounded,
                           AppStrings.get(context, 'inicio'),

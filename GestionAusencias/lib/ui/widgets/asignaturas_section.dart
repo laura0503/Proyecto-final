@@ -232,10 +232,10 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5, // Restaurado a 5 para que se vea grande y bien
+              crossAxisCount: 5,
               crossAxisSpacing: 20,
               mainAxisSpacing: 20,
-              childAspectRatio: 1.5, // Restaurado aspecto original
+              childAspectRatio: 1.2, // Reducido de 1.5 a 1.2 para dar más altura y evitar el desbordamiento
             ),
             itemCount: _filteredAsignaturas.length,
             itemBuilder: (context, index) {
@@ -303,16 +303,16 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // REDISEÑO RESTAURADO: Icono circular naranja
+          // REDISEÑO RESTAURADO: Icono circular naranja un poco más pequeño para evitar overflow
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: iconColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.auto_stories_rounded, color: iconColor, size: 24),
+            child: Icon(Icons.auto_stories_rounded, color: iconColor, size: 20),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             a.nombre,
             style: TextStyle(
