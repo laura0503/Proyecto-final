@@ -1,25 +1,37 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/horario_model.dart';
-import '../../domain/entities/horario.dart';
 
 class HorarioRemoteDataSource {
   final SupabaseClient _supabase;
 
   HorarioRemoteDataSource(this._supabase);
 
-  Future<List<HorarioModel>> obtenerHorarios() async {
+  /// Obtiene TODA la información del horario relacional.
+  Future<List<Map<String, dynamic>>> obtenerHorariosCompletos() async {
+    final response = await _supabase
+        .from('horario')
+        .select('''
+          id_horario,
+          dia_semana,
+          profesores!id_profesor(id_profesor, nombre, departamento),
+          Asignaturas!id_asignatura(id_asignaturas, nombre),
+          grupo!id_grupo(id_grupo, nombre),
+          aulas!id_aula(id_aulas, nombre),
+          horario_tramo!id_horario_tramo(id_horario, texto, horario_inicio, horario_fin, es_guardia, recreo)
+        ''');
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Obtiene los tramos horarios disponibles (Configuración de franjas)
+  /// Esta es la tabla que el usuario está editando manualmente para quitar horas.
+  Future<List<Map<String, dynamic>>> getTramosHorarios() async {
     final response = await _supabase
         .from('horario_tramo')
         .select()
-        .order('id_horario', ascending: true);
-
-    return (response as List)
-        .map((json) => HorarioModel.fromJson(json))
-        .toList();
+        .order('horario_inicio', ascending: true);
+    return List<Map<String, dynamic>>.from(response);
   }
 
-  Future<void> guardarHorario(Horario horario) async {
-    final model = HorarioModel.fromEntity(horario);
-    await _supabase.from('horario_tramo').upsert(model.toJson());
+  Future<void> guardarHorario(Map<String, dynamic> datos) async {
+    await _supabase.from('horario').upsert(datos);
   }
 }

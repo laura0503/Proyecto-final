@@ -1,5 +1,4 @@
 import '../../domain/entities/horario.dart';
-//primero se convierte los datos en un json  luego se convierte en un objeto en este caso HorarioModel
 
 class HorarioModel extends Horario {
   HorarioModel({
@@ -12,20 +11,17 @@ class HorarioModel extends Horario {
   });
 
   factory HorarioModel.fromJson(Map<String, dynamic> json) {
-    //factory--> crea un objeto a partir de un json, pero es un constructor especial
     return HorarioModel(
-      //clave:valor y luego lo casteamos a int o String o bool
-      idHorario: json['id_horario'] as int,
-      texto: json['texto'] as String,
-      horarioInicio: json['horario_inicio'] as String,
-      horarioFin: json['horario_fin'] as String,
-      esGuardia: json['es_guardia'] as bool,
-      recreo: json['recreo'] as bool,
+      idHorario: json['id_horario'] as int? ?? 0,
+      texto: json['texto'] as String? ?? '',
+      horarioInicio: json['horario_inicio'] as String? ?? '',
+      horarioFin: json['horario_fin'] as String? ?? '',
+      esGuardia: json['es_guardia'] as bool? ?? false,
+      recreo: json['recreo'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
-    //formato estandar para enviar datos a supabse
     return {
       'id_horario': idHorario,
       'texto': texto,
@@ -37,7 +33,6 @@ class HorarioModel extends Horario {
   }
 
   factory HorarioModel.fromEntity(Horario h) {
-    //factory en este caso es un puente porque horario no tiene json , pero si horarioModel entonces lo convertimos y asi podemos llamarlo a la supabase
     return HorarioModel(
       idHorario: h.idHorario,
       texto: h.texto,

@@ -1,0 +1,105 @@
+2º BAC j H-CS;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";"MACS II
+Pérez Romero, Emilio
+(212)";;"EDMN
+Rey Carvajál, Manuel del
+(214)
+------------------
+HART
+Gómez Letrán, Carmen
+(109)";;"HESP
+Gómez Letrán, Carmen
+(122)"
+"17:00
+18:00";"EDMN
+Rey Carvajál, Manuel del
+(214)
+------------------
+HART
+Gómez Letrán, Carmen
+(109)";"ING II
+Sola Castaño, Dolores María
+(212)";"EDMN
+Rey Carvajál, Manuel del
+(214)
+------------------
+HART
+Gómez Letrán, Carmen
+(109)";"PSICO
+García Garzón, Raquel
+(212)
+------------------
+TICO II
+Manzano Herrero, Paloma
+(217)";"HESP
+Gómez Letrán, Carmen
+(122)"
+"18:00
+19:00";"EDMN
+Rey Carvajál, Manuel del
+(214)
+------------------
+HART
+Gómez Letrán, Carmen
+(109)";"HFIL
+García Garzón, Raquel
+(212)";"GEOG
+Díez Cabrera, Enrique
+(212)";"ING II
+Sola Castaño, Dolores María
+(212)";"LCL II
+Fernández Latorre, Mar
+(212)"
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";"HESP
+Gómez Letrán, Carmen
+(122)";"PSICO
+García Garzón, Raquel
+(212)
+------------------
+TICO II
+Manzano Herrero, Paloma
+(217)";"HESP
+Gómez Letrán, Carmen
+(122)";"ING II
+Sola Castaño, Dolores María
+(212)";"MACS II
+Pérez Romero, Emilio
+(212)"
+"20:10
+21:05";"GEOG
+Díez Cabrera, Enrique
+(212)";"LCL II
+Fernández Latorre, Mar
+(212)";"HFIL
+García Garzón, Raquel
+(212)";"MACS II
+Pérez Romero, Emilio
+(212)";"GEOG
+Díez Cabrera, Enrique
+(212)"
+"21:05
+22:00";"GEOG
+Díez Cabrera, Enrique
+(212)";"LCL II
+Fernández Latorre, Mar
+(212)";"HFIL
+García Garzón, Raquel
+(212)";"MACS II
+Pérez Romero, Emilio
+(212)";
+Lectivas: 33;;;;;
+ 33;Profesores;;;Materias;
+  4;Díez Cabrera, Enrique;;;GEOGRAFÍA (GEOG);
+  3;Fernández Latorre, Mar;;;LENGUA CASTELLANA Y LITERATURA (LCL II);
+  3;García Garzón, Raquel;;;HISTORIA DE LA FILOSOFÍA (HFIL);
+  2;    '';;;PSICOLOGÍA (PSICO);
+  4;Gómez Letrán, Carmen;;;HISTORIA DEL ARTE (HART);
+  4;    '';;;HISTORIA DE ESPAÑA (HESP);
+  2;Manzano Herrero, Paloma;;;TECNOLOGÍA, INFORMACIÓN Y COMU (TICO II);
+  4;Pérez Romero, Emilio;;;MATEMÁTICAS APLICADAS CIENCIAS (MACS II);
+  4;Rey Carvajál, Manuel del;;;EMPRESA DISEÑO MODELOS DE NEGO (EDMN);
+  3;Sola Castaño, Dolores María;;;INGLÉS II (ING II);

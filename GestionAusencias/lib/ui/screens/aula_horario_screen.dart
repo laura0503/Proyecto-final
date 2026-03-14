@@ -29,15 +29,14 @@ class AulaHorarioScreen extends StatelessWidget {
               "Aula ${aula.nombre}",
               style: const TextStyle(
                 fontSize: 20,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.bold,
                 color: Color(0xFF1E293B),
               ),
             ),
-            const Text(
-              "Edificio Principal • Planta 1",
-              style: TextStyle(
+            Text(
+              "Dept: ${aula.departamento} • Planta 1",
+              style: const TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w400,
                 color: Color(0xFF64748B),
               ),
             ),

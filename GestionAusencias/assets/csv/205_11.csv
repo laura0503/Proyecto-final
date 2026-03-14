@@ -1,0 +1,85 @@
+205;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";"LCL I
+Fernández Latorre, Mar
+1º BAC i C-T
+1º BAC j H-CS";;"ING I
+Álvarez Troncoso, Miguel Anxo
+1º BAC i C-T
+1º BAC j H-CS";;"LCL I
+Fernández Latorre, Mar
+1º BAC i C-T
+1º BAC j H-CS"
+"17:00
+18:00";"ANAP
+Bustos Rodríguez, Miguel
+1º BAC i C-T";"LCL I
+Fernández Latorre, Mar
+1º BAC i C-T
+1º BAC j H-CS";"FILO
+García Garzón, Raquel
+1º BAC i C-T
+1º BAC j H-CS";"BIGECA
+Bustos Rodríguez, Miguel
+1º BAC i C-T";"ING I
+Álvarez Troncoso, Miguel Anxo
+1º BAC i C-T
+1º BAC j H-CS"
+"18:00
+19:00";"MAT I
+Pérez Romero, Emilio
+1º BAC i C-T";"ING I
+Álvarez Troncoso, Miguel Anxo
+1º BAC i C-T
+1º BAC j H-CS";"MAT I
+Pérez Romero, Emilio
+1º BAC i C-T";"FILO
+García Garzón, Raquel
+1º BAC i C-T
+1º BAC j H-CS";"MAT I
+Pérez Romero, Emilio
+1º BAC i C-T"
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";"FYQ
+Torres Arias, Juan Luis
+1º BAC i C-T";"LCL I
+Fernández Latorre, Mar
+1º BAC i C-T
+1º BAC j H-CS";"BIGECA
+Bustos Rodríguez, Miguel
+1º BAC i C-T";"FILO
+García Garzón, Raquel
+1º BAC i C-T
+1º BAC j H-CS";"ANAP
+Bustos Rodríguez, Miguel
+1º BAC i C-T"
+"20:10
+21:05";"BIGECA
+Bustos Rodríguez, Miguel
+1º BAC i C-T";"FYQ
+Torres Arias, Juan Luis
+1º BAC i C-T";"FYQ
+Torres Arias, Juan Luis
+1º BAC i C-T";"ING I
+Álvarez Troncoso, Miguel Anxo
+1º BAC i C-T
+1º BAC j H-CS";"BIGECA
+Bustos Rodríguez, Miguel
+1º BAC i C-T"
+"21:05
+22:00";;"MAT I
+Pérez Romero, Emilio
+1º BAC i C-T";;"FYQ
+Torres Arias, Juan Luis
+1º BAC i C-T";
+Lectivas: 25;;;;;
+ 25;Profesores;;;Grupos de alumnos;
+  4;Álvarez Troncoso, Miguel Anxo;;;1º BAC i C-T, 1º BAC j H-CS (ING I);
+  2;Bustos Rodríguez, Miguel;;;1º BAC i C-T (ANAP);
+  4;    '';;;1º BAC i C-T (BIGECA);
+  4;Fernández Latorre, Mar;;;1º BAC i C-T, 1º BAC j H-CS (LCL I);
+  3;García Garzón, Raquel;;;1º BAC i C-T, 1º BAC j H-CS (FILO);
+  4;Pérez Romero, Emilio;;;1º BAC i C-T (MAT I);
+  4;Torres Arias, Juan Luis;;;1º BAC i C-T (FYQ);

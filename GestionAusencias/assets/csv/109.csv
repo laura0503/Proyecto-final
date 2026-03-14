@@ -1,0 +1,18 @@
+id;id_aulas;horario_inicio;horario_fin;Lunes;Martes;Miercoles;Jueves;Viernes;profesor;grupo
+1;1;"16:00
+";17:00;;"HART
+Gómez Letrán, Carmen
+2º BAC j H-CS";;;;Gómez Letrán, Carmen;1º BAC j H-CS (HART)
+2;1;17:00;18:00;"HART
+Gómez Letrán, Carmen
+2º BAC j H-CS";"HART
+Gómez Letrán, Carmen
+2º BAC j H-CS";;;;Gómez Letrán, Carmen;2º BAC j H-CS (HART)
+3;1;18:00;19:00;"HART
+Gómez Letrán, Carmen
+2º BAC j H-CS";;;;;Gómez Letrán, Carmen;3º BAC j H-CS (HART)
+4;1;19:00;19:15;recreo;recreo;recreo;recreo;recreo;Gómez Letrán, Carmen;4º BAC j H-CS (HART)
+5;1;19:15;20:10;;;;;;Gómez Letrán, Carmen;5º BAC j H-CS (HART)
+6;1;20:10;21:05;;;;;;Gómez Letrán, Carmen;6º BAC j H-CS (HART)
+7;1;21:05;22:00;;;;;;Gómez Letrán, Carmen;7º BAC j H-CS (HART)
+8;1;;;;;;;;;

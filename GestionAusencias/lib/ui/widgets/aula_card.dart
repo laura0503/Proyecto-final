@@ -14,157 +14,152 @@ class AulaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final horarioAulaUseCase = context.read<GetHorarioAulaUseCase>();
+    final cardBgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF4A443C);
+    final iconColor = isDark ? Colors.blueAccent : Colors.blue;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => AulaHorarioScreen(aula: aula)),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black.withOpacity(0.08), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: cardBgColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Estado
-            FutureBuilder<List<HorarioAula>>(
-              future: horarioAulaUseCase.call(aula.id),
-              builder: (context, hSnapshot) {
-                if (!hSnapshot.hasData) {
-                  return const SizedBox(height: 5);
-                }
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => AulaHorarioScreen(aula: aula)),
+            );
+          },
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Icono circular premium
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.meeting_room_rounded, color: iconColor, size: 24),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Aula ${aula.nombre}",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
 
-                HorarioAula? currentClass;
-                for (final h in hSnapshot.data!) {
-                  if (h.grupo != null && h.grupo!.isNotEmpty) {
-                    currentClass = h;
-                    break;
-                  }
-                }
+                // Badge de Estado (Libre/Ocupada)
+                FutureBuilder<List<HorarioAula>>(
+                  future: horarioAulaUseCase.call(aula.id),
+                  builder: (context, hSnapshot) {
+                    final isOccupied = hSnapshot.hasData && hSnapshot.data!.any((h) => h.grupo != null && h.grupo!.isNotEmpty);
+                    final statusColor = isOccupied ? Colors.redAccent : Colors.greenAccent;
+                    final statusText = isOccupied ? "Ocupada" : "Libre";
 
-                final isOccupied = currentClass != null;
-                final statusColor = isOccupied
-                    ? const Color(0xFFEF4444)
-                    : const Color(0xFF10B981);
-                final statusBg = isOccupied
-                    ? const Color(0xFFFEF2F2)
-                    : const Color(0xFFD1FAE5);
-                final statusText = isOccupied ? "OCUPADO" : "LIBRE";
-
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 1,
-                      ),
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: statusBg,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: statusColor.withOpacity(0.3)),
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: statusColor.withOpacity(0.2)),
                       ),
-                      child: Text(
-                        statusText,
-                        style: TextStyle(
-                          fontSize: 6,
-                          fontWeight: FontWeight.w900,
-                          color: statusColor,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      aula.nombre,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    if (isOccupied) ...[
-                      const SizedBox(height: 2),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Flexible(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                currentClass!.grupo ?? "",
-                                style: TextStyle(
-                                  fontSize: 7,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange[800],
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
                           ),
-                          const SizedBox(width: 2),
-                          Flexible(
-                            child: Text(
-                              currentClass.profesor ?? "",
-                              style: const TextStyle(
-                                fontSize: 7,
-                                color: Color(0xFF7C3AED),
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                          const SizedBox(width: 6),
+                          Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: statusColor,
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 4),
-            // Capacidad reducida
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.groups_outlined,
-                  size: 8,
-                  color: Colors.black38,
+                    );
+                  },
                 ),
-                const SizedBox(width: 2),
-                const Text(
-                  '28',
-                  style: TextStyle(
-                    fontSize: 7,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black45,
+                const SizedBox(height: 8),
+
+                // Departamento del aula
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.business_rounded,
+                        size: 10,
+                        color: Colors.purple[700],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        aula.departamento,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.purple[800],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                
+                // Capacidad
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.groups_rounded, size: 14, color: textColor.withOpacity(0.4)),
+                    const SizedBox(width: 6),
+                    Text(
+                      "${aula.capacidad > 0 ? aula.capacidad : 30} personas",
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: textColor.withOpacity(0.6),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

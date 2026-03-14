@@ -107,12 +107,12 @@ class GrupoSection extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: cardBgColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
         border: Border.all(
@@ -124,26 +124,40 @@ class GrupoSection extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            // Futura implementación: Ver detalles del grupo
-          },
-          borderRadius: BorderRadius.circular(16),
+          onTap: () {},
+          borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.people_outline_rounded, color: iconColor, size: 28),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.groups_rounded, color: iconColor, size: 28),
+                ),
                 const SizedBox(height: 12),
                 Text(
                   grupo.nombre,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: textColor,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    color: textColor,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Grupo Académico",
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: textColor.withOpacity(0.4),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],

@@ -1,11 +1,12 @@
 // ─── Paquetes externos ───
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:flutter/services.dart' show rootBundle;
 // ─── Data Sources ───
 import 'package:gestion_ausencias/data/datasources/profesor_remote_datasource.dart';
 import 'package:gestion_ausencias/data/datasources/horario_remote_datasource.dart';
@@ -37,7 +38,13 @@ import 'package:gestion_ausencias/domain/usecases/get_aulas_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_aula_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_grupos_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_asignaturas_usecase.dart';
-
+import 'package:gestion_ausencias/domain/usecases/get_sesion_actual_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/cerrar_sesion_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/actualizar_profesor_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/importar_profesores_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/exportar_profesores_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/importar_horario_usecase.dart';
+import 'package:gestion_ausencias/data/services/horario_importer.dart';
 // ─── Proveedores y pantallas (UI) ───
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
 import 'package:gestion_ausencias/ui/providers/config_provider.dart';
@@ -47,6 +54,7 @@ import 'package:gestion_ausencias/ui/screens/main_layout.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await initializeDateFormatting('es', null);
 
   // 1. Cargar variables de entorno
@@ -59,12 +67,11 @@ void main() async {
   );
 
   // 3. Inicializar capa de datos
-  // ignore: no_leading_underscores_for_local_identifiers
-  final _supabase = Supabase.instance.client;
+  final supabase = Supabase.instance.client;
 
-  final profesorDataSource = ProfesorRemoteDataSource(_supabase);
-  final horarioDataSource = HorarioRemoteDataSource(_supabase);
-  final asignaturaDataSource = AsignaturaRemoteDataSource(_supabase);
+  final profesorDataSource = ProfesorRemoteDataSource(supabase);
+  final horarioDataSource = HorarioRemoteDataSource(supabase);
+  final asignaturaDataSource = AsignaturaRemoteDataSource(supabase);
 
   final profesorRepository = ProfesorRepositoryImpl(
     remoteDataSource: profesorDataSource,
@@ -72,10 +79,15 @@ void main() async {
   final horarioRepository = HorarioRepositoryImpl(
     remoteDataSource: horarioDataSource,
   );
-  final aulaRepository = AulaRepositoryImpl(_supabase);
-  final horarioAulaRepository = HorarioAulaRepositoryImpl(_supabase);
-  final grupoRepository = GrupoRepositoryImpl(_supabase);
+  final aulaRepository = AulaRepositoryImpl(supabase);
+  final horarioAulaRepository = HorarioAulaRepositoryImpl(supabase);
+  final grupoRepository = GrupoRepositoryImpl(supabase);
   final asignaturaRepository = AsignaturaRepositoryImpl(asignaturaDataSource);
+
+  final horarioImporter = HorarioImporter();
+
+  // Lanzar la importación masiva en segundo plano para no bloquear el inicio
+  _iniciarImportacionMasiva(horarioImporter);
 
   // 4. Ejecutar la app con inyección de dependencias
   runApp(
@@ -117,13 +129,32 @@ void main() async {
         Provider<GetAsignaturasUseCase>(
           create: (_) => GetAsignaturasUseCase(asignaturaRepository),
         ),
+        Provider<GetSesionActualUseCase>(
+          create: (_) => GetSesionActualUseCase(profesorRepository),
+        ),
+        Provider<CerrarSesionUseCase>(
+          create: (_) => CerrarSesionUseCase(profesorRepository),
+        ),
+        Provider<ActualizarProfesorUseCase>(
+          create: (_) => ActualizarProfesorUseCase(profesorRepository),
+        ),
+        Provider<ImportarProfesoresUseCase>(
+          create: (_) => ImportarProfesoresUseCase(profesorRepository),
+        ),
+        Provider<ExportarProfesoresUseCase>(
+          create: (_) => ExportarProfesoresUseCase(profesorRepository),
+        ),
+        Provider<ImportarHorarioUseCase>(
+          create: (_) => ImportarHorarioUseCase(horarioImporter),
+        ),
 
         // ── Proveedores de estado ──
         ChangeNotifierProvider<AuthProvider>(
           create: (context) => AuthProvider(
             loginUseCase: context.read<LoginProfesorUseCase>(),
             registerUseCase: context.read<RegisterProfesorUseCase>(),
-            repository: profesorRepository,
+            getSesionActualUseCase: context.read<GetSesionActualUseCase>(),
+            cerrarSesionUseCase: context.read<CerrarSesionUseCase>(),
           )..checkSession(),
         ),
         ChangeNotifierProvider<ConfigProvider>(create: (_) => ConfigProvider()),
@@ -134,6 +165,48 @@ void main() async {
       child: const GestionAusencias(),
     ),
   );
+}
+
+/// Función que procesa los archivos CSV solo si es necesario
+void _iniciarImportacionMasiva(HorarioImporter importer) async {
+  final supabase = Supabase.instance.client;
+  
+  bool baseDatosVacia = true;
+  try {
+    final countResponse = await supabase.from('profesores').select('id_profesor').limit(1);
+    baseDatosVacia = countResponse.isEmpty;
+  } catch (e) {
+    print("Error al verificar base de datos: $e");
+  }
+
+  // AUTOMATIZACIÓN: Descubrimiento automático de archivos en assets/csv
+  List<String> csvFiles = [];
+  try {
+    final manifestContent = await rootBundle.loadString('AssetManifest.json');
+    final Map<String, dynamic> manifestMap = json.decode(manifestContent);
+    csvFiles = manifestMap.keys
+        .where((String key) => key.startsWith('assets/csv/') && key.endsWith('.csv'))
+        .map((String key) => key.replaceFirst('assets/csv/', ''))
+        .toList();
+    print("INFO: Se han detectado ${csvFiles.length} archivos CSV automáticamente.");
+  } catch (e) {
+    print("Error al listar assets: $e");
+    // Fallback por seguridad si el manifiesto falla
+    csvFiles = ['Alguacil_Jim_nez__Sergio_A__1.csv']; 
+  }
+
+  if (baseDatosVacia) {
+    print("***** Base de datos vacía: Iniciando carga total *****");
+    for (final fileName in csvFiles) {
+      try {
+        final csvData = await rootBundle.loadString('assets/csv/$fileName');
+        await importer.subirASupabase(csvData);
+      } catch (_) {}
+    }
+  }
+
+  print("***** Paso Final: Sincronización PROFUNDA de metadatos *****");
+  await importer.sincronizarTodo();
 }
 
 class GestionAusencias extends StatelessWidget {

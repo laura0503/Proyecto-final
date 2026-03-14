@@ -8,17 +8,33 @@ class AsignaturaModel extends Asignatura {
     required super.idGrupo,
     required super.idAulas,
     required super.idProfesor,
+    super.departamento,
   });
 
   factory AsignaturaModel.fromJson(Map<String, dynamic> json) {
+    final nombre = json['nombre'] as String? ?? 'Sin nombre';
     return AsignaturaModel(
       id: json['id_asignaturas'] as int? ?? 0,
-      nombre: json['nombre'] as String? ?? 'Sin nombre',
+      nombre: nombre,
       idHorario: json['id_horario'] as int? ?? 0,
       idGrupo: json['id_grupo'] as int? ?? 0,
       idAulas: json['id_aulas'] as int? ?? 0,
       idProfesor: json['id_profesor'] as int? ?? 0,
+      departamento: _deducirDepartamento(nombre),
     );
+  }
+
+  static String _deducirDepartamento(String nombre) {
+    final upper = nombre.toUpperCase();
+    if (upper.contains("INGLÉS") || upper.contains("ING I")) return "Inglés";
+    if (upper.contains("LENGUA") || upper.contains("LCL")) return "Lengua";
+    if (upper.contains("MATEMÁTICAS") || upper.contains("MAT I")) return "Matemáticas";
+    if (upper.contains("FILOSOFÍA") || upper.contains("FILO")) return "Filosofía";
+    if (upper.contains("BIOLOGÍA") || upper.contains("GEOLOGÍA")) return "Biología";
+    if (upper.contains("FÍSICA") || upper.contains("QUÍMICA")) return "Física y Química";
+    if (upper.contains("INFORMÁTICA") || upper.contains("SMR") || upper.contains("DAM") || upper.contains("TICO")) return "Informática";
+    if (upper.contains("ÁMBITO") || upper.contains("ESPA")) return "ESPA";
+    return "General";
   }
 
   Map<String, dynamic> toJson() {
@@ -29,6 +45,7 @@ class AsignaturaModel extends Asignatura {
       'id_grupo': idGrupo,
       'id_aulas': idAulas,
       'id_profesor': idProfesor,
+      'departamento': departamento,
     };
   }
 
@@ -40,6 +57,7 @@ class AsignaturaModel extends Asignatura {
       idGrupo: a.idGrupo,
       idAulas: a.idAulas,
       idProfesor: a.idProfesor,
+      departamento: a.departamento,
     );
   }
 }

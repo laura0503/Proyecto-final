@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/domain/usecases/login_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/register_profesor_usecase.dart';
-import 'package:gestion_ausencias/domain/repositories/profesor_repository.dart';
-
-class AuthProvider extends ChangeNotifier {
+import 'package:gestion_ausencias/domain/usecases/get_sesion_actual_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/cerrar_sesion_usecase.dart';class AuthProvider extends ChangeNotifier {
   final LoginProfesorUseCase _loginUseCase;
   final RegisterProfesorUseCase _registerUseCase;
-  final ProfesorRepository _repository; // Needed to check session on start
-
+  final GetSesionActualUseCase _getSesionActualUseCase;
+  final CerrarSesionUseCase _cerrarSesionUseCase;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -20,10 +19,12 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider({
     required LoginProfesorUseCase loginUseCase,
     required RegisterProfesorUseCase registerUseCase,
-    required ProfesorRepository repository,
+    required GetSesionActualUseCase getSesionActualUseCase,
+    required CerrarSesionUseCase cerrarSesionUseCase,
   }) : _loginUseCase = loginUseCase,
        _registerUseCase = registerUseCase,
-       _repository = repository;
+       _getSesionActualUseCase = getSesionActualUseCase,
+       _cerrarSesionUseCase = cerrarSesionUseCase;
 
   Future<void> checkSession() async {
     // BYPASS LOGIN: Set dummy user directly
@@ -47,7 +48,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       final success = await _loginUseCase.execute(nombre, contrasena);
       if (success) {
-        _profesorActual = await _repository.obtenerSesionActual();
+        _profesorActual = await _getSesionActualUseCase.execute();
       }
       return success;
     } finally {
@@ -69,7 +70,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _repository.cerrarSesion();
+    await _cerrarSesionUseCase.execute();
     _profesorActual = null;
     notifyListeners();
   }

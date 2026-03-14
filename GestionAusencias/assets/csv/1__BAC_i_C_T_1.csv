@@ -1,0 +1,83 @@
+﻿1º BAC i C-T;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";"LCL I
+Fernández Latorre, Mar
+(205)";;"ING I
+Álvarez Troncoso, Miguel Anxo
+(205)";;"LCL I
+Fernández Latorre, Mar
+(205)"
+"17:00
+18:00";"ANAP
+Bustos Rodríguez, Miguel
+(205)
+------------------
+TICO I
+Pérez Ruiz, Andrea
+(217)";"LCL I
+Fernández Latorre, Mar
+(205)";"FILO
+García Garzón, Raquel
+(205)";"BIGECA
+Bustos Rodríguez, Miguel
+(205)";"ING I
+Álvarez Troncoso, Miguel Anxo
+(205)"
+"18:00
+19:00";"MAT I
+Pérez Romero, Emilio
+(205)";"ING I
+Álvarez Troncoso, Miguel Anxo
+(205)";"MAT I
+Pérez Romero, Emilio
+(205)";"FILO
+García Garzón, Raquel
+(205)";"MAT I
+Pérez Romero, Emilio
+(205)"
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";"FYQ
+Torres Arias, Juan Luis
+(205)";"LCL I
+Fernández Latorre, Mar
+(205)";"BIGECA
+Bustos Rodríguez, Miguel
+(205)";"FILO
+García Garzón, Raquel
+(205)";"ANAP
+Bustos Rodríguez, Miguel
+(205)
+------------------
+TICO I
+Pérez Ruiz, Andrea
+(217)"
+"20:10
+21:05";"BIGECA
+Bustos Rodríguez, Miguel
+(205)";"FYQ
+Torres Arias, Juan Luis
+(205)";"FYQ
+Torres Arias, Juan Luis
+(205)";"ING I
+Álvarez Troncoso, Miguel Anxo
+(205)";"BIGECA
+Bustos Rodríguez, Miguel
+(205)"
+"21:05
+22:00";;"MAT I
+Pérez Romero, Emilio
+(205)";;"FYQ
+Torres Arias, Juan Luis
+(205)";
+Lectivas: 27;;;;;
+ 27;Profesores;;;Materias;
+  4;Álvarez Troncoso, Miguel Anxo;;;INGLÉS I (ING I);
+  2;Bustos Rodríguez, Miguel;;;ANATOMÍA APLICADA (ANAP);
+  4;    '';;;BIOLOGÍA Y GEOLOGÍA_CIENCIAS A (BIGECA);
+  4;Fernández Latorre, Mar;;;LENGUA CASTELLANA Y LITERATURA (LCL I);
+  3;García Garzón, Raquel;;;FILOSOFÍA (FILO);
+  4;Pérez Romero, Emilio;;;MATEMÁTICAS I (MAT I);
+  2;Pérez Ruiz, Andrea;;;TECNOLOGÍA, INFORMACIÓN Y COMU (TICO I);
+  4;Torres Arias, Juan Luis;;;FÍSICA Y QUÍMICA (FYQ);

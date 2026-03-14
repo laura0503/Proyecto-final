@@ -1,0 +1,51 @@
+Fernández Latorre, Mar;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";"LCL I
+1º BAC i C-T
+1º BAC j H-CS
+(205)";;;;"LCL I
+1º BAC i C-T
+1º BAC j H-CS
+(205)"
+"17:00
+18:00";"LCL II
+2º BAC i C-T
+(208)";"LCL I
+1º BAC i C-T
+1º BAC j H-CS
+(205)";;;"GUARDIA
+GUARDIA"
+"18:00
+19:00";"GUARDIA
+GUARDIA";"GUARDIA
+GUARDIA";;;"LCL II
+2º BAC j H-CS
+(212)"
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";"REUNIÓN
+GUARDIA BIBLIOTECA";"LCL I
+1º BAC i C-T
+1º BAC j H-CS
+(205)";"REUNIÓN
+GUARDIA BIBLIOTECA";;
+"20:10
+21:05";;"LCL II
+2º BAC j H-CS
+(212)";"LCL II
+2º BAC i C-T
+(208)";;
+"21:05
+22:00";;"LCL II
+2º BAC j H-CS
+(212)";"LCL II
+2º BAC i C-T
+(208)";;
+Lectivas: 10  +  Reuniones:  2 (  2L)  +  Guardias:  3;;;;;
+ 15;Materias;;;Grupos de alumnos;
+  3;GUARDIA (Guardia de aula);;;;
+  2;GUARDIA BIBLIOTECA (Guardia de aula);;;;
+  4;LENGUA CASTELLANA Y LITERATURA I (LCL I);;;1º BAC i C-T, 1º BAC j H-CS;
+  3;LENGUA CASTELLANA Y LITERATURA II (LCL II);;;2º BAC i C-T;
+  3;    '';;;2º BAC j H-CS;

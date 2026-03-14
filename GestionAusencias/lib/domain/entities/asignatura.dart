@@ -5,6 +5,7 @@ class Asignatura {
   final int idGrupo;
   final int idAulas;
   final int idProfesor;
+  final String departamento;
 
   Asignatura({
     required this.id,
@@ -13,5 +14,6 @@ class Asignatura {
     required this.idGrupo,
     required this.idAulas,
     required this.idProfesor,
+    this.departamento = 'General',
   });
 }

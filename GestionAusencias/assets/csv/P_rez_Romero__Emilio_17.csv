@@ -1,0 +1,61 @@
+Pérez Romero, Emilio;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";"MACS II
+2º BAC i C-T
+2º BAC j H-CS
+(212)";;;;"MAT II
+2º BAC i C-T
+(208)"
+"17:00
+18:00";"GUARDIA
+GUARDIA";;;"MACS I
+1º BAC j H-CS
+(206)";"MAT II
+2º BAC i C-T
+(208)"
+"18:00
+19:00";"MAT I
+1º BAC i C-T
+(205)";;"MAT I
+1º BAC i C-T
+(205)";"GUARDIA
+GUARDIA";"MAT I
+1º BAC i C-T
+(205)"
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";"MAT II
+2º BAC i C-T
+(208)";;"MAT II
+2º BAC i C-T
+(208)";;"MACS II
+2º BAC i C-T
+2º BAC j H-CS
+(212)"
+"20:10
+21:05";;"MACS I
+1º BAC j H-CS
+(206)";"MACS I
+1º BAC j H-CS
+(206)";"MACS II
+2º BAC i C-T
+2º BAC j H-CS
+(212)";"MACS I
+1º BAC j H-CS
+(206)"
+"21:05
+22:00";;"MAT I
+1º BAC i C-T
+(205)";;"MACS II
+2º BAC i C-T
+2º BAC j H-CS
+(212)";"GUARDIA
+GUARDIA"
+Lectivas: 16  +  Guardias:  3;;;;;
+ 19;Materias;;;Grupos de alumnos;
+  3;GUARDIA (Guardia de aula);;;;
+  4;MATEMATICAS APLICADAS CIENCIAS SOCIALES I (MACS I);;;1º BAC j H-CS;
+  4;MATEMÁTICAS APLICADAS CIENCIAS SOCIALES II (MACS II);;;2º BAC i C-T, 2º BAC j H-CS;
+  4;MATEMÁTICAS I (MAT I);;;1º BAC i C-T;
+  4;MATEMÁTICAS II (MAT II);;;2º BAC i C-T;

@@ -39,9 +39,32 @@ class _HorariosSectionState extends State<HorariosSection> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
-              return Center(child: Text("Error: ${snapshot.error}"));
+              return Center(
+                child: Column(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.pink, size: 48),
+                    const SizedBox(height: 16),
+                    Text("Error al cargar tramos: ${snapshot.error}", 
+                         style: const TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              );
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text("No hay horarios definidos"));
+              return Center(
+                child: Column(
+                  children: [
+                    const Icon(Icons.calendar_today_outlined, color: Colors.white10, size: 48),
+                    const SizedBox(height: 16),
+                    const Text("No hay franjas horarias en la base de datos", 
+                         style: TextStyle(color: Colors.white38)),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => setState(() {}), 
+                      child: const Text("Reintentar")
+                    ),
+                  ],
+                ),
+              );
             }
 
             final schedules = snapshot.data!;

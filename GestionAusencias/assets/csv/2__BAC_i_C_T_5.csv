@@ -1,0 +1,155 @@
+﻿2º BAC i C-T;;;;;
+ /~\ ;Lunes;Martes;Miércoles;Jueves;Viernes
+"16:00
+17:00";"HESP
+Gómez Letrán, Carmen
+(208)
+------------------
+MACS II
+Pérez Romero, Emilio
+(212)";;"BIO
+Bustos Rodríguez, Miguel
+(208)
+------------------
+FIS
+Torres Arias, Juan Luis
+(122)";;"HESP
+Gómez Letrán, Carmen
+(122)
+------------------
+MAT II
+Pérez Romero, Emilio
+(208)"
+"17:00
+18:00";"LCL II
+Fernández Latorre, Mar
+(208)";"DBT II
+Martín Cifuentes, Lorena
+(122)
+------------------
+QUI
+Valdivieso Checa, M. José
+(208)";"BIO
+Bustos Rodríguez, Miguel
+(208)
+------------------
+FIS
+Torres Arias, Juan Luis
+(122)";"PSICO
+García Garzón, Raquel
+(212)
+------------------
+TICO II
+Manzano Herrero, Paloma
+(217)";"HESP
+Gómez Letrán, Carmen
+(122)
+------------------
+MAT II
+Pérez Romero, Emilio
+(208)"
+"18:00
+19:00";"BIO
+Bustos Rodríguez, Miguel
+(208)
+------------------
+FIS
+Torres Arias, Juan Luis
+(122)";"DBT II
+Martín Cifuentes, Lorena
+(122)
+------------------
+QUI
+Valdivieso Checa, M. José
+(208)";"HFIL
+García Garzón, Raquel
+(208)";"DBT II
+Martín Cifuentes, Lorena
+(122)
+------------------
+QUI
+Valdivieso Checa, M. José
+(208)";"BIO
+Bustos Rodríguez, Miguel
+(208)
+------------------
+FIS
+Torres Arias, Juan Luis
+(122)"
+;recreo;recreo;recreo;recreo;recreo
+"19:15
+20:10";"HESP
+Gómez Letrán, Carmen
+(122)
+------------------
+MAT II
+Pérez Romero, Emilio
+(208)";"PSICO
+García Garzón, Raquel
+(212)
+------------------
+TICO II
+Manzano Herrero, Paloma
+(217)";"HESP
+Gómez Letrán, Carmen
+(122)
+------------------
+MAT II
+Pérez Romero, Emilio
+(208)";"DBT II
+Martín Cifuentes, Lorena
+(122)
+------------------
+QUI
+Valdivieso Checa, M. José
+(208)";"HESP
+Gómez Letrán, Carmen
+(208)
+------------------
+MACS II
+Pérez Romero, Emilio
+(212)"
+"20:10
+21:05";"ING II
+Álvarez Troncoso, Miguel Anxo
+(208)";"HFIL
+García Garzón, Raquel
+(208)";"LCL II
+Fernández Latorre, Mar
+(208)";"HESP
+Gómez Letrán, Carmen
+(208)
+------------------
+MACS II
+Pérez Romero, Emilio
+(212)";"ING II
+Álvarez Troncoso, Miguel Anxo
+(208)"
+"21:05
+22:00";"ING II
+Álvarez Troncoso, Miguel Anxo
+(208)";"HFIL
+García Garzón, Raquel
+(208)";"LCL II
+Fernández Latorre, Mar
+(208)";"HESP
+Gómez Letrán, Carmen
+(208)
+------------------
+MACS II
+Pérez Romero, Emilio
+(212)";
+Lectivas: 45;;;;;
+ 45;Profesores;;;Materias;
+  3;Álvarez Troncoso, Miguel Anxo;;;INGLÉS II (ING II);
+  4;Bustos Rodríguez, Miguel;;;BIOLOGÍA (BIO);
+  3;Fernández Latorre, Mar;;;LENGUA CASTELLANA Y LITERATURA (LCL II);
+  2;García Garzón, Raquel;;;PSICOLOGÍA (PSICO);
+  3;    '';;;HISTORIA DE LA FILOSOFÍA (HFIL);
+  8;Gómez Letrán, Carmen;;;HISTORIA DE ESPAÑA (HESP);
+  2;Manzano Herrero, Paloma;;;TECNOLOGÍA, INFORMACIÓN Y COMU (TICO II);
+  4;Martín Cifuentes, Lorena;;;DIBUJO TÉCNICO II (DBT II);
+  4;Pérez Romero, Emilio;;;MATEMÁTICAS APLICADAS CIENCIAS (MACS II);
+  4;    '';;;MATEMÁTICAS II (MAT II);
+  4;Torres Arias, Juan Luis;;;FÍSICA (FIS);
+  4;Valdivieso Checa, M. José;;;QUÍMICA (QUI);

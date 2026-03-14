@@ -1,32 +1,20 @@
-class Guardia {
-  final String id;
-  final DateTime fecha;
-  final String horaInicio;
-  final String horaFin;
-  final String grupo;
-  final String aula;
-  final String profesorAusente;
-  final String asignaturaAusente;
-  final String tarea; // Puede ser texto o referencia a PDF
-  final String? profesorGuardia;
-  final bool confirmada;
-  final String? pdfUrl; // Opcional: URL del PDF
-  final String tipoTarea; // 'texto', 'pdf', 'enlace'
+import 'package:gestion_ausencias/domain/entities/guardia.dart';
 
-  Guardia({
-    required this.id,
-    required this.fecha,
-    required this.horaInicio,
-    required this.horaFin,
-    required this.grupo,
-    required this.aula,
-    required this.profesorAusente,
-    required this.asignaturaAusente,
-    required this.tarea,
-    this.profesorGuardia,
-    this.confirmada = false,
-    this.pdfUrl,
-    this.tipoTarea = 'texto',
+class GuardiaModel extends Guardia {
+  GuardiaModel({
+    required super.id,
+    required super.fecha,
+    required super.horaInicio,
+    required super.horaFin,
+    required super.grupo,
+    required super.aula,
+    required super.profesorAusente,
+    required super.asignaturaAusente,
+    required super.tarea,
+    super.profesorGuardia,
+    super.confirmada = false,
+    super.pdfUrl,
+    super.tipoTarea = 'texto',
   });
 
   Map<String, dynamic> toJson() {
@@ -47,8 +35,8 @@ class Guardia {
     };
   }
 
-  factory Guardia.fromJson(Map<String, dynamic> json) {
-    return Guardia(
+  factory GuardiaModel.fromJson(Map<String, dynamic> json) {
+    return GuardiaModel(
       id: json['id'],
       fecha: DateTime.parse(json['fecha']),
       horaInicio: json['horaInicio'],
@@ -65,15 +53,23 @@ class Guardia {
     );
   }
 
-  // Método para obtener duración en formato legible
-  String get duracion => '$horaInicio - $horaFin';
-
-  // Método para ver si la guardia es hoy
-  bool get esHoy {
-    final hoy = DateTime.now();
-    return fecha.year == hoy.year &&
-        fecha.month == hoy.month &&
-        fecha.day == hoy.day;
+  // Factory to map from Domain Entity to Data Model
+  factory GuardiaModel.fromEntity(Guardia guardia) {
+    return GuardiaModel(
+      id: guardia.id,
+      fecha: guardia.fecha,
+      horaInicio: guardia.horaInicio,
+      horaFin: guardia.horaFin,
+      grupo: guardia.grupo,
+      aula: guardia.aula,
+      profesorAusente: guardia.profesorAusente,
+      asignaturaAusente: guardia.asignaturaAusente,
+      tarea: guardia.tarea,
+      profesorGuardia: guardia.profesorGuardia,
+      confirmada: guardia.confirmada,
+      pdfUrl: guardia.pdfUrl,
+      tipoTarea: guardia.tipoTarea,
+    );
   }
 }
 

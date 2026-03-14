@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:provider/provider.dart'; // Import Provider
-import '../../data/models/guardia_model.dart';
+
+import 'package:provider/provider.dart';
+import '../../domain/entities/guardia.dart';
 import '../../domain/entities/profesor.dart'; // Import Profesor entity
 import '../../domain/usecases/get_profesores_usecase.dart'; // Import UseCase
 import 'detalle_guardia_screen.dart';
 import '../providers/config_provider.dart';
-import 'settings_screen.dart';
+import '../widgets/guardias/guardias_header.dart';
+import '../widgets/guardias/guardias_search_bar.dart';
+import '../widgets/guardias/guardias_date_selector.dart';
+import '../widgets/guardias/guardia_card.dart';
+import '../adapters/guardia_ui_adapter.dart';
 
 class GuardiasScreen extends StatefulWidget {
   const GuardiasScreen({super.key});
@@ -162,9 +166,29 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
                 ? Center(child: CircularProgressIndicator(color: primaryColor))
                 : Column(
                     children: [
-                      _buildHeader(),
-                      _buildSearchBar(),
-                      _buildSelectorFecha(),
+                      GuardiasHeader(
+                        primaryColor: primaryColor,
+                        cardColor: cardColor,
+                      ),
+                      GuardiasSearchBar(
+                        controller: _searchController,
+                        filtroBusqueda: _filtroBusqueda,
+                        onClear: () {
+                          _searchController.clear();
+                          setState(() {
+                            _filtroBusqueda = '';
+                          });
+                        },
+                        primaryColor: primaryColor,
+                        cardColor: cardColor,
+                      ),
+                      GuardiasDateSelector(
+                        fechaSeleccionada: _fechaSeleccionada,
+                        onDateChanged: (date) {
+                          setState(() => _fechaSeleccionada = date);
+                        },
+                        primaryColor: primaryColor,
+                      ),
                       Expanded(
                         child:
                             guardiasDelDia.isEmpty && _filtroBusqueda.isNotEmpty
@@ -184,9 +208,16 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
                                       )
                                       .toList();
 
-                                  return _buildTarjetaGuardia(
-                                    horario,
-                                    guardiasDelSlot,
+                                  return GuardiaCard(
+                                    horario: horario,
+                                    guardias: GuardiaUIAdapter.toUIModelList(guardiasDelSlot),
+                                    primaryColor: primaryColor,
+                                    cardColor: cardColor,
+                                    urlFotoLaura: urlFotoLaura,
+                                    onNavigateNuevaGuardia: (horario) {
+                                      _navegarNuevaGuardia(horario);
+                                    },
+                                    onNavigateDetalleGuardia: _navegarADetalleGuardia,
                                   );
                                 },
                               ),
@@ -204,127 +235,7 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 50, 20, 10),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'Guardias',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 24,
-              color: primaryColor,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            color: primaryColor,
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'Buscar guardias...',
-          prefixIcon: Icon(Icons.search, color: primaryColor),
-          suffixIcon: _filtroBusqueda.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {
-                      _filtroBusqueda = '';
-                    });
-                  },
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(25),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
-          fillColor: cardColor,
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 0,
-            horizontal: 20,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSelectorFecha() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: () => setState(
-              () => _fechaSeleccionada = _fechaSeleccionada.subtract(
-                const Duration(days: 1),
-              ),
-            ),
-          ),
-          Column(
-            children: [
-              Text(
-                DateFormat(
-                  'EEEE, d MMMM',
-                  'es',
-                ).format(_fechaSeleccionada).toUpperCase(),
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  color: primaryColor,
-                ),
-              ),
-              Text(
-                "CURSO ${_fechaSeleccionada.year}",
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: () => setState(
-              () => _fechaSeleccionada = _fechaSeleccionada.add(
-                const Duration(days: 1),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildSinResultados() {
     return Center(
@@ -347,99 +258,12 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
     );
   }
 
-  Widget _buildTarjetaGuardia(String horario, List<Guardia> guardias) {
-    bool tieneGuardia = guardias.isNotEmpty;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Sección de Hora
-            SizedBox(
-              width: 70,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    horario.split(' - ')[0],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    height: 2,
-                    width: 15,
-                    color: primaryColor.withOpacity(0.3),
-                  ),
-                  Text(
-                    horario.split(' - ')[1],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const VerticalDivider(
-              width: 30,
-              thickness: 1,
-              indent: 5,
-              endIndent: 5,
-            ),
-            // Sección de Información (Lista de guardias con tarjeta "Añadir" al final)
-            Expanded(
-              child: tieneGuardia
-                  ? SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: [
-                          ...guardias
-                              .map((g) => _buildItemIndividual(g))
-                              .toList(),
-                          _buildTarjetaAnadir(
-                            horario,
-                          ), // Tarjeta integrada al final
-                        ],
-                      ),
-                    )
-                  : InkWell(
-                      onTap: () => _navegarNuevaGuardia(horario),
-                      child: Center(
-                        child: Text(
-                          "Libre - Toca para añadir",
-                          style: TextStyle(
-                            color: Colors.grey.withOpacity(0.5),
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.1,
-                          ),
-                        ),
-                      ),
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
+//IntrinsicHeight--> a tarjeta crece hacia abajo si el nombre del profesor o la asignatura son extensos, manteniendo todo alineado.
+//Container--> crea un contenedor con un color de fondo y bordes redondeados.
+//Expanded--> permite que el widget ocupe todo el espacio disponible.
+//VerticalDivider--> crea una línea vertical que divide los widgets.
 
   // Helper para navegar a nueva guardia
   void _navegarNuevaGuardia(String? horario) {
@@ -463,131 +287,4 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
       ),
     );
   }
-
-  Widget _buildItemIndividual(Guardia guardia) {
-    return Container(
-      width: 210, // Un poco más estrecho para que se vea mejor el scroll
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: InkWell(
-        onTap: () => _navegarADetalleGuardia(guardia),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    guardia.grupo,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: primaryColor,
-                      fontSize: 10,
-                    ),
-                  ),
-                ),
-                Icon(
-                  guardia.confirmada ? Icons.check_circle : Icons.pending,
-                  color: guardia.confirmada ? Colors.green : Colors.orange,
-                  size: 18,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              guardia.profesorAusente,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              guardia.asignaturaAusente,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 9,
-                  backgroundImage: NetworkImage(urlFotoLaura),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    guardia.profesorGuardia ?? "Sin asignar",
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: guardia.confirmada ? Colors.green : Colors.orange,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTarjetaAnadir(String horario) {
-    return GestureDetector(
-      onTap: () => _navegarNuevaGuardia(horario),
-      child: Container(
-        width: 100,
-        height: 100, // Ajustar a la altura del slot
-        margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          color: primaryColor.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: primaryColor.withOpacity(0.2), width: 1.5),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.add_rounded, color: primaryColor, size: 30),
-            const SizedBox(height: 4),
-            Text(
-              "MAS",
-              style: TextStyle(
-                color: primaryColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
-
-//IntrinsicHeight--> a tarjeta crece hacia abajo si el nombre del profesor o la asignatura son extensos, manteniendo todo alineado.
-//Container--> crea un contenedor con un color de fondo y bordes redondeados.
-//Expanded--> permite que el widget ocupe todo el espacio disponible.
-//VerticalDivider--> crea una línea vertical que divide los widgets.

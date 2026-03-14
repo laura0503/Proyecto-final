@@ -332,7 +332,7 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
               crossAxisCount: 7,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
-              childAspectRatio: 1.7,
+              childAspectRatio: 1.1,
             ),
             itemCount: _filteredProfesores.length,
             itemBuilder: (context, index) {
@@ -404,9 +404,9 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
         ),
       ),
       padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 8,
-      ), // Minimal padding
+        horizontal: 8,
+        vertical: 6,
+      ), // Compact padding
       child: Column(
         children: [
           // Avatar
@@ -414,7 +414,7 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
           Text(
             p.nombre,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: textColor,
             ),
@@ -426,7 +426,7 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
           Text(
             p.asignatura.toUpperCase(),
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: FontWeight.w600,
               color: textColor.withOpacity(0.6),
               letterSpacing: 0.5,
@@ -551,26 +551,35 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
               ),
             ),
           ],
-          const SizedBox(height: 4),
-          // Horario (Time Range) compact
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.access_time_rounded,
-                size: 10,
-                color: textColor.withOpacity(0.4),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                "08:00 - 14:30",
-                style: TextStyle(
-                  fontSize: 10,
-                  color: textColor.withOpacity(0.6),
-                  fontWeight: FontWeight.w500,
+          const Spacer(),
+          const SizedBox(height: 8),
+          // Horario (Time Range)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.access_time_rounded,
+                  size: 16,
+                  color: textColor.withOpacity(0.4),
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  "08:00 - 14:30",
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: textColor.withOpacity(0.6),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.more_horiz_rounded,
+                  size: 20,
+                  color: textColor.withOpacity(0.3),
+                ),
+              ],
+            ),
           ),
         ],
       ),

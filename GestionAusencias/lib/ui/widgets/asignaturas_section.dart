@@ -47,6 +47,7 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
   }
 
   void _applyFilters() {
+    if (!mounted) return;
     setState(() {
       _filteredAsignaturas = _allAsignaturas.where((a) {
         final query = _normalize(_searchController.text);
@@ -58,18 +59,7 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
         return matchesSearch && matchesChip;
       }).toList();
 
-      // Sort: Matemáticas first, then alphabetical
-      _filteredAsignaturas.sort((a, b) {
-        final normA = _normalize(a.nombre);
-        final normB = _normalize(b.nombre);
-        if (normA.contains('matematicas') && !normB.contains('matematicas')) {
-          return -1;
-        }
-        if (!normA.contains('matematicas') && normB.contains('matematicas')) {
-          return 1;
-        }
-        return normA.compareTo(normB);
-      });
+      _filteredAsignaturas.sort((a, b) => _normalize(a.nombre).compareTo(_normalize(b.nombre)));
     });
   }
 
@@ -85,22 +75,8 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
     final getAsignaturasUseCase = context.read<GetAsignaturasUseCase>();
     try {
       final list = await getAsignaturasUseCase.call();
-
-      // Extract unique subject names for filters
       final uniqueNames = list.map((a) => a.nombre).toSet().toList();
-
-      // Sort: Matemáticas first, then alphabetical
-      uniqueNames.sort((a, b) {
-        final normA = _normalize(a);
-        final normB = _normalize(b);
-        if (normA.contains('matematicas') && !normB.contains('matematicas')) {
-          return -1;
-        }
-        if (!normA.contains('matematicas') && normB.contains('matematicas')) {
-          return 1;
-        }
-        return normA.compareTo(normB);
-      });
+      uniqueNames.sort((a, b) => _normalize(a).compareTo(_normalize(b)));
 
       final List<String> subjects = ["Todas", ...uniqueNames];
 
@@ -126,7 +102,6 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header with Badge
         Row(
           children: [
             Text(
@@ -157,7 +132,6 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
         ),
         const SizedBox(height: 30),
 
-        // Search and Filters
         Row(
           children: [
             Expanded(
@@ -223,7 +197,6 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
         ),
         const SizedBox(height: 40),
 
-        // Grid
         if (_isLoading)
           const Center(
             child: Padding(
@@ -259,10 +232,10 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
+              crossAxisCount: 5, // Restaurado a 5 para que se vea grande y bien
               crossAxisSpacing: 20,
               mainAxisSpacing: 20,
-              childAspectRatio: 1.5,
+              childAspectRatio: 1.5, // Restaurado aspecto original
             ),
             itemCount: _filteredAsignaturas.length,
             itemBuilder: (context, index) {
@@ -330,6 +303,7 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // REDISEÑO RESTAURADO: Icono circular naranja
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -350,7 +324,35 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
+          // Chip de Departamento
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.purple.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.business_rounded,
+                  size: 10,
+                  color: Colors.purple[700],
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  a.departamento,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.purple[800],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
           Text(
             "ID: ${a.id}",
             style: TextStyle(
