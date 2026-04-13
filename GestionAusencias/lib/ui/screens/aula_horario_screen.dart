@@ -2,25 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/domain/entities/aula.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
+import 'package:gestion_ausencias/domain/entities/grupo.dart';
 import 'package:gestion_ausencias/domain/entities/horario_clase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_aula_detallado_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_profesor_detallado_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_horario_grupo_detallado_usecase.dart';
 import 'package:gestion_ausencias/ui/widgets/calendario_aula_widget.dart';
 
 class AulaHorarioScreen extends StatelessWidget {
   final Aula? aula;
   final Profesor? profesor;
+  final Grupo? grupo;
 
-  const AulaHorarioScreen({super.key, this.aula, this.profesor});
+  const AulaHorarioScreen({super.key, this.aula, this.profesor, this.grupo});
 
   @override
   Widget build(BuildContext context) {
-    final String screenTitle = aula != null ? "Aula ${aula!.nombre}" : profesor!.nombre;
+    final String screenTitle = aula != null 
+        ? "Aula ${aula!.nombre}" 
+        : (profesor != null ? profesor!.nombre : "Grupo ${grupo!.nombre}");
+        
     final String subtitulo = aula != null 
         ? "Dept: ${aula!.departamento} • Planta 1" 
-        : "Dept: ${profesor!.departamento} • ${profesor!.asignatura}";
+        : (profesor != null 
+            ? "Dept: ${profesor!.departamento} • ${profesor!.asignatura}"
+            : "Horario de Grupo");
     
-    final int id = aula != null ? aula!.id : int.tryParse(profesor!.id) ?? 0;
+    final int id = aula != null 
+        ? aula!.id 
+        : (profesor != null ? (int.tryParse(profesor!.id) ?? 0) : grupo!.id);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -77,24 +87,16 @@ class AulaHorarioScreen extends StatelessWidget {
       body: FutureBuilder<List<HorarioClase>>(
         future: aula != null 
             ? Provider.of<GetHorarioAulaDetalladoUseCase>(context, listen: false).execute(id)
-            : Provider.of<GetHorarioProfesorDetalladoUseCase>(context, listen: false).execute(id),
+            : (profesor != null 
+                ? Provider.of<GetHorarioProfesorDetalladoUseCase>(context, listen: false).execute(id)
+                : Provider.of<GetHorarioGrupoDetalladoUseCase>(context, listen: false).execute(id)),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text("Error: ${snapshot.error}"));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  Text("No hay horario definido para ${aula != null ? 'esta aula' : 'este profesor'}"),
-                ],
-              ),
-            );
+          } else if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
           }
 
           final horarios = snapshot.data!;

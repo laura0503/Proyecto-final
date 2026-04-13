@@ -320,14 +320,25 @@ class HorarioImporter implements IHorarioImporter {
       }
       
       if (seccionMaterias) {
-        String nombreAsignatura = col1;
-        // Extraer lo que está entre paréntesis (ej: "Matemáticas (MAT)") -> "MAT"
-        final match = RegExp(r'\(([^)]+)\)').allMatches(col1);
-        if (match.isNotEmpty) {
-           nombreAsignatura = match.last.group(1)!;
-        } else if (col1.contains(';')) {
-           // A veces el nombre viene después de un número;
-           nombreAsignatura = col1.split(';').last.trim();
+        String nombreAsignatura = "";
+        
+        // La asignatura suele estar en col1 (resumen materias) o col4 (resumen profesores)
+        final candidates = [row[1].toString().trim(), if(row.length > 4) row[4].toString().trim()];
+        
+        for (var c in candidates) {
+          if (c.isEmpty) continue;
+          final match = RegExp(r'\(([^)]+)\)').allMatches(c);
+          if (match.isNotEmpty) {
+            nombreAsignatura = match.last.group(1)!;
+            break;
+          }
+        }
+
+        if (nombreAsignatura.isEmpty && candidates.first.isNotEmpty) {
+          nombreAsignatura = candidates.first;
+          if (nombreAsignatura.contains(';')) {
+            nombreAsignatura = nombreAsignatura.split(';').last.trim();
+          }
         }
 
         if (_esCadenaValida(nombreAsignatura)) {
@@ -513,12 +524,27 @@ class HorarioImporter implements IHorarioImporter {
       try {
         await _supabase.from('horario').upsert(
           batchToInsert, 
-          onConflict: 'id_profesor, id_tramo, dia_semana, id_asignatura'
+          onConflict: 'id_profesor,id_tramo,dia_semana,id_asignatura'
         );
         print("✨ EXITO: Inserción masiva de ${batchToInsert.length} registros completada.");
       } catch (e) {
-        print("Fallo en upsert masivo: $e. Reintentando por goteo...");
-        // Si el batch falla por alguna restricción, podemos caer a goteo (opcional)
+        print("⚠️ Fallo en upsert masivo: $e. Reintentando por goteo individual...");
+        int exitos = 0;
+        for (final item in batchToInsert) {
+          try {
+            await _supabase.from('horario').upsert(item, onConflict: 'id_profesor,id_tramo,dia_semana,id_asignatura');
+            exitos++;
+          } catch (itemErr) {
+            // Si el goteo también falla con id_asignatura, probamos el constraint más básico
+            try {
+               await _supabase.from('horario').upsert(item, onConflict: 'id_profesor,id_tramo,dia_semana');
+               exitos++;
+            } catch (_) {
+              // Si falla todo, se ignora este registro
+            }
+          }
+        }
+        print("✨ Goteo finalizado: $exitos / ${batchToInsert.length} registros rescatados.");
       }
     }
   }

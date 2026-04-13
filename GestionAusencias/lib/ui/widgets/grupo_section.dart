@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../domain/entities/grupo.dart';
 import '../../domain/usecases/get_grupos_usecase.dart';
+import '../screens/aula_horario_screen.dart';
 
 class GrupoSection extends StatelessWidget {
   final bool isDark;
@@ -134,7 +135,14 @@ class GrupoSection extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {},
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AulaHorarioScreen(grupo: grupo),
+              ),
+            );
+          },
           borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.all(16.0),

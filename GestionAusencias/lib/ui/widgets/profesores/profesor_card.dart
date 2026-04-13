@@ -12,124 +12,112 @@ class ProfesorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AulaHorarioScreen(
-              profesor: profesor.entidadOriginal,
-            ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: profesor.cardColor.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
           ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 22),
-        height: 100,
-        child: Stack(
-          children: [
-            // CUERPO DE LA TARJETA
-            Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.82,
-                padding: const EdgeInsets.only(left: 50, right: 20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(
-                      color: profesor.cardColor.withOpacity(0.12),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+        ],
+        border: Border.all(
+          color: Colors.black.withOpacity(0.04),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AulaHorarioScreen(
+                  profesor: profesor.entidadOriginal,
                 ),
-                child: Row(
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Avatar circular más pequeño
+                Stack(
                   children: [
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            profesor.nombre,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Color(0xFF2D3250),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            "${profesor.asignatura} • ${profesor.departamento}",
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontSize: 12,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: profesor.estadoColor,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                profesor.estadoTexto,
-                                style: TextStyle(
-                                  color: profesor.ausente
-                                      ? Colors.orange
-                                      : Colors.grey.shade500,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: profesor.cardColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(22),
+                        child: _buildImagenOIniciales(),
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: Colors.grey.shade300),
-                  ],
-                ),
-              ),
-            ),
-            // AVATAR SOBRESALIENTE (Foto o Iniciales)
-            Positioned(
-              left: 0,
-              top: 5,
-              bottom: 5,
-              child: Container(
-                width: 85,
-                decoration: BoxDecoration(
-                  color: profesor.cardColor,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: profesor.cardColor.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(2, 6),
+                    Positioned(
+                      right: 1,
+                      bottom: 1,
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: profesor.estadoColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(50),
-                  child: _buildImagenOIniciales(),
+                const SizedBox(height: 8),
+                
+                // Nombre Premium más compacto
+                _buildNombrePremium(),
+                
+                const SizedBox(height: 2),
+                
+                // Asignatura / Depto (Fuente reducida)
+                Text(
+                  profesor.asignatura,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: const Color(0xFF1E293B).withOpacity(0.4),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
+
+                const SizedBox(height: 6),
+
+                // Badge de Estado compacto
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: profesor.estadoColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    profesor.estadoTexto,
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                      color: profesor.estadoColor,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -144,10 +132,10 @@ class ProfesorCard extends StatelessWidget {
           return Center(
             child: Text(
               profesor.iniciales,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: profesor.cardColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 26,
+                fontSize: 16,
               ),
             ),
           );
@@ -158,11 +146,43 @@ class ProfesorCard extends StatelessWidget {
     return Center(
       child: Text(
         profesor.iniciales,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: profesor.cardColor,
           fontWeight: FontWeight.bold,
-          fontSize: 26,
+          fontSize: 16,
         ),
+      ),
+    );
+  }
+
+  Widget _buildNombrePremium() {
+    final partes = profesor.nombreDisplay.split(' ');
+    final firstName = partes.isNotEmpty ? partes.first : "";
+    final lastName = partes.length > 1 ? partes.skip(1).join(' ') : "";
+
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        style: const TextStyle(color: Color(0xFF1E293B), fontSize: 11),
+        children: [
+          TextSpan(
+            text: "$firstName ",
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.3,
+            ),
+          ),
+          TextSpan(
+            text: lastName,
+            style: TextStyle(
+              fontWeight: FontWeight.w400,
+              fontSize: 10,
+              color: const Color(0xFF1E293B).withOpacity(0.4),
+            ),
+          ),
+        ],
       ),
     );
   }

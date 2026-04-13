@@ -34,4 +34,27 @@ class HorarioRemoteDataSource {
   Future<void> guardarHorario(Map<String, dynamic> datos) async {
     await _supabase.from('horario').upsert(datos);
   }
+
+  Future<List<Map<String, dynamic>>> obtenerOcupacionActual(int dia, String hora) async {
+    // Buscamos profesores que tengan una clase en este día y cuyo tramo horario cubra la hora actual
+    final response = await _supabase
+        .from('horario')
+        .select('id_profesor, horario_tramo!inner(horario_inicio, horario_fin, es_guardia)')
+        .eq('dia_semana', dia);
+    
+    // Filtrado manual en Dart para mayor precisión con strings de hora (HH:mm:ss)
+    final List all = response as List;
+    return all.where((row) {
+      final tramo = row['horario_tramo'];
+      if (tramo == null) return false;
+      final inicio = tramo['horario_inicio'] as String;
+      final fin = tramo['horario_fin'] as String;
+      final esGuardia = tramo['es_guardia'] as bool? ?? false;
+      
+      // Si es guardia, cuenta como disponible según requerimiento
+      if (esGuardia) return false;
+      
+      return hora.compareTo(inicio) >= 0 && hora.compareTo(fin) <= 0;
+    }).cast<Map<String, dynamic>>().toList();
+  }
 }

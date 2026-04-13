@@ -4,6 +4,7 @@ import '../../../domain/entities/profesor.dart';
 class ProfesorUIModel {
   final String id;
   final String nombre;
+  final String nombreDisplay; // Formato "Nombre Apellidos"
   final String asignatura;
   final String departamento;
   final String fotoUrl;
@@ -17,6 +18,7 @@ class ProfesorUIModel {
   ProfesorUIModel({
     required this.id,
     required this.nombre,
+    required this.nombreDisplay,
     required this.asignatura,
     required this.departamento,
     required this.fotoUrl,
@@ -38,20 +40,45 @@ class ProfesorUIAdapter {
     Color(0xFFEC407A),
   ];
 
-  static ProfesorUIModel toUIModel(Profesor profesor, int index) {
+  static ProfesorUIModel toUIModel(Profesor profesor, int index, {bool estaOcupado = false}) {
+    String statusText = "Activo";
+    Color statusColor = Colors.green;
+
+    if (profesor.estadoAusente) {
+      statusText = "Ausente hoy";
+      statusColor = Colors.orange;
+    } else if (estaOcupado) {
+      statusText = "En clase ahora";
+      statusColor = Colors.redAccent;
+    } else {
+      statusText = "Disponible";
+      statusColor = Colors.green;
+    }
+
+    final String display = _formatearNombre(profesor.nombre);
+
     return ProfesorUIModel(
       id: profesor.id,
       nombre: profesor.nombre,
+      nombreDisplay: display,
       asignatura: profesor.asignatura,
       departamento: profesor.departamento,
       fotoUrl: profesor.foto,
-      iniciales: _obtenerIniciales(profesor.nombre),
+      iniciales: _obtenerIniciales(display),
       ausente: profesor.estadoAusente,
-      estadoTexto: profesor.estadoAusente ? "Ausente hoy" : "Activo",
-      estadoColor: profesor.estadoAusente ? Colors.orange : Colors.green,
+      estadoTexto: statusText,
+      estadoColor: statusColor,
       cardColor: _coloresArmonicos[index % _coloresArmonicos.length],
       entidadOriginal: profesor,
     );
+  }
+
+  static String _formatearNombre(String nombre) {
+    if (nombre.contains(',')) {
+      final partes = nombre.split(',');
+      return "${partes[1].trim()} ${partes[0].trim()}";
+    }
+    return nombre;
   }
 
   static List<ProfesorUIModel> toUIModelList(List<Profesor> profesores) {

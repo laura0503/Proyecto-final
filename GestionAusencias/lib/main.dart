@@ -46,6 +46,8 @@ import 'package:gestion_ausencias/domain/usecases/importar_horario_usecase.dart'
 import 'package:gestion_ausencias/domain/usecases/eliminar_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_aula_detallado_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_profesor_detallado_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_horario_grupo_detallado_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_profesores_ocupados_usecase.dart';
 import 'package:gestion_ausencias/data/services/horario_importer.dart';
 // ─── Proveedores y pantallas (UI) ───
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
@@ -174,6 +176,12 @@ void main() async {
         ),
         Provider<GetHorarioProfesorDetalladoUseCase>(
           create: (context) => GetHorarioProfesorDetalladoUseCase(context.read<HorarioAulaRepository>()),
+        ),
+        Provider<GetHorarioGrupoDetalladoUseCase>(
+          create: (context) => GetHorarioGrupoDetalladoUseCase(context.read<HorarioAulaRepository>()),
+        ),
+        Provider<GetProfesoresOcupadosUseCase>(
+          create: (context) => GetProfesoresOcupadosUseCase(context.read<HorarioRepository>()),
         ),
 
         // ── Proveedores de estado ──

@@ -29,4 +29,18 @@ class HorarioRepositoryImpl implements HorarioRepository {
     final model = HorarioModel.fromEntity(horario);
     await remoteDataSource.guardarHorario(model.toJson());
   }
+
+  @override
+  Future<List<int>> obtenerProfesoresOcupados(int dia, String hora) async {
+    try {
+      final jsonList = await remoteDataSource.obtenerOcupacionActual(dia, hora);
+      return jsonList
+          .map((json) => json['id_profesor'] as int)
+          .toSet()
+          .toList();
+    } catch (e) {
+      print("Error en obtenerProfesoresOcupados: $e");
+      return [];
+    }
+  }
 }
