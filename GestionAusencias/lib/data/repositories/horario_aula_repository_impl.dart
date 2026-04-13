@@ -86,4 +86,27 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
       return [];
     }
   }
+
+  @override
+  Future<List<HorarioClase>> getHorarioDetalladoByProfesor(int profesorId) async {
+    try {
+      final response = await supabase
+          .from('horario')
+          .select('''
+            dia_semana,
+            profesores!id_profesor(nombre),
+            aulas!id_aula(nombre),
+            grupo!id_grupo(nombre),
+            Asignaturas!id_asignatura(nombre),
+            horario_tramo(texto, horario_fin, horario_inicio)
+          ''')
+          .eq('id_profesor', profesorId);
+
+      final List rows = response as List;
+      return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
+    } catch (e) {
+      print("ERROR en getHorarioDetalladoByProfesor: $e");
+      return [];
+    }
+  }
 }

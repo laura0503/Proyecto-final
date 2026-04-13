@@ -60,7 +60,17 @@ class GrupoSection extends StatelessWidget {
               );
             }
 
-            final grupos = snapshot.data!;
+            final grupos = snapshot.data!.where((g) {
+              final nombre = g.nombre.trim().toUpperCase();
+              if (nombre.isEmpty) return false;
+              if (nombre.contains('RECREO') || nombre.contains('GUARDIA') || nombre.contains('VARIOS') || nombre.contains('LECTIVAS')) return false;
+              if (RegExp(r'^\d+$').hasMatch(nombre)) return false; // Es un número puro (un aula que se coló)
+              if (nombre.replaceAll(RegExp(r'[\-\_\.]'), '').trim().isEmpty) return false; // Son guiones (ej. '---')
+              // Eliminar basura tipo reloj o textos con punto y coma
+              if (nombre.contains(';')) return false;
+              if (RegExp(r'^\d{1,2}:\d{2}').hasMatch(nombre)) return false;
+              return true;
+            }).toList();
 
             return GridView.builder(
               shrinkWrap: true,

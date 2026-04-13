@@ -4,12 +4,12 @@ import '../../domain/entities/horario_clase.dart';
 
 class CalendarioAulaWidget extends StatelessWidget {
   final List<HorarioClase> horario;
-  final String aulaNombre;
+  final String titulo;
 
   const CalendarioAulaWidget({
     super.key,
     required this.horario,
-    required this.aulaNombre,
+    required this.titulo,
   });
 
   @override
@@ -116,7 +116,7 @@ class CalendarioAulaWidget extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   // Título sin fondo para que flote sobre el cristal
                   child: Text(
-                    'Horario - Aula $aulaNombre',
+                    'Horario - $titulo',
                     style: const TextStyle(
                       fontSize: 24, 
                       fontWeight: FontWeight.w800, 

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../domain/entities/profesor.dart';
 import '../../domain/usecases/get_profesores_usecase.dart';
+import '../screens/aula_horario_screen.dart';
+import '../../domain/entities/aula.dart';
 
 class ProfesoresSection extends StatefulWidget {
   final bool isDark;
@@ -92,6 +94,11 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
     final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
     try {
       final list = await getProfesoresUseCase.execute();
+      final listValida = list.where((p) {
+        if (p.nombre.contains(';')) return false;
+        if (p.nombre.trim().isEmpty) return false;
+        return true;
+      }).toList();
 
       final List<String> defaultDepts = [
         "Todos",
@@ -113,7 +120,7 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
         "Idiomas",
       ];
 
-      final dbDepts = list.map((p) => p.departamento).toSet().toList();
+      final dbDepts = listValida.map((p) => p.departamento).toSet().toList();
 
       // Deduplicate ignoring case/accents, preferring default list styling
       final Set<String> uniqueDepts = {...defaultDepts};
@@ -132,7 +139,7 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
 
       if (mounted) {
         setState(() {
-          _allProfesores = list;
+          _allProfesores = listValida;
           _availableDepartments = allDepts;
           _isLoading = false;
           _applyFilters();
@@ -434,204 +441,214 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
 
     final bool isTutor = p.tutoria != null && p.tutoria!.isNotEmpty;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBgColor,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AulaHorarioScreen(profesor: p),
           ),
-        ],
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 6,
-      ), // Compact padding
-      child: Column(
-        children: [
-          // Avatar
-          const SizedBox(height: 4),
-          Text(
-            p.nombre,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            p.asignatura.toUpperCase(),
-            style: TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w600,
-              color: textColor.withOpacity(0.6),
-              letterSpacing: 0.5,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-
-          // Chips (Baja + Ubicación + Asignatura)
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 4,
-            runSpacing: 4,
-            children: [
-              // Estado
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: statusColor.withOpacity(0.2)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 5,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: statusColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      status,
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: statusColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Ubicación
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF3B82F6).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.location_on_rounded,
-                      size: 9,
-                      color: Color(0xFF2563EB),
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      location,
-                      style: const TextStyle(
-                        fontSize: 9,
-                        color: Color(0xFF1D4ED8),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Departamento (Nuevo Botón)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.purple.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.business_rounded,
-                      size: 9,
-                      color: Colors.purple[700],
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      p.departamento.length > 10
-                          ? "${p.departamento.substring(0, 10)}..."
-                          : p.departamento,
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: Colors.purple[800],
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (isTutor) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.blueAccent.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
-              ),
-              child: Text(
-                "Tutor: ${p.tutoria}",
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueAccent,
-                ),
-              ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardBgColor,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
           ],
-          const Spacer(),
-          const SizedBox(height: 8),
-          // Horario (Time Range)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.05),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: 6,
+        ), // Compact padding
+        child: Column(
+          children: [
+            // Avatar
+            const SizedBox(height: 4),
+            Text(
+              p.nombre,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              p.asignatura.toUpperCase(),
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: textColor.withOpacity(0.6),
+                letterSpacing: 0.5,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+
+            // Chips (Baja + Ubicación + Asignatura)
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 4,
+              runSpacing: 4,
               children: [
-                if (p.horarioEntrada != null && p.horarioSalida != null) ...[
-                  Icon(
-                    Icons.access_time_rounded,
-                    size: 16,
-                    color: textColor.withOpacity(0.4),
+                // Estado
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: statusColor.withOpacity(0.2)),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "${p.horarioEntrada!.substring(0, 5)} - ${p.horarioSalida!.substring(0, 5)}",
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: textColor.withOpacity(0.6),
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 5,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        status,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                          color: statusColor,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-                const Spacer(),
-                Icon(
-                  Icons.more_horiz_rounded,
-                  size: 20,
-                  color: textColor.withOpacity(0.3),
+                ),
+                // Ubicación
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.location_on_rounded,
+                        size: 9,
+                        color: Color(0xFF2563EB),
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        location,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          color: Color(0xFF1D4ED8),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Departamento (Nuevo Botón)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.business_rounded,
+                        size: 9,
+                        color: Colors.purple[700],
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        p.departamento.length > 10
+                            ? "${p.departamento.substring(0, 10)}..."
+                            : p.departamento,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.purple[800],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            if (isTutor) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
+                ),
+                child: Text(
+                  "Tutor: ${p.tutoria}",
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent,
+                  ),
+                ),
+              ),
+            ],
+            const Spacer(),
+            const SizedBox(height: 8),
+            // Horario (Time Range)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  if (p.horarioEntrada != null && p.horarioSalida != null) ...[
+                    Icon(
+                      Icons.access_time_rounded,
+                      size: 16,
+                      color: textColor.withOpacity(0.4),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "${p.horarioEntrada!.substring(0, 5)} - ${p.horarioSalida!.substring(0, 5)}",
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: textColor.withOpacity(0.6),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  Icon(
+                    Icons.more_horiz_rounded,
+                    size: 20,
+                    color: textColor.withOpacity(0.3),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

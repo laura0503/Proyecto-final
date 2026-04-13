@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/domain/entities/aula.dart';
+import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/domain/entities/horario_clase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_aula_detallado_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_horario_profesor_detallado_usecase.dart';
 import 'package:gestion_ausencias/ui/widgets/calendario_aula_widget.dart';
 
 class AulaHorarioScreen extends StatelessWidget {
-  final Aula aula;
+  final Aula? aula;
+  final Profesor? profesor;
 
-  const AulaHorarioScreen({super.key, required this.aula});
+  const AulaHorarioScreen({super.key, this.aula, this.profesor});
 
   @override
   Widget build(BuildContext context) {
-    // Usamos el nuevo caso de uso detallado
-    final useCase = Provider.of<GetHorarioAulaDetalladoUseCase>(context, listen: false);
+    final String screenTitle = aula != null ? "Aula ${aula!.nombre}" : profesor!.nombre;
+    final String subtitulo = aula != null 
+        ? "Dept: ${aula!.departamento} • Planta 1" 
+        : "Dept: ${profesor!.departamento} • ${profesor!.asignatura}";
+    
+    final int id = aula != null ? aula!.id : int.tryParse(profesor!.id) ?? 0;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -28,7 +35,7 @@ class AulaHorarioScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Aula ${aula.nombre}",
+              screenTitle,
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -36,7 +43,7 @@ class AulaHorarioScreen extends StatelessWidget {
               ),
             ),
             Text(
-              "Dept: ${aula.departamento} • Planta 1",
+              subtitulo,
               style: const TextStyle(
                 fontSize: 12,
                 color: Color(0xFF64748B),
@@ -68,20 +75,23 @@ class AulaHorarioScreen extends StatelessWidget {
         ],
       ),
       body: FutureBuilder<List<HorarioClase>>(
-        future: useCase.execute(aula.id),
+        future: aula != null 
+            ? Provider.of<GetHorarioAulaDetalladoUseCase>(context, listen: false).execute(id)
+            : Provider.of<GetHorarioProfesorDetalladoUseCase>(context, listen: false).execute(id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text("Error: ${snapshot.error}"));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text("No hay horario definido para esta aula"),
+                  const Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  Text("No hay horario definido para ${aula != null ? 'esta aula' : 'este profesor'}"),
                 ],
               ),
             );
@@ -89,7 +99,7 @@ class AulaHorarioScreen extends StatelessWidget {
 
           final horarios = snapshot.data!;
           return CalendarioAulaWidget(
-            aulaNombre: aula.nombre,
+            titulo: screenTitle,
             horario: horarios,
           );
         },

@@ -80,14 +80,25 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
     final getAsignaturasUseCase = context.read<GetAsignaturasUseCase>();
     try {
       final list = await getAsignaturasUseCase.call();
-      final uniqueNames = list.map((a) => a.nombre).toSet().toList();
+      final listValida = list.where((a) {
+        final n = a.nombre.trim().toUpperCase();
+        if (n.isEmpty) return false;
+        if (n.contains('RECREO') || n.contains('GUARDIA') || n.contains('LECTIVAS') || n == 'VARIOS') return false;
+        if (RegExp(r'^\d+$').hasMatch(n)) return false;
+        if (n.replaceAll(RegExp(r'[\-\_\.]'), '').trim().isEmpty) return false;
+        if (n.contains(';')) return false;
+        if (RegExp(r'^\d{1,2}:\d{2}').hasMatch(n)) return false;
+        return true;
+      }).toList();
+
+      final uniqueNames = listValida.map((a) => a.nombre).toSet().toList();
       uniqueNames.sort((a, b) => _normalize(a).compareTo(_normalize(b)));
 
       final List<String> subjects = ["Todas", ...uniqueNames];
 
       if (mounted) {
         setState(() {
-          _allAsignaturas = list;
+          _allAsignaturas = listValida;
           _availableSubjects = subjects;
           _isLoading = false;
           _applyFilters();

@@ -67,7 +67,11 @@ class _HorariosSectionState extends State<HorariosSection> {
               );
             }
 
-            final schedules = snapshot.data!;
+            final schedules = snapshot.data!.where((h) {
+              // Filtramos las franjas basura cuya descripción es literalmente puro horario (ej "16:00 \n 17:00")
+              final isTimeOnly = RegExp(r'^\s*\d{1,2}:\d{2}\s*\n?\s*\d{1,2}:\d{2}\s*$').hasMatch(h.texto.trim());
+              return !isTimeOnly;
+            }).toList();
             return _buildHorarioTable(schedules, widget.isDark);
           },
         ),

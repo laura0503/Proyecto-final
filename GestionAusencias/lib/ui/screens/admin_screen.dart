@@ -159,9 +159,7 @@ class _AdminScreenState extends State<AdminScreen> {
               // 2.2 Content Area
               Expanded(
                 child: Container(
-                  color: isDark 
-                      ? Colors.black.withOpacity(0.1) 
-                      : Colors.white.withOpacity(0.1),
+                  color: Colors.transparent,
                   child: Column(
                     children: [
                       Expanded(
@@ -170,24 +168,10 @@ class _AdminScreenState extends State<AdminScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Glass card for content
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(24),
-                                child: BackdropFilter(
-                                  filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(32),
-                                    decoration: BoxDecoration(
-                                      color: isDark 
-                                          ? const Color(0xFF1E293B).withOpacity(0.4) 
-                                          : Colors.white.withOpacity(0.6),
-                                      borderRadius: BorderRadius.circular(24),
-                                      border: Border.all(color: borderColor),
-                                    ),
-                                    child: _buildSelectedSection(isDark),
-                                  ),
-                                ),
+                              // Contenedor transparente sin cristal
+                              Container(
+                                width: double.infinity,
+                                child: _buildSelectedSection(isDark),
                               ),
 
                               const SizedBox(height: 50),

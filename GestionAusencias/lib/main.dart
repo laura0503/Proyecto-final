@@ -45,6 +45,7 @@ import 'package:gestion_ausencias/domain/usecases/exportar_profesores_usecase.da
 import 'package:gestion_ausencias/domain/usecases/importar_horario_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/eliminar_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_aula_detallado_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_horario_profesor_detallado_usecase.dart';
 import 'package:gestion_ausencias/data/services/horario_importer.dart';
 // ─── Proveedores y pantallas (UI) ───
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
@@ -87,22 +88,23 @@ void main() async {
 
   final horarioImporter = HorarioImporter();
 
-  // --- PARCHE AUTOMÁTICO SOLICITADO PARA CORREGIR AULA 122 Y 205 AL INICIAR LA APP ---
+  // --- MOTOR DE INTEGRIDAD AUTOMÁTICO AL INICIAR LA APP ---
   try {
-    final csvContent122 = await File('assets/csv/122_8.csv').readAsString();
-    await horarioImporter.subirASupabase(csvContent122);
+    final List<String> aulasAParchear = ['122_8.csv', '205_11.csv', '208_13.csv'];
+    for (var file in aulasAParchear) {
+      final path = 'assets/csv/$file';
+      if (await File(path).exists()) {
+        final content = await File(path).readAsString();
+        await horarioImporter.subirASupabase(content);
+      }
+    }
     
-    final csvContent205 = await File('assets/csv/205_11.csv').readAsString();
-    await horarioImporter.subirASupabase(csvContent205);
-
-    final csvContent208 = await File('assets/csv/208_13.csv').readAsString();
-    await horarioImporter.subirASupabase(csvContent208);
-
-    print("\n========================================================");
-    print("✅ LAS AULAS 122, 205 Y 208 SE HAN CORREGIDO AUTOMÁTICAMENTE EN SUPABASE");
-    print("========================================================\n");
+    // Sintonía final: Purga basura y deduce departamentos automáticamente
+    await horarioImporter.sincronizarTodo();
+    
+    print("✅ MOTOR DE INTEGRIDAD: Aulas críticas parcheadas y base de datos saneada.");
   } catch (e) {
-    print("Error auto-corrigiendo aulas: $e");
+    print("Aviso: Error en el motor de integridad inicial: $e");
   }
 
   // 4. Ejecutar la app con inyección de dependencias
@@ -169,6 +171,9 @@ void main() async {
         ),
         Provider<GetHorarioAulaDetalladoUseCase>(
           create: (context) => GetHorarioAulaDetalladoUseCase(context.read<HorarioAulaRepository>()),
+        ),
+        Provider<GetHorarioProfesorDetalladoUseCase>(
+          create: (context) => GetHorarioProfesorDetalladoUseCase(context.read<HorarioAulaRepository>()),
         ),
 
         // ── Proveedores de estado ──
