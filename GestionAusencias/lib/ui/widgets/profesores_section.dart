@@ -19,6 +19,7 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
   List<Profesor> _filteredProfesores = [];
   List<String> _availableDepartments = ["Todos"];
   String _selectedDepartment = "Todos";
+  String? _errorMessage;
   bool _isLoading = true;
   bool _showOnlyTutors = false; // New filter state
 
@@ -84,6 +85,10 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
   }
 
   Future<void> _loadProfesores() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
     try {
       final list = await getProfesoresUseCase.execute();
@@ -135,7 +140,10 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "Error de conexión: $e";
+        });
       }
     }
   }
@@ -301,24 +309,64 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
               child: CircularProgressIndicator(),
             ),
           )
+        else if (_errorMessage != null)
+          Center(
+            child: Column(
+              children: [
+                const Icon(Icons.cloud_off_rounded, size: 64, color: Colors.redAccent),
+                const SizedBox(height: 16),
+                Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+                const SizedBox(height: 16),
+                ElevatedButton(onPressed: _loadProfesores, child: const Text("Reintentar")),
+              ],
+            ),
+          )
         else if (_filteredProfesores.isEmpty)
           Center(
             child: Padding(
               padding: const EdgeInsets.all(40),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.person_search_rounded,
-                    size: 64,
-                    color: widget.isDark ? Colors.white10 : Colors.black12,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    "No se han encontrado profesores",
-                    style: TextStyle(
-                      color: widget.isDark ? Colors.white38 : Colors.grey,
-                      fontSize: 16,
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                      shape: BoxShape.circle,
                     ),
+                    child: Icon(
+                      Icons.person_search_rounded,
+                      size: 64,
+                      color: widget.isDark ? Colors.white24 : Colors.black26,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                     _searchController.text.isEmpty 
+                      ? "No hay profesores registrados" 
+                      : "No hay resultados para tu búsqueda",
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _searchController.text.isEmpty
+                      ? "La base de datos de profesores está vacía. El sistema está configurado para poblarse automáticamente desde los archivos CSV si no detecta datos."
+                      : "Prueba a buscar otro nombre o limpiar los filtros de departamento.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: textColor.withOpacity(0.6),
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: _loadProfesores,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text("Reintentar carga"),
                   ),
                 ],
               ),

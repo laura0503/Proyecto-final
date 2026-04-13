@@ -43,10 +43,22 @@ class _AdminScreenState extends State<AdminScreen> {
         children: [
           // 1. Background Wallpaper
           if (bgProvider != null)
-            Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(image: bgProvider, fit: BoxFit.cover),
-              ),
+            Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(image: bgProvider, fit: BoxFit.cover),
+                  ),
+                ),
+                // Overlay para mejorar contraste
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark 
+                        ? Colors.black.withOpacity(0.4) 
+                        : Colors.white.withOpacity(0.2),
+                  ),
+                ),
+              ],
             ),
 
           // 2. Glass UI Layer
@@ -55,7 +67,7 @@ class _AdminScreenState extends State<AdminScreen> {
               // 2.1 Sidebar with Glass Effect
               ClipRRect(
                 child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                  filter: ui.ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
                   child: Container(
                     width: 280,
                     decoration: BoxDecoration(
@@ -146,43 +158,55 @@ class _AdminScreenState extends State<AdminScreen> {
 
               // 2.2 Content Area
               Expanded(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(40, 20, 40, 40),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (_selectedSection == 'GestionProf')
-                              AdminProfesoradoSection(isDark: isDark)
-                            else if (_selectedSection == 'Profesores')
-                              ProfesoresSection(isDark: isDark)
-                            else if (_selectedSection == 'Horarios')
-                              HorariosSection(isDark: isDark)
-                            else if (_selectedSection == 'Aulas')
-                              AulasSection(isDark: isDark)
-                            else if (_selectedSection == 'Grupos')
-                              GrupoSection(isDark: isDark)
-                            else if (_selectedSection == 'Asignaturas')
-                              AsignaturasSection(isDark: isDark),
-
-                            const SizedBox(height: 50),
-                            Center(
-                              child: Text(
-                                "© 2026 Sistema de Gestión de Sustituciones",
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                child: Container(
+                  color: isDark 
+                      ? Colors.black.withOpacity(0.1) 
+                      : Colors.white.withOpacity(0.1),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(40, 40, 40, 40),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Glass card for content
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: BackdropFilter(
+                                  filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(32),
+                                    decoration: BoxDecoration(
+                                      color: isDark 
+                                          ? const Color(0xFF1E293B).withOpacity(0.4) 
+                                          : Colors.white.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(color: borderColor),
+                                    ),
+                                    child: _buildSelectedSection(isDark),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+
+                              const SizedBox(height: 50),
+                              Center(
+                                child: Text(
+                                  "© 2026 Sistema de Gestión de Sustituciones",
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white38 : Colors.grey[600],
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -190,6 +214,21 @@ class _AdminScreenState extends State<AdminScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildSelectedSection(bool isDark) {
+    if (_selectedSection == 'GestionProf')
+      return AdminProfesoradoSection(isDark: isDark);
+    else if (_selectedSection == 'Profesores')
+      return ProfesoresSection(isDark: isDark);
+    else if (_selectedSection == 'Horarios')
+      return HorariosSection(isDark: isDark);
+    else if (_selectedSection == 'Aulas')
+      return AulasSection(isDark: isDark);
+    else if (_selectedSection == 'Grupos')
+      return GrupoSection(isDark: isDark);
+    else
+      return AsignaturasSection(isDark: isDark);
   }
 
   Widget _buildSidebarHeader(Color textColor) {

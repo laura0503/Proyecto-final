@@ -22,7 +22,7 @@ class ProfesorRemoteDataSource {
       listaProfesores = await _enriquecerProfesoresConEstado(listaProfesores);
       return listaProfesores;
     } catch (e) {
-      return [];
+      rethrow;
     }
   }
 

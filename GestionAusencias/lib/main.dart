@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
 // ─── Data Sources ───
 import 'package:gestion_ausencias/data/datasources/profesor_remote_datasource.dart';
 import 'package:gestion_ausencias/data/datasources/horario_remote_datasource.dart';
@@ -85,6 +86,24 @@ void main() async {
   final asignaturaRepository = AsignaturaRepositoryImpl(asignaturaDataSource);
 
   final horarioImporter = HorarioImporter();
+
+  // --- PARCHE AUTOMÁTICO SOLICITADO PARA CORREGIR AULA 122 Y 205 AL INICIAR LA APP ---
+  try {
+    final csvContent122 = await File('assets/csv/122_8.csv').readAsString();
+    await horarioImporter.subirASupabase(csvContent122);
+    
+    final csvContent205 = await File('assets/csv/205_11.csv').readAsString();
+    await horarioImporter.subirASupabase(csvContent205);
+
+    final csvContent208 = await File('assets/csv/208_13.csv').readAsString();
+    await horarioImporter.subirASupabase(csvContent208);
+
+    print("\n========================================================");
+    print("✅ LAS AULAS 122, 205 Y 208 SE HAN CORREGIDO AUTOMÁTICAMENTE EN SUPABASE");
+    print("========================================================\n");
+  } catch (e) {
+    print("Error auto-corrigiendo aulas: $e");
+  }
 
   // 4. Ejecutar la app con inyección de dependencias
   runApp(

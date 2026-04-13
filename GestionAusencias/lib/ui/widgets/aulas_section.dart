@@ -15,6 +15,7 @@ class AulasSection extends StatefulWidget {
 
 class _AulasSectionState extends State<AulasSection> {
   List<Aula> _aulas = [];
+  String? _errorMessage;
   bool _isLoading = true;
 
   @override
@@ -24,6 +25,10 @@ class _AulasSectionState extends State<AulasSection> {
   }
 
   Future<void> _loadAulas() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
       final aulasUseCase = Provider.of<GetAulasUseCase>(context, listen: false);
       final list = await aulasUseCase.call();
@@ -35,7 +40,10 @@ class _AulasSectionState extends State<AulasSection> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "Error al conectar con el servidor: $e";
+        });
       }
     }
   }
@@ -79,24 +87,60 @@ class _AulasSectionState extends State<AulasSection> {
 
         if (_isLoading)
           const Center(child: CircularProgressIndicator())
+        else if (_errorMessage != null)
+          Center(
+            child: Column(
+              children: [
+                const Icon(Icons.cloud_off_rounded, size: 64, color: Colors.redAccent),
+                const SizedBox(height: 16),
+                Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+                const SizedBox(height: 16),
+                ElevatedButton(onPressed: _loadAulas, child: const Text("Reintentar")),
+              ],
+            ),
+          )
         else if (_aulas.isEmpty)
           Center(
             child: Padding(
               padding: const EdgeInsets.all(40),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.meeting_room_outlined,
-                    size: 64,
-                    color: widget.isDark ? Colors.white10 : Colors.black12,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    "No se han encontrado aulas",
-                    style: TextStyle(
-                      color: widget.isDark ? Colors.white38 : Colors.grey,
-                      fontSize: 16,
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                      shape: BoxShape.circle,
                     ),
+                    child: Icon(
+                      Icons.meeting_room_rounded,
+                      size: 64,
+                      color: widget.isDark ? Colors.white24 : Colors.black26,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    "No hay aulas registradas",
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    "Parece que la base de datos de aulas está vacía. El sistema intentará cargar los datos automáticamente al inicio si no encuentra nada.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: textColor.withOpacity(0.6),
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: _loadAulas,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text("Reintentar carga"),
                   ),
                 ],
               ),

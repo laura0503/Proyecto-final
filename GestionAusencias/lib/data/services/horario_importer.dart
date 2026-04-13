@@ -208,6 +208,14 @@ class HorarioImporter implements IHorarioImporter {
     } else if (RegExp(r'^\d+$').hasMatch(row0)) {
       context = CsvContext.aula;
       await _getOrCreateId('aulas', 'id_aulas', {'nombre': name});
+      
+      // LOGICA EXCLUSIVA: Si es el CSV de 122, 205, o 208, borramos la basura previa para que entre limpio puro.
+      if (name == "122" || name == "205" || name == "208") {
+        try {
+           final aResult = await _supabase.from('aulas').select('id_aulas').eq('nombre', name).maybeSingle();
+           if (aResult != null) await _supabase.from('horario').delete().eq('id_aula', aResult['id_aulas']);
+        } catch (_) {}
+      }
     } else {
       if (row0.length < 2 || row0.contains('---')) return;
       context = CsvContext.grupo;
@@ -216,7 +224,7 @@ class HorarioImporter implements IHorarioImporter {
 
     await _importarMaestrosDesdeResumen(rows, context, row0);
     final records = _parsearCsvFilas(rows, row0, context);
-    if (records.isNotEmpty) await _importarRelacionesASupabase(records);
+    if (records.isNotEmpty) await _importarRelacionesASupabase(records, context);
   }
 
   Future<void> _importarMaestrosDesdeResumen(List<List<dynamic>> rows, CsvContext context, String row0) async {
@@ -321,7 +329,7 @@ class HorarioImporter implements IHorarioImporter {
     return records;
   }
 
-  Future<void> _importarRelacionesASupabase(List<HorarioImportRecord> records) async {
+  Future<void> _importarRelacionesASupabase(List<HorarioImportRecord> records, CsvContext importContext) async {
     for (final record in records) {
       try {
         String hI = record.horarioInicio ?? "08:00";
@@ -337,6 +345,11 @@ class HorarioImporter implements IHorarioImporter {
 
         if (tramoId == 0 || profesorId == 0 || asignaturaId == 0) {
            print("### SALTO RELACIÓN INVALIDA: Tramo=$tramoId ($hI-$hF), Prof=$profesorId (${record.profesorNombre}), Asig=$asignaturaId (${record.asignaturaNombre}) para Aula ${record.aulaNombre}");
+           continue;
+        }
+
+        // LÓGICA EXCLUSIVA: Protegemos al aula 122, 205 y 208 de modificaciones de otros CSVs (p. ej. CSV de profesores)
+        if ((record.aulaNombre == "122" || record.aulaNombre == "205" || record.aulaNombre == "208") && importContext != CsvContext.aula) {
            continue;
         }
 
@@ -407,6 +420,6 @@ class HorarioImporter implements IHorarioImporter {
         records.add(rec);
       }
     }
-    if (records.isNotEmpty) await _importarRelacionesASupabase(records);
+    if (records.isNotEmpty) await _importarRelacionesASupabase(records, CsvContext.unknown);
   }
 }

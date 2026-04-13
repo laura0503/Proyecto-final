@@ -19,6 +19,7 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
   List<Asignatura> _filteredAsignaturas = [];
   List<String> _availableSubjects = ["Todas"];
   String _selectedSubjectFilter = "Todas";
+  String? _errorMessage;
   bool _isLoading = true;
 
   @override
@@ -72,6 +73,10 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
   }
 
   Future<void> _loadAsignaturas() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     final getAsignaturasUseCase = context.read<GetAsignaturasUseCase>();
     try {
       final list = await getAsignaturasUseCase.call();
@@ -90,7 +95,10 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "Error de conexión: $e";
+        });
       }
     }
   }
@@ -204,23 +212,57 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
               child: CircularProgressIndicator(),
             ),
           )
+        else if (_errorMessage != null)
+          Center(
+            child: Column(
+              children: [
+                const Icon(Icons.cloud_off_rounded, size: 64, color: Colors.redAccent),
+                const SizedBox(height: 16),
+                Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+                const SizedBox(height: 16),
+                ElevatedButton(onPressed: _loadAsignaturas, child: const Text("Reintentar")),
+              ],
+            ),
+          )
         else if (_filteredAsignaturas.isEmpty)
           Center(
             child: Padding(
               padding: const EdgeInsets.all(40),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.auto_stories_rounded,
-                    size: 64,
-                    color: widget.isDark ? Colors.white10 : Colors.black12,
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.auto_stories_rounded,
+                      size: 64,
+                      color: widget.isDark ? Colors.white24 : Colors.black26,
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   Text(
-                    "No se han encontrado asignaturas",
+                    _searchController.text.isEmpty 
+                      ? "Aún no hay asignaturas" 
+                      : "No hay resultados para tu búsqueda",
                     style: TextStyle(
-                      color: widget.isDark ? Colors.white38 : Colors.grey,
-                      fontSize: 16,
+                      color: textColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _searchController.text.isEmpty
+                      ? "El listado de asignaturas está vacío. Asegúrate de haber importado los datos correctamente desde la gestión de horarios."
+                      : "Prueba a buscar con otros términos o limpia los filtros.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: textColor.withOpacity(0.6),
+                      fontSize: 15,
                     ),
                   ),
                 ],

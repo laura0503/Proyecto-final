@@ -3,7 +3,9 @@ import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/domain/usecases/login_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/register_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_sesion_actual_usecase.dart';
-import 'package:gestion_ausencias/domain/usecases/cerrar_sesion_usecase.dart';class AuthProvider extends ChangeNotifier {
+import 'package:gestion_ausencias/domain/usecases/cerrar_sesion_usecase.dart';
+
+class AuthProvider extends ChangeNotifier {
   final LoginProfesorUseCase _loginUseCase;
   final RegisterProfesorUseCase _registerUseCase;
   final GetSesionActualUseCase _getSesionActualUseCase;
