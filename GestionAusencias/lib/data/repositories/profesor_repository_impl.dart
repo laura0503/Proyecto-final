@@ -46,11 +46,11 @@ class ProfesorRepositoryImpl implements ProfesorRepository {
   }
 
   @override
-  Future<bool> verificarLogin(String nombre, String contrasena) async {
+  Future<bool> verificarLogin(String nombre) async {
     final profesores = await obtenerProfesores();
     try {
       final profesor = profesores.firstWhere(
-        (p) => p.nombre == nombre && p.contrasena == contrasena,
+        (p) => p.nombre == nombre,
       );
       await guardarSesionActual(profesor);
       return true;

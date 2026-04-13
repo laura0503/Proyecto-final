@@ -6,7 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import '../../domain/entities/profesor.dart';
 import '../../domain/usecases/get_profesores_usecase.dart';
 import '../../domain/usecases/eliminar_profesor_usecase.dart';
-import '../../data/services/horario_importer.dart';
+import '../../domain/usecases/importar_horario_usecase.dart';
 
 class AdminProfesoradoSection extends StatefulWidget {
   final bool isDark;
@@ -92,9 +92,8 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
         
         if (csvContent.isEmpty) return;
 
-        final importer = context.read<HorarioImporter>();
-        await importer.subirASupabase(csvContent);
-        await importer.sincronizarTodo(); 
+        final importarUseCase = context.read<ImportarHorarioUseCase>();
+        await importarUseCase.execute(csvContent);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

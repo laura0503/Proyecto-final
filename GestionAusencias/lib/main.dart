@@ -24,6 +24,7 @@ import 'package:gestion_ausencias/domain/repositories/aula_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/horario_aula_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/grupo_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/asignatura_repository.dart';
+import 'package:gestion_ausencias/domain/repositories/horario_importer_repository.dart';
 
 // ─── Casos de uso ───
 import 'package:gestion_ausencias/domain/usecases/login_profesor_usecase.dart';
@@ -42,6 +43,7 @@ import 'package:gestion_ausencias/domain/usecases/importar_profesores_usecase.da
 import 'package:gestion_ausencias/domain/usecases/exportar_profesores_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/importar_horario_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/eliminar_profesor_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_horario_aula_detallado_usecase.dart';
 import 'package:gestion_ausencias/data/services/horario_importer.dart';
 // ─── Proveedores y pantallas (UI) ───
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
@@ -84,10 +86,6 @@ void main() async {
 
   final horarioImporter = HorarioImporter();
 
-  // Lanzar la importación masiva en segundo plano para no bloquear el inicio
-  // ELIMINADO: Ya no importa automáticamente al inicio para respetar los borrados manuales
-  // _iniciarImportacionMasiva(horarioImporter);
-
   // 4. Ejecutar la app con inyección de dependencias
   runApp(
     MultiProvider(
@@ -99,7 +97,7 @@ void main() async {
         Provider<HorarioAulaRepository>.value(value: horarioAulaRepository),
         Provider<GrupoRepository>.value(value: grupoRepository),
         Provider<AsignaturaRepository>.value(value: asignaturaRepository),
-        Provider<HorarioImporter>.value(value: horarioImporter),
+        Provider<IHorarioImporter>.value(value: horarioImporter),
 
         // ── Casos de uso ──
         Provider<LoginProfesorUseCase>(
@@ -149,6 +147,9 @@ void main() async {
         ),
         Provider<EliminarProfesorUseCase>(
           create: (_) => EliminarProfesorUseCase(profesorRepository),
+        ),
+        Provider<GetHorarioAulaDetalladoUseCase>(
+          create: (context) => GetHorarioAulaDetalladoUseCase(context.read<HorarioAulaRepository>()),
         ),
 
         // ── Proveedores de estado ──

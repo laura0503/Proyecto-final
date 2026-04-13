@@ -34,19 +34,18 @@ import 'package:gestion_ausencias/domain/usecases/cerrar_sesion_usecase.dart';cl
       asignatura: 'Informática',
       curso: '1',
       foto: '',
-      contrasena: '',
       departamento: 'Tecnología',
       estadoAusente: false,
     );
     notifyListeners();
   }
 
-  Future<bool> login(String nombre, String contrasena) async {
+  Future<bool> login(String nombre) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final success = await _loginUseCase.execute(nombre, contrasena);
+      final success = await _loginUseCase.execute(nombre);
       if (success) {
         _profesorActual = await _getSesionActualUseCase.execute();
       }

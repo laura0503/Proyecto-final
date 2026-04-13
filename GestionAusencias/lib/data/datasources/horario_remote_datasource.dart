@@ -16,7 +16,7 @@ class HorarioRemoteDataSource {
           Asignaturas!id_asignatura(id_asignaturas, nombre),
           grupo!id_grupo(id_grupo, nombre),
           aulas!id_aula(id_aulas, nombre),
-          horario_tramo!id_horario_tramo(id_horario, texto, horario_inicio, horario_fin, es_guardia, recreo)
+          horario_tramo(id_horario, texto, horario_inicio, horario_fin, es_guardia, recreo)
         ''');
     return List<Map<String, dynamic>>.from(response);
   }

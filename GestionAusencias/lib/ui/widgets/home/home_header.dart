@@ -109,7 +109,6 @@ class HomeHeader extends StatelessWidget {
                     asignatura: '',
                     curso: '',
                     departamento: 'General',
-                    contrasena: '',
                     foto: 'https://i.pravatar.cc/150?u=invitado',
                     estadoAusente: false,
                   ),

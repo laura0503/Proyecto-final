@@ -1,22 +1,31 @@
 import os
-from supabase import create_client
+import asyncio
+from supabase import create_client, Client
 from dotenv import load_dotenv
 
 load_dotenv()
 
-url = os.environ.get('SUPABASE_URL')
-key = os.environ.get('SUPABASE_ANON_KEY')
-supabase = create_client(url, key)
+url = os.environ.get('URL')
+key = os.environ.get('KEY')
+supabase: Client = create_client(url, key)
 
-try:
-    res = supabase.from('profesores').select('*').limit(1).execute()
-    if res.data:
-        print("Columns in 'profesores':", list(res.data[0].keys()))
-    else:
-        print("Table 'profesores' is empty, checking definition...")
-        # Since we can't easily check schema without query, let's try to insert dummy and rollback or just check another table
-        res_h = supabase.from('horario').select('*').limit(1).execute()
-        if res_h.data:
-            print("Columns in 'horario':", list(res_h.data[0].keys()))
-except Exception as e:
-    print("Error:", e)
+tables = ['horario', 'profesores', 'aulas', 'Asignaturas', 'grupo', 'horario_tramo', 'horario_aula']
+
+def check_tables():
+    for table in tables:
+        try:
+            print(f"Checking table: {table}")
+            res = supabase.from_(table).select('*', count='exact').limit(1).execute()
+            count = res.count
+            print(f"  - Count: {count}")
+            if count > 0:
+                print(f"  - First row columns: {list(res.data[0].keys())}")
+        except Exception as e:
+            if "does not exist" in str(e):
+                print(f"  - Table '{table}' does not exist.")
+            else:
+                print(f"  - Error checking '{table}': {e}")
+        print("-" * 20)
+
+if __name__ == "__main__":
+    check_tables()

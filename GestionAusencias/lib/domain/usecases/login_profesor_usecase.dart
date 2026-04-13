@@ -5,7 +5,7 @@ class LoginProfesorUseCase {
 
   LoginProfesorUseCase(this.repository);
 
-  Future<bool> execute(String nombre, String contrasena) {
-    return repository.verificarLogin(nombre, contrasena);
+  Future<bool> execute(String nombre) {
+    return repository.verificarLogin(nombre);
   }
 }

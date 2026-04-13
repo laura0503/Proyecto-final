@@ -14,7 +14,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _userController = TextEditingController();
-  final _passController = TextEditingController();
   final _cursoController = TextEditingController();
   final _asigController = TextEditingController();
   final _depController = TextEditingController();
@@ -45,36 +44,29 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (_userController.text.isEmpty || _passController.text.isEmpty) {
-      _mensaje("Por favor, completa todos los campos", esError: true);
+    if (_userController.text.isEmpty) {
+      _mensaje("Por favor, introduce tu nombre", esError: true);
       return;
     }
 
     final authProvider = context.read<AuthProvider>();
     final success = await authProvider.login(
       _userController.text,
-      _passController.text,
     );
 
     if (success) {
       widget.onLoginSuccess();
     } else {
-      _mensaje("Nombre o PIN incorrectos", esError: true);
+      _mensaje("Nombre incorrecto o no encontrado", esError: true);
     }
   }
 
   Future<void> _registrar() async {
     if (_userController.text.isEmpty ||
-        _passController.text.isEmpty ||
         _cursoController.text.isEmpty ||
         _asigController.text.isEmpty ||
         _depController.text.isEmpty) {
       _mensaje("Por favor, rellena todos los campos", esError: true);
-      return;
-    }
-
-    if (_passController.text.length < 4) {
-      _mensaje("El PIN debe tener al menos 4 dígitos", esError: true);
       return;
     }
 
@@ -84,7 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
       asignatura: _asigController.text.trim(),
       curso: _cursoController.text.trim(),
       foto: "https://i.pravatar.cc/150?u=${_userController.text}",
-      contrasena: _passController.text,
       departamento: _depController.text.trim(),
       estadoAusente: false,
     );
@@ -94,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
       _mensaje("¡Registro con éxito! Ahora inicia sesión.");
       setState(() {
         esModoRegistro = false;
-        _passController.clear();
       });
     } catch (e) {
       _mensaje("Error al registrar: $e", esError: true);
@@ -104,7 +94,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _userController.dispose();
-    _passController.dispose();
     _cursoController.dispose();
     _asigController.dispose();
     _depController.dispose();
@@ -222,24 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
                 ],
 
-                TextField(
-                  controller: _passController,
-                  obscureText: true,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
-                  decoration: InputDecoration(
-                    labelText: "PIN Numérico (4-6 dígitos)",
-                    prefixIcon: const Icon(
-                      Icons.lock_outline,
-                      color: Color(0xFF6C63FF),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    counterText: "",
-                  ),
-                ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
                 if (authProvider.isLoading)
                   const CircularProgressIndicator()

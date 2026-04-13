@@ -20,8 +20,6 @@ class _FormularioProfesorScreenState extends State<FormularioProfesorScreen> {
   late TextEditingController _asig;
   late TextEditingController _cur;
   late TextEditingController _dep;
-  late TextEditingController _contrasena;
-  bool _ocultarContrasena = true;
 
   final List<String> _departamentos = [
     'General',
@@ -45,9 +43,6 @@ class _FormularioProfesorScreenState extends State<FormularioProfesorScreen> {
     _cur = TextEditingController(text: widget.profesor?.curso ?? "");
     _dep = TextEditingController(
       text: widget.profesor?.departamento ?? "General",
-    );
-    _contrasena = TextEditingController(
-      text: widget.profesor?.contrasena ?? "",
     );
   }
 
@@ -98,29 +93,6 @@ class _FormularioProfesorScreenState extends State<FormularioProfesorScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionTitle("Información de Acceso"),
-                    const SizedBox(height: 16),
-                    _buildCard([
-                      _buildTextField(
-                        controller: _contrasena,
-                        label: "PIN de Acceso",
-                        icon: Icons.lock_outline,
-                        isPassword: _ocultarContrasena,
-                        keyboardType: TextInputType.number,
-                        suffix: IconButton(
-                          icon: Icon(
-                            _ocultarContrasena
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            size: 20,
-                          ),
-                          onPressed: () => setState(
-                            () => _ocultarContrasena = !_ocultarContrasena,
-                          ),
-                        ),
-                      ),
-                    ]),
-                    const SizedBox(height: 32),
                     _buildSectionTitle("Datos Personales"),
                     const SizedBox(height: 16),
                     _buildCard([
@@ -271,7 +243,6 @@ class _FormularioProfesorScreenState extends State<FormularioProfesorScreen> {
         asignatura: _asig.text,
         curso: _cur.text,
         departamento: _dep.text,
-        contrasena: _contrasena.text,
         foto:
             widget.profesor?.foto ?? "https://i.pravatar.cc/150?u=${_nom.text}",
         estadoAusente: widget.profesor?.estadoAusente ?? false,
