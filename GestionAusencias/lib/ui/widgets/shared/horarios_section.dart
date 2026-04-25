@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../domain/entities/horario.dart';
-import '../../domain/usecases/get_horarios_usecase.dart';
+import '../../../domain/entities/horario.dart';
+import '../../../domain/usecases/get_horarios_usecase.dart';
 
 class HorariosSection extends StatefulWidget {
   final bool isDark;

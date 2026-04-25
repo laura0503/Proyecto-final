@@ -37,7 +37,7 @@ class HorarioRemoteDataSource {
   Future<List<Map<String, dynamic>>> obtenerOcupacionActual(int dia, String hora) async {
     final response = await _supabase
         .from('horario')
-        .select('id_profesor, horario_tramo!inner(horario_inicio, horario_fin, es_guardia)')
+        .select('id_profesor, aulas(nombre), horario_tramo!inner(horario_inicio, horario_fin, es_guardia)')
         .eq('dia_semana', dia);
     
     final List all = response as List;

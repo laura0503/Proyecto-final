@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../domain/entities/aula.dart';
-import '../../domain/usecases/get_aulas_usecase.dart';
+import '../../../domain/entities/aula.dart';
+import '../../../domain/usecases/get_aulas_usecase.dart';
 import 'aula_card.dart';
+import '../shared/responsive_grid.dart';
 
 class AulasSection extends StatefulWidget {
   final bool isDark;
@@ -147,20 +148,11 @@ class _AulasSectionState extends State<AulasSection> {
             ),
           )
         else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5, // Igual que asignaturas
-              crossAxisSpacing: 20,
-              mainAxisSpacing: 20,
-              childAspectRatio: 1.1,
-            ),
-            itemCount: _aulas.length,
-            itemBuilder: (context, index) {
-              final aula = _aulas[index];
-              return AulaCard(aula: aula, isDark: widget.isDark);
-            },
+          ResponsiveGrid(
+            itemMaxWidth: 200,
+            itemAspectRatio: 0.85,
+            spacing: 20,
+            children: _aulas.map((aula) => AulaCard(aula: aula, isDark: widget.isDark)).toList(),
           ),
       ],
     );

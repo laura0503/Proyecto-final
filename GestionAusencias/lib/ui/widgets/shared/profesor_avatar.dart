@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../domain/entities/profesor.dart';
+import '../../../domain/entities/profesor.dart';
 
 class ProfesorAvatar extends StatelessWidget {
   final Profesor profesor;

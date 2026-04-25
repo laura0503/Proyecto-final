@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../domain/entities/grupo.dart';
-import '../../domain/usecases/get_grupos_usecase.dart';
-import '../screens/aula_horario_screen.dart';
+import '../../../domain/entities/grupo.dart';
+import '../../../domain/usecases/get_grupos_usecase.dart';
+import '../../screens/aula_horario_screen.dart';
+import '../shared/responsive_grid.dart';
+import '../shared/responsive_container.dart';
 
 class GrupoSection extends StatelessWidget {
   final bool isDark;
@@ -11,8 +13,6 @@ class GrupoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Definir estilos base
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -34,7 +34,7 @@ class GrupoSection extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   child: Text(
                     "Error al cargar grupos: ${snapshot.error}",
-                    style: TextStyle(color: Colors.redAccent),
+                    style: const TextStyle(color: Colors.redAccent),
                   ),
                 ),
               );
@@ -65,29 +65,18 @@ class GrupoSection extends StatelessWidget {
               final nombre = g.nombre.trim().toUpperCase();
               if (nombre.isEmpty) return false;
               if (nombre.contains('RECREO') || nombre.contains('GUARDIA') || nombre.contains('VARIOS') || nombre.contains('LECTIVAS')) return false;
-              if (RegExp(r'^\d+$').hasMatch(nombre)) return false; // Es un número puro (un aula que se coló)
-              if (nombre.replaceAll(RegExp(r'[\-\_\.]'), '').trim().isEmpty) return false; // Son guiones (ej. '---')
-              // Eliminar basura tipo reloj o textos con punto y coma
+              if (RegExp(r'^\d+$').hasMatch(nombre)) return false;
+              if (nombre.replaceAll(RegExp(r'[\-\_\.]'), '').trim().isEmpty) return false;
               if (nombre.contains(';')) return false;
               if (RegExp(r'^\d{1,2}:\d{2}').hasMatch(nombre)) return false;
               return true;
             }).toList();
 
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 5,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio:
-                    1.5, // Más ancho que alto para nombres de grupos
-              ),
-              itemCount: grupos.length,
-              itemBuilder: (context, index) {
-                final grupo = grupos[index];
-                return _buildGrupoCard(context, grupo);
-              },
+            return ResponsiveGrid(
+              itemMaxWidth: 200,
+              itemAspectRatio: 1.5,
+              spacing: 16,
+              children: grupos.map((grupo) => _buildGrupoCard(context, grupo)).toList(),
             );
           },
         ),
@@ -144,7 +133,9 @@ class GrupoSection extends StatelessWidget {
             );
           },
           borderRadius: BorderRadius.circular(24),
-          child: Padding(
+          child: ResponsiveContainer(
+            referenceWidth: 200,
+            referenceHeight: 130,
             padding: const EdgeInsets.all(16.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

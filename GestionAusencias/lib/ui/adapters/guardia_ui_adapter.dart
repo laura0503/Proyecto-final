@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../domain/entities/guardia.dart';
+import '../../domain/entities/guardia.dart';
 
 /// Modelo de UI (ViewModel) que contiene datos pre-formateados listos para ser pintados
 /// por los widgets, abstrayendo la lógica de presentación.

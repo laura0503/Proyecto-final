@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../domain/entities/horario_clase.dart';
+import '../../../domain/entities/horario_clase.dart';
 
 class CalendarioAulaWidget extends StatelessWidget {
   final List<HorarioClase> horario;
