@@ -28,8 +28,7 @@ class PlanningProfesorRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
@@ -41,33 +40,37 @@ class PlanningProfesorRow extends StatelessWidget {
           ),
         ],
       ),
-      child: IntrinsicHeight(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 100,
+            // Columna del Profesor (Ancho fijo 80px)
+            Container(
+              width: 80,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 5),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircleAvatar(
-                    radius: 25,
+                    radius: 20,
                     backgroundColor: primaryColor.withOpacity(0.1),
                     child: Text(
                       profesor.nombre.isNotEmpty ? profesor.nombre[0] : '?',
                       style: TextStyle(
                         color: primaryColor,
                         fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 6),
                   Text(
                     profesor.nombre,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 10,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -75,22 +78,20 @@ class PlanningProfesorRow extends StatelessWidget {
                 ],
               ),
             ),
+            // Celdas de los Días (Ancho fijo 50px cada una)
             ...diasSemana.map(
-              (fecha) => Expanded(
-                child: GestureDetector(
-                  onTap: () => onAbrirAgenda(fecha, profesor.nombre),
-                  child: Container(
-                    margin: const EdgeInsets.all(3),
-                    constraints: const BoxConstraints(minHeight: 70),
-                    decoration: BoxDecoration(
-                      color: backgroundColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: _buildEventosDetallados(profesor.nombre, fecha),
-                    ),
+              (fecha) => GestureDetector(
+                onTap: () => onAbrirAgenda(fecha, profesor.nombre),
+                child: Container(
+                  width: 50,
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+                  padding: const EdgeInsets.all(4),
+                  constraints: const BoxConstraints(minHeight: 80),
+                  decoration: BoxDecoration(
+                    color: backgroundColor.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: _buildEventosDetallados(profesor.nombre, fecha),
                 ),
               ),
             ),

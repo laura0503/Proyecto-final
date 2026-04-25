@@ -45,10 +45,15 @@ class PlanningHeader extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 10,
+        runSpacing: 10,
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 mesAno.toUpperCase(),
@@ -64,17 +69,21 @@ class PlanningHeader extends StatelessWidget {
               ),
             ],
           ),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            color: const Color(0xFF6C63FF),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                color: const Color(0xFF6C63FF),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                ),
+              ),
+              const SizedBox(width: 4),
+              _selectorSemana(nSemana),
+            ],
           ),
-          const SizedBox(width: 8),
-          _selectorSemana(nSemana),
         ],
       ),
     );
@@ -108,9 +117,11 @@ class PlanningHeader extends StatelessWidget {
 
   Widget _buildLeyendaEstilizada() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 15),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 8,
         children: [
           _badgeLeyenda(Colors.redAccent, "Falta"),
           _badgeLeyenda(Colors.orangeAccent, "Retraso"),
@@ -147,28 +158,31 @@ class PlanningHeader extends StatelessWidget {
 
   Widget _buildCabeceraDias() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 15),
-      height: 80,
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      height: 70,
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        children: [
-          const SizedBox(
-            width: 100,
-            child: Icon(Icons.school_outlined, color: Colors.grey),
-          ),
-          ...diasSemana.map((d) {
-            bool esHoy =
-                d.day == DateTime.now().day && d.month == DateTime.now().month;
-            return Expanded(
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              alignment: Alignment.center,
+              child: const Icon(Icons.school_outlined, color: Colors.grey),
+            ),
+            ...diasSemana.map((d) {
+              bool esHoy = d.day == DateTime.now().day && d.month == DateTime.now().month;
+              return Container(
+                width: 50,
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
                 decoration: esHoy
                     ? BoxDecoration(
                         color: primaryColor,
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
                             color: primaryColor.withOpacity(0.3),
@@ -183,24 +197,24 @@ class PlanningHeader extends StatelessWidget {
                     Text(
                       DateFormat('E', 'es').format(d).toUpperCase(),
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9,
                         color: esHoy ? Colors.white70 : Colors.grey,
                       ),
                     ),
                     Text(
                       d.day.toString(),
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: esHoy ? Colors.white : Colors.black87,
                       ),
                     ),
                   ],
                 ),
-              ),
-            );
-          }),
-        ],
+              );
+            }),
+          ],
+        ),
       ),
     );
   }

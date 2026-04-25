@@ -78,84 +78,164 @@ class _MainLayoutState extends State<MainLayout> {
       const ProfesoresScreen(),
     ];
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          // 1. Global Wallpaper
-          Container(
-            decoration: BoxDecoration(
-              color: bgProvider == null
-                  ? Theme.of(context).scaffoldBackgroundColor
-                  : null,
-              image: bgProvider != null
-                  ? DecorationImage(image: bgProvider, fit: BoxFit.cover)
-                  : null,
-            ),
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isMobile = constraints.maxWidth < 850;
 
-          // 2. Glass Sidebar & Content
-          Row(
+        return Scaffold(
+          key: const ValueKey('main_scaffold'),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          // Drawer solo para móviles
+          drawer: isMobile ? _buildDrawer(context) : null,
+          bottomNavigationBar: isMobile ? _buildBottomNav() : null,
+          body: Stack(
             children: [
-              // SIDEBAR INTEGRADO (Glassmorphism)
-              ClipRRect(
-                child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                  child: Container(
-                    width: 90,
-                    color: glassColor,
+              // 1. Global Wallpaper
+              Container(
+                decoration: BoxDecoration(
+                  color: bgProvider == null
+                      ? Theme.of(context).scaffoldBackgroundColor
+                      : null,
+                  image: bgProvider != null
+                      ? DecorationImage(image: bgProvider, fit: BoxFit.cover)
+                      : null,
+                ),
+              ),
+
+              // 2. Content
+              Row(
+                children: [
+                  // SIDEBAR solo para escritorio
+                  if (!isMobile)
+                    ClipRRect(
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+                        child: Container(
+                          width: 100,
+                          color: glassColor,
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 20),
+                              _sidebarItem(Icons.dashboard_rounded, AppStrings.get(context, 'inicio'), 0),
+                              _sidebarItem(Icons.calendar_month_rounded, AppStrings.get(context, 'planning'), 1),
+                              _sidebarItem(Icons.shield_rounded, AppStrings.get(context, 'guardias'), 2),
+                              _sidebarItem(Icons.people_alt_rounded, AppStrings.get(context, 'profesores'), 3),
+                              _sidebarItem(Icons.admin_panel_settings_rounded, AppStrings.get(context, 'admin'), 4),
+                              _sidebarItem(Icons.settings_rounded, AppStrings.get(context, 'ajustes'), 5),
+                              const Spacer(),
+                              _sidebarItem(Icons.logout_rounded, "Salir", -1, isLogout: true),
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  Expanded(
                     child: Column(
                       children: [
-                        _sidebarItem(
-                          Icons.dashboard_rounded,
-                          AppStrings.get(context, 'inicio'),
-                          0,
+                        if (isMobile)
+                          // Header minimalista para móvil con acceso al drawer
+                          AppBar(
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                            leading: Builder(
+                              builder: (context) => IconButton(
+                                icon: const Icon(Icons.menu_rounded, color: Color(0xFF354231)),
+                                onPressed: () => Scaffold.of(context).openDrawer(),
+                              ),
+                            ),
+                          ),
+                        Expanded(
+                          child: PageView(
+                            controller: _pageController,
+                            physics: const NeverScrollableScrollPhysics(),
+                            onPageChanged: (index) => setState(() => _selectedIndex = index),
+                            children: _screens,
+                          ),
                         ),
-                        _sidebarItem(
-                          Icons.calendar_month_rounded,
-                          AppStrings.get(context, 'planning'),
-                          1,
-                        ),
-                        _sidebarItem(
-                          Icons.shield_rounded,
-                          AppStrings.get(context, 'guardias'),
-                          2,
-                        ),
-                        _sidebarItem(
-                          Icons.people_alt_rounded,
-                          AppStrings.get(context, 'profesores'),
-                          3,
-                        ),
-                        _sidebarItem(
-                          Icons.admin_panel_settings_rounded,
-                          AppStrings.get(context, 'admin'),
-                          4,
-                        ),
-                        _sidebarItem(
-                          Icons.settings_rounded,
-                          AppStrings.get(context, 'ajustes'),
-                          5,
-                        ),
-                        const SizedBox(height: 30),
                       ],
                     ),
                   ),
-                ),
-              ),
-
-              Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: (index) =>
-                      setState(() => _selectedIndex = index),
-                  children: _screens,
-                ),
+                ],
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: backgroundColor,
+      child: Column(
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(color: sidebarColor),
+            child: const Center(
+              child: Text(
+                'GuardiaApp',
+                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.dashboard_rounded),
+            title: Text(AppStrings.get(context, 'inicio')),
+            onTap: () { Navigator.pop(context); _irAPagina(0); },
+          ),
+          ListTile(
+            leading: const Icon(Icons.calendar_month_rounded),
+            title: Text(AppStrings.get(context, 'planning')),
+            onTap: () { Navigator.pop(context); _irAPagina(1); },
+          ),
+          ListTile(
+            leading: const Icon(Icons.shield_rounded),
+            title: Text(AppStrings.get(context, 'guardias')),
+            onTap: () { Navigator.pop(context); _irAPagina(2); },
+          ),
+          ListTile(
+            leading: const Icon(Icons.people_alt_rounded),
+            title: Text(AppStrings.get(context, 'profesores')),
+            onTap: () { Navigator.pop(context); _irAPagina(3); },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.admin_panel_settings_rounded),
+            title: Text(AppStrings.get(context, 'admin')),
+            onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminScreen())); },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings_rounded),
+            title: Text(AppStrings.get(context, 'ajustes')),
+            onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())); },
+          ),
+          const Spacer(),
+          ListTile(
+            leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+            title: const Text('Cerrar Sesión', style: TextStyle(color: Colors.redAccent)),
+            onTap: widget.onLogout,
+          ),
+          const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return BottomNavigationBar(
+      currentIndex: _selectedIndex < 4 ? _selectedIndex : 0,
+      onTap: _irAPagina,
+      selectedItemColor: activeTabColor,
+      unselectedItemColor: Colors.grey,
+      type: BottomNavigationBarType.fixed,
+      items: [
+        BottomNavigationBarItem(icon: const Icon(Icons.home_rounded), label: AppStrings.get(context, 'inicio')),
+        BottomNavigationBarItem(icon: const Icon(Icons.calendar_today_rounded), label: AppStrings.get(context, 'planning')),
+        BottomNavigationBarItem(icon: const Icon(Icons.shield_rounded), label: AppStrings.get(context, 'guardias')),
+        BottomNavigationBarItem(icon: const Icon(Icons.people_rounded), label: AppStrings.get(context, 'profesores')),
+      ],
     );
   }
 
@@ -341,77 +421,91 @@ class HomeContent extends StatelessWidget {
           ),
         ];
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              HomeHeader(
-                nombre: nombre,
-                usuario: usuario,
-                onShowNotifications: _mostrarNotificaciones,
-              ),
-              const SizedBox(height: 30),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final bool isNarrow = constraints.maxWidth < 700;
 
-              // Fila de 3 tarjetas de información principales
-              Row(
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(isNarrow ? 20 : 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  HomeInfoCard(
-                    title: AppStrings.get(context, 'planning'),
-                    subtitle: AppStrings.get(context, 'ausencias_hoy'),
-                    icon: Icons.calendar_month_outlined,
-                    color: const Color(0xFF6C63FF),
-                    onTap: () => onNavigate(1),
-                    gradient: [
-                      const Color(0xFF6C63FF),
-                      const Color(0xFF9FA8DA).withOpacity(0.8),
+                  HomeHeader(
+                    nombre: nombre,
+                    usuario: usuario,
+                    onShowNotifications: _mostrarNotificaciones,
+                  ),
+                  const SizedBox(height: 30),
+
+                  // Fila de 3 tarjetas con Wrap para ser responsive
+                  Wrap(
+                    spacing: 20,
+                    runSpacing: 20,
+                    children: [
+                      SizedBox(
+                        width: isNarrow ? (constraints.maxWidth - 40) : (constraints.maxWidth - 120) / 3,
+                        child: HomeInfoCard(
+                          title: AppStrings.get(context, 'planning'),
+                          subtitle: AppStrings.get(context, 'ausencias_hoy'),
+                          icon: Icons.calendar_month_outlined,
+                          color: const Color(0xFF6C63FF),
+                          onTap: () => onNavigate(1),
+                          gradient: [
+                            const Color(0xFF6C63FF),
+                            const Color(0xFF9FA8DA).withOpacity(0.8),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        width: isNarrow ? (constraints.maxWidth - 40) : (constraints.maxWidth - 120) / 3,
+                        child: HomeInfoCard(
+                          title: AppStrings.get(context, 'guardias'),
+                          subtitle: AppStrings.get(context, 'pendientes'),
+                          icon: Icons.shield_outlined,
+                          color: const Color(0xFFFFA726),
+                          onTap: () => onNavigate(2),
+                          gradient: const [
+                            Color(0xFFFFA726),
+                            Color(0xFFFFCC80),
+                          ],
+                        ),
+                      ),
+                      SizedBox(
+                        width: isNarrow ? (constraints.maxWidth - 40) : (constraints.maxWidth - 120) / 3,
+                        child: HomeInfoCard(
+                          title: AppStrings.get(context, 'departamentos'),
+                          subtitle: "${todosDepartamentos.length - 1} ${AppStrings.get(context, 'areas')}",
+                          icon: Icons.grid_view_rounded,
+                          color: const Color(0xFF66BB6A),
+                          onTap: () {},
+                          gradient: const [
+                            Color(0xFF66BB6A),
+                            Color(0xFFA5D6A7),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(width: 20),
-                  HomeInfoCard(
-                    title: AppStrings.get(context, 'guardias'),
-                    subtitle: AppStrings.get(context, 'pendientes'),
-                    icon: Icons.shield_outlined,
-                    color: const Color(0xFFFFA726),
-                    onTap: () => onNavigate(2),
-                    gradient: const [
-                      Color(0xFFFFA726),
-                      Color(0xFFFFCC80),
-                    ],
+
+                  const SizedBox(height: 48),
+                  Text(
+                    AppStrings.get(context, 'dptos_personal'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF354231),
+                    ),
                   ),
-                  const SizedBox(width: 20),
-                  HomeInfoCard(
-                    title: AppStrings.get(context, 'departamentos'),
-                    subtitle: "${todosDepartamentos.length - 1} ${AppStrings.get(context, 'areas')}",
-                    icon: Icons.grid_view_rounded,
-                    color: const Color(0xFF66BB6A),
-                    onTap: () {},
-                    gradient: const [
-                      Color(0xFF66BB6A),
-                      Color(0xFFA5D6A7),
-                    ],
+                  const SizedBox(height: 20),
+
+                  HomeDepartmentList(
+                    departamentos: todosDepartamentos,
+                    profesores: todosProfesores,
                   ),
                 ],
               ),
-
-              const SizedBox(height: 48),
-              Text(
-                AppStrings.get(context, 'dptos_personal'),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF354231),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Lista vertical de departamentos con avatares de sus profesores
-              HomeDepartmentList(
-                departamentos: todosDepartamentos,
-                profesores: todosProfesores,
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );

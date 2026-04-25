@@ -64,10 +64,18 @@ void main() async {
   // 1. Cargar variables de entorno
   await dotenv.load(fileName: ".env");
 
+  final supabaseUrl = dotenv.env['URL'] ?? '';
+  final supabaseKey = dotenv.env['KEY'] ?? '';
+
+  if (supabaseUrl == 'YOUR_SUPABASE_URL' || supabaseUrl.isEmpty) {
+    print("❌ ERROR: No has configurado tu URL de Supabase en el archivo .env");
+    // Podríamos mostrar una pantalla de error aquí, pero por ahora lanzamos un aviso claro.
+  }
+
   // 2. Inicializar Supabase
   await Supabase.initialize(
-    url: dotenv.env['URL']!,
-    anonKey: dotenv.env['KEY']!,
+    url: supabaseUrl,
+    anonKey: supabaseKey,
   );
 
   // 3. Inicializar capa de datos

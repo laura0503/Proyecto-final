@@ -23,36 +23,42 @@ class HomeHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              AppStrings.get(context, 'dashboard_title'),
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: Colors.grey[800],
-                letterSpacing: -0.5,
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                AppStrings.get(context, 'dashboard_title'),
+                style: TextStyle(
+                  fontSize: MediaQuery.of(context).size.width < 400 ? 20 : 24,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.grey[800],
+                  letterSpacing: -0.5,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF3D4F3C),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                DateFormat('EEEE, d MMMM', 'es').format(DateTime.now()),
-                style: const TextStyle(
-                  color: Color(0xFFE2E9E1),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3D4F3C),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  DateFormat('EEEE, d MMMM', 'es').format(DateTime.now()),
+                  style: const TextStyle(
+                    color: Color(0xFFE2E9E1),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        const SizedBox(width: 10),
         Row(
           children: [
             IconButton(
