@@ -5,11 +5,13 @@ import '../../domain/entities/horario_clase.dart';
 class CalendarioAulaWidget extends StatelessWidget {
   final List<HorarioClase> horario;
   final String titulo;
+  final void Function(String dia, String tramo, HorarioClase? clase)? onCellTap;
 
   const CalendarioAulaWidget({
     super.key,
     required this.horario,
     required this.titulo,
+    this.onCellTap,
   });
 
   @override
@@ -17,7 +19,7 @@ class CalendarioAulaWidget extends StatelessWidget {
     // Definimos los días de la semana
     final dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
     
-    // Plantilla estándar de los tramos (para que ninguna aula se quede coja de horas)
+    // Plantilla estándar de los tramos
     final tramosMap = <String, String>{
       '16:00:00': '17:00:00',
       '17:00:00': '18:00:00',
@@ -28,27 +30,21 @@ class CalendarioAulaWidget extends StatelessWidget {
       '21:10:00': '21:45:00',
     }; 
     
-    // Obtenemos además cualquier otro tramo puntual que venga en el horario
     for (var h in horario) {
-      // Supabase a veces manda 16:00 en lugar de 16:00:00
       String inicio = h.inicio;
       String fin = h.fin;
       if (inicio.length == 5) inicio = '$inicio:00';
       if (fin.length == 5) fin = '$fin:00';
-      
       tramosMap[inicio] = fin;
     }
     final tramosSorted = tramosMap.keys.toList()..sort();
 
-    // Estructura de datos: tramo -> dia -> clase
     final matrix = <String, Map<String, HorarioClase>>{};
     for (var h in horario) {
       String inicio = h.inicio;
       if (inicio.length == 5) inicio = '$inicio:00';
-      
       matrix.putIfAbsent(inicio, () => {});
       if (matrix[inicio]!.containsKey(h.dia)) {
-        // En caso de desdoble o mezclas donde la misma profe da varios grupos a la vez, concatenar.
         final existente = matrix[inicio]![h.dia]!;
         if (!existente.grupo.contains(h.grupo)) {
             matrix[inicio]![h.dia] = HorarioClase(
@@ -66,7 +62,6 @@ class CalendarioAulaWidget extends StatelessWidget {
       }
     }
 
-    // Calculamos el grupo predominante para corregir posibles textos basuras del CSV
     String commonGroup = "";
     final groupCounts = <String, int>{};
     for (var h in horario) {
@@ -78,7 +73,6 @@ class CalendarioAulaWidget extends StatelessWidget {
       commonGroup = groupCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
     }
 
-    // Calculamos el profesor predominante por asignatura para corregir cruces erróneos
     final subjectTeacherCounts = <String, Map<String, int>>{};
     for (var h in horario) {
       if (!h.profesor.contains(';') && h.profesor.trim().isNotEmpty) {
@@ -94,11 +88,11 @@ class CalendarioAulaWidget extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.7), // Fondo cristal limpio Apple (blanco traslúcido)
-        borderRadius: BorderRadius.circular(32), // Curvas suaves
+        color: Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04), // Sombra levísima
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 40,
             spreadRadius: 2,
           )
@@ -107,14 +101,13 @@ class CalendarioAulaWidget extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25), // Blur muy potente
+          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  // Título sin fondo para que flote sobre el cristal
                   child: Text(
                     'Horario - $titulo',
                     style: const TextStyle(
@@ -178,7 +171,13 @@ class CalendarioAulaWidget extends StatelessWidget {
                                         ? (i == 2 // Miércoles
                                             ? Text('RECREO', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[800], letterSpacing: 4.0))
                                             : const SizedBox.shrink())
-                                        : _buildCell(matrix[tramo]?[dias[i]], isRecreo, commonGroup, correctTeachers)
+                                        : InkWell(
+                                            onTap: onCellTap != null 
+                                              ? () => onCellTap!(dias[i], tramo, matrix[tramo]?[dias[i]]) 
+                                              : null,
+                                            borderRadius: BorderRadius.circular(16),
+                                            child: _buildCell(matrix[tramo]?[dias[i]], isRecreo, commonGroup, correctTeachers),
+                                          )
                                     )
                                   ),
                               ]
@@ -199,12 +198,7 @@ class CalendarioAulaWidget extends StatelessWidget {
 
   String _formatProfesorName(String raw) {
     if (raw.isEmpty) return raw;
-    
-    // Limpiamos posible basura si viene con CSV mal formado (e.g. "Andrea;;;REDES...")
-    if (raw.contains(';')) {
-      raw = raw.split(';').first.trim();
-    }
-
+    if (raw.contains(';')) raw = raw.split(';').first.trim();
     final parts = raw.split(',');
     if (parts.length >= 2) {
       final apellidos = parts[0].trim().split(' ');
@@ -221,13 +215,11 @@ class CalendarioAulaWidget extends StatelessWidget {
       return Text("Libre", style: TextStyle(color: Colors.black26, fontStyle: FontStyle.italic, fontSize: 12));
     }
     
-    // Limpiamos los textos basura del CSV en el campo grupo
     String displayGroup = clase.grupo;
     if (displayGroup.contains(';') || displayGroup.toLowerCase().contains('recreo') || displayGroup.length > 45) {
       displayGroup = defaultGroup.isNotEmpty ? defaultGroup : "Asignado";
     }
 
-    // Corregimos nombres de profesores que quedaron mezclados en el CSV
     String displayTeacher = clase.profesor;
     if (displayTeacher.contains(';') || displayTeacher.isEmpty) {
       displayTeacher = correctTeachers[clase.asignatura] ?? displayTeacher;
@@ -237,7 +229,7 @@ class CalendarioAulaWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       width: 150,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6), // Cajas de asignaturas en cristal blanco
+        color: Colors.white.withOpacity(0.6),
         borderRadius: BorderRadius.circular(16), 
       ),
       child: Column(
@@ -256,7 +248,7 @@ class CalendarioAulaWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9), // Fondo del grupo sólido/limpio
+              color: Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(

@@ -10,6 +10,7 @@ class ProfesorUIModel {
   final String fotoUrl;
   final String iniciales;
   final bool ausente;
+  final bool estaOcupado; // NUEVA PROPIEDAD
   final String estadoTexto;
   final Color estadoColor;
   final Color cardColor;
@@ -24,6 +25,7 @@ class ProfesorUIModel {
     required this.fotoUrl,
     required this.iniciales,
     required this.ausente,
+    required this.estaOcupado,
     required this.estadoTexto,
     required this.estadoColor,
     required this.cardColor,
@@ -66,6 +68,7 @@ class ProfesorUIAdapter {
       fotoUrl: profesor.foto,
       iniciales: _obtenerIniciales(display),
       ausente: profesor.estadoAusente,
+      estaOcupado: estaOcupado, // PASAMOS EL VALOR
       estadoTexto: statusText,
       estadoColor: statusColor,
       cardColor: _coloresArmonicos[index % _coloresArmonicos.length],

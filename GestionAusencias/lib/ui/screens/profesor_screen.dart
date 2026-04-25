@@ -124,7 +124,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                                   crossAxisCount: 7,
                                   crossAxisSpacing: 12,
                                   mainAxisSpacing: 12,
-                                  childAspectRatio: 0.82,
+                                  childAspectRatio: 0.62,
                                 ),
                                 itemCount: _profesoresFiltrados.length,
                                 itemBuilder: (context, index) {

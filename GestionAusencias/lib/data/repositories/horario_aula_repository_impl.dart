@@ -82,7 +82,6 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
       final List rows = response as List;
       return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
     } catch (e) {
-      print("ERROR en getHorarioDetallado: $e");
       return [];
     }
   }
@@ -105,7 +104,6 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
       final List rows = response as List;
       return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
     } catch (e) {
-      print("ERROR en getHorarioDetalladoByProfesor: $e");
       return [];
     }
   }
@@ -128,7 +126,6 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
       final List rows = response as List;
       return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
     } catch (e) {
-      print("ERROR en getHorarioDetalladoByGrupo: $e");
       return [];
     }
   }
