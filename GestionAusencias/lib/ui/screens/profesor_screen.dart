@@ -13,7 +13,8 @@ import 'package:gestion_ausencias/ui/screens/formulario_profesor.dart';
 import '../providers/config_provider.dart';
 import 'wallpaper_selector_screen.dart';
 import '../widgets/profesores/profesor_card.dart';
-import '../adapters/profesor_ui_adapter.dart';
+import 'package:gestion_ausencias/ui/adapters/profesor_ui_adapter.dart';
+import 'package:gestion_ausencias/domain/repositories/horario_repository.dart';
 
 class ProfesoresScreen extends StatefulWidget {
   const ProfesoresScreen({super.key});
@@ -28,6 +29,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
   String _query = "";
   String _filtroEstado = "Todos"; // Todos, Disponibles, Ausentes
   List<int> _idsOcupados = [];
+  List<int> _idsConClaseHoy = [];
 
   @override
   void initState() {
@@ -46,15 +48,19 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
       final hora = DateFormat('HH:mm:ss').format(ahora);
       final dia = ahora.weekday;
 
+      // Obtenemos ocupación actual y ocupación total del día
       final data = await Future.wait([
         getProfesoresUseCase.execute(),
         getOcupadosUseCase.execute(dia, hora),
+        // Consultamos todos los que tienen clase hoy (sin filtro de hora)
+        context.read<HorarioRepository>().obtenerProfesoresOcupados(dia, "TODO"), 
       ]);
 
       if (mounted) {
         setState(() {
           _listaProfesores = data[0] as List<Profesor>;
           _idsOcupados = data[1] as List<int>;
+          _idsConClaseHoy = data[2] as List<int>;
           _cargando = false;
         });
       }
@@ -68,11 +74,18 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
       final matchQuery = p.nombre.toLowerCase().contains(_query.toLowerCase());
       if (!matchQuery) return false;
 
-      final esOcupado = _idsOcupados.contains(int.tryParse(p.id) ?? -1);
+      final idInt = int.tryParse(p.id) ?? -1;
+      final estaOcupadoAhora = _idsOcupados.contains(idInt);
+      final tieneClaseHoy = _idsConClaseHoy.contains(idInt);
+
       if (_filtroEstado == "Disponibles") {
-        return !p.estadoAusente && !esOcupado;
+        // Solo si NO está ausente y NO tiene ninguna clase en todo el día
+        return !p.estadoAusente && !tieneClaseHoy;
       } else if (_filtroEstado == "Ausentes") {
-        return p.estadoAusente;
+        // Profesores ausentes O profesores que tienen clase hoy pero están en un "hueco" ahora
+        return p.estadoAusente || (tieneClaseHoy && !estaOcupadoAhora);
+      } else if (_filtroEstado == "En Clase") {
+        return !p.estadoAusente && estaOcupadoAhora;
       }
       return true;
     }).toList();
@@ -156,17 +169,10 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                     "Gestión y Disponibilidad",
                     style: TextStyle(
                       fontSize: 14,
-                      color: const Color(0xFF1E293B).withOpacity(0.5),
+                      color: const Color(0xFF1E293B).withValues(alpha: 0.5),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
-              ),
-              Row(
-                children: [
-                  _buildCircleAction(Icons.copy_all, const Color(0xFF6366F1), _copiarDatos),
-                  const SizedBox(width: 10),
-                  _buildCircleAction(Icons.paste, const Color(0xFFF59E0B), _pegarDatos),
                 ],
               ),
             ],
@@ -181,7 +187,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
   Widget _buildCircleAction(IconData icon, Color color, VoidCallback onTap) {
     return Container(
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: IconButton(
@@ -199,7 +205,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -210,7 +216,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           hintText: "Buscar docente por nombre...",
-          hintStyle: TextStyle(color: const Color(0xFF1E293B).withOpacity(0.3)),
+          hintStyle: TextStyle(color: const Color(0xFF1E293B).withValues(alpha: 0.3)),
           prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF6366F1), size: 22),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
@@ -223,7 +229,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       child: Row(
-        children: ["Todos", "Disponibles", "Ausentes"].map((f) {
+        children: ["Todos", "Disponibles", "En Clase", "Ausentes"].map((f) {
           final isSelected = _filtroEstado == f;
           return Expanded(
             child: GestureDetector(
@@ -237,7 +243,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: isSelected ? [
                     BoxShadow(
-                      color: const Color(0xFF6366F1).withOpacity(0.3),
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     )
@@ -247,7 +253,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                   child: Text(
                     f,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF1E293B).withOpacity(0.6),
+                      color: isSelected ? Colors.white : const Color(0xFF1E293B).withValues(alpha: 0.6),
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                       fontSize: 13,
                     ),
@@ -273,12 +279,12 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   blurRadius: 30,
                 )
               ]
             ),
-            child: Icon(Icons.person_search_rounded, size: 60, color: const Color(0xFF6366F1).withOpacity(0.5)),
+            child: Icon(Icons.person_search_rounded, size: 60, color: const Color(0xFF6366F1).withValues(alpha: 0.5)),
           ),
           const SizedBox(height: 25),
           Text(
@@ -293,7 +299,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
           Text(
             "Intente con otro nombre o ajuste los filtros",
             style: TextStyle(
-              color: const Color(0xFF1E293B).withOpacity(0.4),
+              color: const Color(0xFF1E293B).withValues(alpha: 0.4),
               fontSize: 14,
             ),
           ),
