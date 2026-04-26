@@ -11,6 +11,7 @@ class Profesor {
   final String? horarioSalida;  
   final String? ubicacionActual; // Nueva: Aula donde está ahora
   final String? estadoActual;    // Nueva: "En clase", "Disponible", etc.
+  final double karma;            // Nueva: Puntos de karma
 
   const Profesor({
     required this.id,
@@ -25,6 +26,7 @@ class Profesor {
     this.horarioSalida,
     this.ubicacionActual,
     this.estadoActual,
+    this.karma = 0.0,
   });
 
   Profesor copyWith({
@@ -40,6 +42,7 @@ class Profesor {
     String? horarioSalida,
     String? ubicacionActual,
     String? estadoActual,
+    double? karma,
   }) {
     return Profesor(
       id: id ?? this.id,
@@ -54,6 +57,7 @@ class Profesor {
       horarioSalida: horarioSalida ?? this.horarioSalida,
       ubicacionActual: ubicacionActual ?? this.ubicacionActual,
       estadoActual: estadoActual ?? this.estadoActual,
+      karma: karma ?? this.karma,
     );
   }
 }

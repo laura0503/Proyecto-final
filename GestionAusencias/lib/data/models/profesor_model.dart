@@ -14,6 +14,7 @@ class ProfesorModel extends Profesor {
     super.horarioSalida,
     super.ubicacionActual,
     super.estadoActual,
+    super.karma = 0.0,
   });
 
   factory ProfesorModel.fromJson(Map<String, dynamic> json) {
@@ -30,6 +31,7 @@ class ProfesorModel extends Profesor {
       horarioSalida: json['horario_salida']?.toString(),
       ubicacionActual: json['ubicacion_actual']?.toString(),
       estadoActual: json['estado_actual']?.toString(),
+      karma: (json['karma'] ?? 0).toDouble(),
     );
   }
 
@@ -47,6 +49,7 @@ class ProfesorModel extends Profesor {
       horarioSalida: profesor.horarioSalida,
       ubicacionActual: profesor.ubicacionActual,
       estadoActual: profesor.estadoActual,
+      karma: profesor.karma,
     );
   }
 
@@ -64,6 +67,9 @@ class ProfesorModel extends Profesor {
       'horario_salida': horarioSalida,
       'ubicacion_actual': ubicacionActual,
       'estado_actual': estadoActual,
+      'karma': karma,
     };
   }
+
+  Map<String, dynamic> toMap() => toJson();
 }

@@ -49,6 +49,7 @@ import 'package:gestion_ausencias/domain/usecases/get_horario_profesor_detallado
 import 'package:gestion_ausencias/domain/usecases/get_horario_grupo_detallado_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_ocupados_usecase.dart';
 import 'package:gestion_ausencias/data/services/horario_importer.dart';
+import 'package:gestion_ausencias/data/services/supabase_service.dart';
 // ─── Proveedores y pantallas (UI) ───
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
 import 'package:gestion_ausencias/ui/providers/config_provider.dart';
@@ -89,6 +90,7 @@ void main() async {
   final asignaturaRepository = AsignaturaRepositoryImpl(asignaturaDataSource);
 
   final horarioImporter = HorarioImporter();
+  final supabaseService = SupabaseService(supabase);
 
   // --- MOTOR DE INTEGRIDAD AUTOMÁTICO AL INICIAR LA APP ---
   try {
@@ -121,6 +123,7 @@ void main() async {
         Provider<GrupoRepository>.value(value: grupoRepository),
         Provider<AsignaturaRepository>.value(value: asignaturaRepository),
         Provider<IHorarioImporter>.value(value: horarioImporter),
+        Provider<SupabaseService>.value(value: supabaseService),
 
         // ── Casos de uso ──
         Provider<LoginProfesorUseCase>(
