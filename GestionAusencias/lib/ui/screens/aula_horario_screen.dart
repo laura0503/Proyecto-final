@@ -7,7 +7,7 @@ import 'package:gestion_ausencias/domain/entities/horario_clase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_aula_detallado_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_profesor_detallado_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_grupo_detallado_usecase.dart';
-import 'package:gestion_ausencias/ui/widgets/aulas/calendario_aula_widget.dart';
+import 'package:gestion_ausencias/ui/widgets/calendario_aula_widget.dart';
 import 'package:gestion_ausencias/ui/screens/editar_clase_screen.dart';
 
 class AulaHorarioScreen extends StatefulWidget {

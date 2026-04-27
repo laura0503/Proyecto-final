@@ -1,10 +1,8 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../domain/entities/asignatura.dart';
-import '../../../domain/usecases/get_asignaturas_usecase.dart';
-import '../shared/responsive_grid.dart';
-import '../shared/responsive_container.dart';
+import '../../domain/entities/asignatura.dart';
+import '../../domain/usecases/get_asignaturas_usecase.dart';
 
 class AsignaturasSection extends StatefulWidget {
   final bool isDark;
@@ -54,10 +52,14 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
     setState(() {
       _filteredAsignaturas = _allAsignaturas.where((a) {
         final query = _normalize(_searchController.text);
-        final matchesSearch = query.isEmpty || _normalize(a.nombre).contains(query);
-        final matchesChip = _selectedSubjectFilter == "Todas" || _normalize(a.nombre) == _normalize(_selectedSubjectFilter);
+        final matchesSearch =
+            query.isEmpty || _normalize(a.nombre).contains(query);
+        final matchesChip =
+            _selectedSubjectFilter == "Todas" ||
+            _normalize(a.nombre) == _normalize(_selectedSubjectFilter);
         return matchesSearch && matchesChip;
       }).toList();
+
       _filteredAsignaturas.sort((a, b) => _normalize(a.nombre).compareTo(_normalize(b.nombre)));
     });
   }
@@ -159,14 +161,19 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
                   color: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: widget.isDark ? Colors.white10 : const Color(0xFFE5E0D8),
+                    color: widget.isDark
+                        ? Colors.white10
+                        : const Color(0xFFE5E0D8),
                   ),
                 ),
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: "Buscar asignatura...",
-                    prefixIcon: Icon(Icons.search_rounded, color: textColor.withOpacity(0.5)),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: textColor.withOpacity(0.5),
+                    ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     hintStyle: TextStyle(color: textColor.withOpacity(0.3)),
@@ -194,7 +201,11 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Row(
                       children: _availableSubjects.map((subject) {
-                        return _buildFilterChip(subject, _selectedSubjectFilter == subject, widget.isDark);
+                        return _buildFilterChip(
+                          subject,
+                          _selectedSubjectFilter == subject,
+                          widget.isDark,
+                        );
                       }).toList(),
                     ),
                   ),
@@ -206,7 +217,12 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
         const SizedBox(height: 40),
 
         if (_isLoading)
-          const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ),
+          )
         else if (_errorMessage != null)
           Center(
             child: Column(
@@ -220,13 +236,65 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
             ),
           )
         else if (_filteredAsignaturas.isEmpty)
-          const Center(child: Padding(padding: EdgeInsets.all(40), child: Text("No hay asignaturas")))
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(40),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.auto_stories_rounded,
+                      size: 64,
+                      color: widget.isDark ? Colors.white24 : Colors.black26,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    _searchController.text.isEmpty 
+                      ? "Aún no hay asignaturas" 
+                      : "No hay resultados para tu búsqueda",
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _searchController.text.isEmpty
+                      ? "El listado de asignaturas está vacío. Asegúrate de haber importado los datos correctamente desde la gestión de horarios."
+                      : "Prueba a buscar con otros términos o limpia los filtros.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: textColor.withOpacity(0.6),
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
         else
-          ResponsiveGrid(
-            itemMaxWidth: 200,
-            itemAspectRatio: 1.2,
-            spacing: 20,
-            children: _filteredAsignaturas.map((a) => _buildModernAsignaturaCard(context, a, widget.isDark)).toList(),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 5,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
+              childAspectRatio: 1.2, // Reducido de 1.5 a 1.2 para dar más altura y evitar el desbordamiento
+            ),
+            itemCount: _filteredAsignaturas.length,
+            itemBuilder: (context, index) {
+              final a = _filteredAsignaturas[index];
+              return _buildModernAsignaturaCard(context, a, widget.isDark);
+            },
           ),
       ],
     );
@@ -239,19 +307,30 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
         label: Text(label),
         selected: isSelected,
         onSelected: (val) => _selectSubject(label),
-        backgroundColor: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFEBE6DF),
+        backgroundColor: isDark
+            ? Colors.white.withOpacity(0.05)
+            : const Color(0xFFEBE6DF),
         selectedColor: const Color(0xFF007AFF),
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF4A443C)),
+          color: isSelected
+              ? Colors.white
+              : (isDark ? Colors.white70 : const Color(0xFF4A443C)),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide.none,
+        ),
         showCheckmark: false,
       ),
     );
   }
 
-  Widget _buildModernAsignaturaCard(BuildContext context, Asignatura a, bool isDark) {
+  Widget _buildModernAsignaturaCard(
+    BuildContext context,
+    Asignatura a,
+    bool isDark,
+  ) {
     final cardBgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
     final textColor = isDark ? Colors.white : const Color(0xFF4A443C);
     final iconColor = isDark ? Colors.orangeAccent : Colors.orange;
@@ -267,61 +346,75 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
             offset: const Offset(0, 10),
           ),
         ],
-        border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05)),
-      ),
-      child: ResponsiveContainer(
-        referenceWidth: 200,
-        referenceHeight: 160,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.auto_stories_rounded, color: iconColor, size: 20),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              a.nombre,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.purple.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.business_rounded, size: 10, color: Colors.purple[700]),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      a.departamento,
-                      style: TextStyle(fontSize: 9, color: Colors.purple[800], fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "ID: ${a.id}",
-              style: TextStyle(fontSize: 11, color: textColor.withOpacity(0.4), fontWeight: FontWeight.w500),
-            ),
-          ],
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.05),
         ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // REDISEÑO RESTAURADO: Icono circular naranja un poco más pequeño para evitar overflow
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.auto_stories_rounded, color: iconColor, size: 20),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            a.nombre,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 8),
+          // Chip de Departamento
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.purple.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.business_rounded,
+                  size: 10,
+                  color: Colors.purple[700],
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  a.departamento,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.purple[800],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "ID: ${a.id}",
+            style: TextStyle(
+              fontSize: 11,
+              color: textColor.withOpacity(0.4),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -31,11 +31,15 @@ class HorarioRepositoryImpl implements HorarioRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> obtenerHorarioDelDia(int dia) async {
+  Future<List<int>> obtenerProfesoresOcupados(int dia, String hora) async {
     try {
-      return await remoteDataSource.obtenerOcupacionActual(dia, "TODO");
+      final jsonList = await remoteDataSource.obtenerOcupacionActual(dia, hora);
+      return jsonList
+          .map((json) => json['id_profesor'] as int)
+          .toSet()
+          .toList();
     } catch (e) {
-      print("Error en obtenerHorarioDelDia: $e");
+      print("Error en obtenerProfesoresOcupados: $e");
       return [];
     }
   }

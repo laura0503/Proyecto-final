@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../domain/entities/aula.dart';
-import '../../../domain/entities/horario_aula.dart';
-import '../../../domain/usecases/get_horario_aula_usecase.dart';
-import '../../screens/aula_horario_screen.dart';
-import '../shared/responsive_container.dart';
+import 'package:gestion_ausencias/domain/entities/aula.dart';
+import 'package:gestion_ausencias/domain/entities/horario_aula.dart';
+import 'package:gestion_ausencias/domain/usecases/get_horario_aula_usecase.dart';
+import 'package:gestion_ausencias/ui/screens/aula_horario_screen.dart';
 
 class AulaCard extends StatelessWidget {
   final Aula aula;
@@ -46,12 +45,10 @@ class AulaCard extends StatelessWidget {
             );
           },
           borderRadius: BorderRadius.circular(24),
-          child: ResponsiveContainer(
-            referenceWidth: 150,
-            referenceHeight: 200,
-            padding: const EdgeInsets.all(12.0),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Icono circular premium
                 Container(
@@ -60,14 +57,9 @@ class AulaCard extends StatelessWidget {
                     color: iconColor.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.meeting_room_rounded, 
-                    color: iconColor, 
-                    size: 24,
-                  ),
+                  child: Icon(Icons.meeting_room_rounded, color: iconColor, size: 24),
                 ),
-                
-                // Nombre
+                const SizedBox(height: 12),
                 Text(
                   "Aula ${aula.nombre}",
                   style: TextStyle(
@@ -79,8 +71,9 @@ class AulaCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 4),
 
-                // Badge de Estado
+                // Badge de Estado (Libre/Ocupada)
                 FutureBuilder<List<HorarioAula>>(
                   future: horarioAulaUseCase.call(aula.id),
                   builder: (context, hSnapshot) {
@@ -117,8 +110,9 @@ class AulaCard extends StatelessWidget {
                     );
                   },
                 ),
+                const SizedBox(height: 8),
 
-                // Departamento
+                // Departamento del aula
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
@@ -134,36 +128,27 @@ class AulaCard extends StatelessWidget {
                         color: Colors.purple[700],
                       ),
                       const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          aula.departamento,
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: Colors.purple[800],
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      Text(
+                        aula.departamento,
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.purple[800],
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
                 ),
-
                 const Spacer(),
                 
                 // Capacidad
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.groups_rounded, 
-                      size: 14, 
-                      color: textColor.withOpacity(0.4),
-                    ),
+                    Icon(Icons.groups_rounded, size: 14, color: textColor.withOpacity(0.4)),
                     const SizedBox(width: 6),
                     Text(
-                      "${aula.capacidad > 0 ? aula.capacidad : 30} pers.",
+                      "${aula.capacidad > 0 ? aula.capacidad : 30} personas",
                       style: TextStyle(
                         fontSize: 11,
                         color: textColor.withOpacity(0.6),

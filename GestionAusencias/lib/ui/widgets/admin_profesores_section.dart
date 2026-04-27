@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../../domain/entities/profesor.dart';
-import '../../../domain/usecases/get_profesores_usecase.dart';
-import '../../../domain/usecases/eliminar_profesor_usecase.dart';
-import '../../../domain/usecases/importar_horario_usecase.dart';
+import '../../domain/entities/profesor.dart';
+import '../../domain/usecases/get_profesores_usecase.dart';
+import '../../domain/usecases/eliminar_profesor_usecase.dart';
+import '../../domain/usecases/importar_horario_usecase.dart';
 
 class AdminProfesoradoSection extends StatefulWidget {
   final bool isDark;

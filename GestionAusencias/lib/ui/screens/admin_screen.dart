@@ -1,14 +1,14 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/config_provider.dart';
-import '../widgets/profesores/profesores_section.dart';
-import '../widgets/shared/horarios_section.dart';
-import '../widgets/aulas/aulas_section.dart';
-import '../widgets/grupos/grupo_section.dart';
-import '../widgets/asignaturas/asignaturas_section.dart';
-import '../widgets/profesores/admin_profesores_section.dart';
-import '../widgets/admin/admin_sidebar.dart'; // Importación del nuevo Sidebar
+import '../widgets/profesores_section.dart';
+import '../widgets/horarios_section.dart';
+import '../widgets/aulas_section.dart';
+import '../widgets/grupo_section.dart';
+import '../widgets/asignaturas_section.dart';
+import '../widgets/admin_profesores_section.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -18,7 +18,8 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  String _selectedSection = 'Profesores'; 
+  String _selectedSection =
+      'Profesores'; // 'Profesores', 'Horarios', 'Aulas', 'Grupos', 'Asignaturas'
 
   @override
   Widget build(BuildContext context) {
@@ -35,58 +36,161 @@ class _AdminScreenState extends State<AdminScreen> {
     final textColor = isDark ? Colors.white : const Color(0xFF4A443C);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFFBFBF9),
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFFBFBF9),
       body: Stack(
         children: [
-          // 1. Fondo de Pantalla
+          // 1. Background Wallpaper
           if (bgProvider != null)
             Stack(
               children: [
-                Container(decoration: BoxDecoration(image: DecorationImage(image: bgProvider, fit: BoxFit.cover))),
-                Container(decoration: BoxDecoration(color: isDark ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.2))),
+                Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(image: bgProvider, fit: BoxFit.cover),
+                  ),
+                ),
+                // Overlay para mejorar contraste
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark 
+                        ? Colors.black.withOpacity(0.4) 
+                        : Colors.white.withOpacity(0.2),
+                  ),
+                ),
               ],
             ),
 
-          // 2. Interfaz de Usuario
+          // 2. Glass UI Layer
           Row(
             children: [
-              // Menú Lateral Modularizado
-              AdminSidebar(
-                selectedSection: _selectedSection,
-                onSectionSelected: (section) => setState(() => _selectedSection = section),
-                glassColor: glassColor,
-                borderColor: borderColor,
-                textColor: textColor,
-                isDark: isDark,
-              ),
-
-              // Área de Contenido
-              Expanded(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(40),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSelectedSection(isDark),
-                            const SizedBox(height: 50),
-                            Center(
-                              child: Text(
-                                "© 2026 Sistema de Gestión de Sustituciones",
-                                style: TextStyle(
-                                  color: isDark ? Colors.white38 : Colors.grey[600],
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+              // 2.1 Sidebar with Glass Effect
+              ClipRRect(
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+                  child: Container(
+                    width: 280,
+                    decoration: BoxDecoration(
+                      color: glassColor,
+                      border: Border(
+                        right: BorderSide(color: borderColor, width: 1),
                       ),
                     ),
-                  ],
+                    child: Column(
+                      children: [
+                        _buildSidebarHeader(textColor),
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 20,
+                              horizontal: 16,
+                            ),
+                            children: [
+                              _buildSidebarSectionHeader("GESTIÓN", isDark),
+                                _buildSidebarItem(
+                                  icon: Icons.people_alt_rounded,
+                                  text: "Profesores",
+                                  isSelected: _selectedSection == 'Profesores',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'Profesores';
+                                    });
+                                  },
+                                ),
+                                _buildSidebarItem(
+                                  icon: Icons.calendar_today_rounded,
+                                  text: "Horarios",
+                                  isSelected: _selectedSection == 'Horarios',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'Horarios';
+                                    });
+                                  },
+                                ),
+                                _buildSidebarItem(
+                                  icon: Icons.meeting_room,
+                                  text: 'Aulas',
+                                  isSelected: _selectedSection == 'Aulas',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'Aulas';
+                                    });
+                                  },
+                                ),
+                                _buildSidebarItem(
+                                  icon: Icons.groups_rounded,
+                                  text: 'Grupos',
+                                  isSelected: _selectedSection == 'Grupos',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'Grupos';
+                                    });
+                                  },
+                                ),
+                                _buildSidebarItem(
+                                  icon: Icons.auto_stories_rounded,
+                                  text: 'Asignaturas',
+                                  isSelected: _selectedSection == 'Asignaturas',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'Asignaturas';
+                                    });
+                                  },
+                                ),
+                                _buildSidebarItem(
+                                  icon: Icons.manage_accounts_rounded,
+                                  text: "Gestión Prof.",
+                                  isSelected: _selectedSection == 'GestionProf',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'GestionProf';
+                                    });
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // 2.2 Content Area
+              Expanded(
+                child: Container(
+                  color: Colors.transparent,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(40, 40, 40, 40),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Contenedor transparente sin cristal
+                              Container(
+                                width: double.infinity,
+                                child: _buildSelectedSection(isDark),
+                              ),
+
+                              const SizedBox(height: 50),
+                              Center(
+                                child: Text(
+                                  "© 2026 Sistema de Gestión de Sustituciones",
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white38 : Colors.grey[600],
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -97,13 +201,96 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _buildSelectedSection(bool isDark) {
-    switch (_selectedSection) {
-      case 'GestionProf': return AdminProfesoradoSection(isDark: isDark);
-      case 'Profesores': return ProfesoresSection(isDark: isDark);
-      case 'Horarios': return HorariosSection(isDark: isDark);
-      case 'Aulas': return AulasSection(isDark: isDark);
-      case 'Grupos': return GrupoSection(isDark: isDark);
-      default: return AsignaturasSection(isDark: isDark);
-    }
+    if (_selectedSection == 'GestionProf')
+      return AdminProfesoradoSection(isDark: isDark);
+    else if (_selectedSection == 'Profesores')
+      return ProfesoresSection(isDark: isDark);
+    else if (_selectedSection == 'Horarios')
+      return HorariosSection(isDark: isDark);
+    else if (_selectedSection == 'Aulas')
+      return AulasSection(isDark: isDark);
+    else if (_selectedSection == 'Grupos')
+      return GrupoSection(isDark: isDark);
+    else
+      return AsignaturasSection(isDark: isDark);
+  }
+
+  Widget _buildSidebarHeader(Color textColor) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 50, 16, 20),
+      alignment: Alignment.centerLeft,
+      child: InkWell(
+        onTap: () => Navigator.pop(context),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: textColor,
+                size: 20,
+              ),
+              const SizedBox(width: 4),
+              Text("Atrás", style: TextStyle(fontSize: 17, color: textColor)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidebarSectionHeader(String title, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 16, 16, 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: isDark ? Colors.white54 : const Color(0xFF8E8E93),
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidebarItem({
+    required IconData icon,
+    required String text,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final textColor = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF4A443C);
+    final iconColor = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white70
+        : const Color(0xFF4A443C);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFF007AFF) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        dense: true,
+        leading: Icon(
+          icon,
+          color: isSelected ? Colors.white : iconColor,
+          size: 22,
+        ),
+        title: Text(
+          text,
+          style: TextStyle(
+            color: isSelected ? Colors.white : textColor,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+            fontSize: 15,
+          ),
+        ),
+      ),
+    );
   }
 }
