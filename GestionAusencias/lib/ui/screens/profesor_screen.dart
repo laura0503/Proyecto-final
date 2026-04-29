@@ -15,6 +15,7 @@ import 'wallpaper_selector_screen.dart';
 import '../widgets/profesores/profesor_card.dart';
 import 'package:gestion_ausencias/ui/adapters/profesor_ui_adapter.dart';
 import 'package:gestion_ausencias/domain/repositories/horario_repository.dart';
+import 'package:gestion_ausencias/core/layout/responsive_builder.dart';
 
 class ProfesoresScreen extends StatefulWidget {
   const ProfesoresScreen({super.key});
@@ -125,32 +126,34 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                           )
                         : _profesoresFiltrados.isEmpty
                         ? _buildEstadoVacio()
-                        : GridView.builder(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 15,
+                        : ResponsiveBuilder(
+                            builder: (context, sizing) => GridView.builder(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: sizing.horizontalPadding,
+                                vertical: 15,
+                              ),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: sizing.gridColumns,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    childAspectRatio: 0.62,
+                                  ),
+                              itemCount: _profesoresFiltrados.length,
+                              itemBuilder: (context, index) {
+                                final profe = _profesoresFiltrados[index];
+                                final esOcupado = _idsOcupados.contains(
+                                  int.tryParse(profe.id_profesor) ?? -1,
+                                );
+                                return ProfesorCard(
+                                  profesor: ProfesorUIAdapter.toUIModel(
+                                    profe,
+                                    index,
+                                    estaOcupado: esOcupado,
+                                  ),
+                                );
+                              },
                             ),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 7,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 0.62,
-                                ),
-                            itemCount: _profesoresFiltrados.length,
-                            itemBuilder: (context, index) {
-                              final profe = _profesoresFiltrados[index];
-                              final esOcupado = _idsOcupados.contains(
-                                int.tryParse(profe.id_profesor) ?? -1,
-                              );
-                              return ProfesorCard(
-                                profesor: ProfesorUIAdapter.toUIModel(
-                                  profe,
-                                  index,
-                                  estaOcupado: esOcupado,
-                                ),
-                              );
-                            },
                           ),
                   ),
                 ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
+import 'package:gestion_ausencias/core/layout/app_breakpoints.dart';
 
 import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
@@ -80,7 +81,7 @@ class _MainLayoutState extends State<MainLayout> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final bool isMobile = constraints.maxWidth < 850;
+        final bool isMobile = constraints.maxWidth < AppBreakpoints.sidebar;
 
         return Scaffold(
           key: const ValueKey('main_scaffold'),
@@ -423,7 +424,7 @@ class HomeContent extends StatelessWidget {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final bool isNarrow = constraints.maxWidth < 700;
+            final bool isNarrow = constraints.maxWidth < AppBreakpoints.mobile;
 
             return SingleChildScrollView(
               padding: EdgeInsets.all(isNarrow ? 20 : 40),
