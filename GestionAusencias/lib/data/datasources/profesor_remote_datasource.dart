@@ -9,13 +9,17 @@ class ProfesorRemoteDataSource {
 
   Future<List<Profesor>> obtenerProfesores() async {
     try {
-      final response = await _supabase.from('profesores').select().order('nombre', ascending: true);
+      final response = await _supabase
+          .from('profesores')
+          .select()
+          .order('nombre', ascending: true);
       final List profsJson = response as List;
       if (profsJson.isEmpty) return [];
 
       List<Profesor> listaProfesores = profsJson.map((json) {
         final Map<String, dynamic> data = Map<String, dynamic>.from(json);
-        if (data['id'] == null && data['id_profesor'] != null) data['id'] = data['id_profesor'].toString();
+        if (data['id'] == null && data['id_profesor'] != null)
+          data['id'] = data['id_profesor'].toString();
         return ProfesorModel.fromJson(data);
       }).toList();
 
@@ -28,17 +32,25 @@ class ProfesorRemoteDataSource {
 
   /// Procesa la lista de profesores para añadir información en tiempo real
   /// sobre su ubicación y estado actual basándose en el horario.
-  Future<List<Profesor>> _enriquecerProfesoresConEstado(List<Profesor> profesores) async {
+  Future<List<Profesor>> _enriquecerProfesoresConEstado(
+    List<Profesor> profesores,
+  ) async {
     try {
       final DateTime now = DateTime.now();
       final int day = now.weekday;
       final bool isWeekend = day >= 6;
-      final String currentHour = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
+      final String currentHour =
+          "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
 
       // Consultas en paralelo para optimizar el rendimiento
       final results = await Future.wait([
-        _supabase.from('horario').select('id_profesor, id_tramo, id_aula').eq('dia_semana', day),
-        _supabase.from('horario_tramo').select('id_horario, horario_inicio, horario_fin'),
+        _supabase
+            .from('horario')
+            .select('id_profesor, id_tramo, id_aula')
+            .eq('dia_semana', day),
+        _supabase
+            .from('horario_tramo')
+            .select('id_horario, horario_inicio, horario_fin'),
         _supabase.from('aulas').select('id_aulas, nombre'),
       ], eagerError: false);
 
@@ -46,8 +58,12 @@ class ProfesorRemoteDataSource {
       final List rowsTramos = results[1] as List;
       final List rowsAulas = results[2] as List;
 
-      final Map<int, Map<String, dynamic>> mapTramos = {for (var t in rowsTramos) (t['id_horario'] as int): t};
-      final Map<int, String> mapAulas = {for (var a in rowsAulas) (a['id_aulas'] as int): a['nombre'] as String};
+      final Map<int, Map<String, dynamic>> mapTramos = {
+        for (var t in rowsTramos) (t['id_horario'] as int): t,
+      };
+      final Map<int, String> mapAulas = {
+        for (var a in rowsAulas) (a['id_aulas'] as int): a['nombre'] as String,
+      };
 
       final Map<int, List<String>> startTimes = {};
       final Map<int, List<String>> endTimes = {};
@@ -58,7 +74,9 @@ class ProfesorRemoteDataSource {
         final int? idTramo = row['id_tramo'];
         final int? idAula = row['id_aula'];
 
-        if (idProf != null && idTramo != null && mapTramos.containsKey(idTramo)) {
+        if (idProf != null &&
+            idTramo != null &&
+            mapTramos.containsKey(idTramo)) {
           final t = mapTramos[idTramo]!;
           String inicio = t['horario_inicio']?.toString() ?? "";
           String fin = t['horario_fin']?.toString() ?? "";
@@ -68,14 +86,16 @@ class ProfesorRemoteDataSource {
           startTimes.putIfAbsent(idProf, () => []).add(inicio);
           endTimes.putIfAbsent(idProf, () => []).add(fin);
 
-          if (currentHour.compareTo(inicio) >= 0 && currentHour.compareTo(fin) < 0) {
-            if (idAula != null) currentAula[idProf] = mapAulas[idAula] ?? "Aula $idAula";
+          if (currentHour.compareTo(inicio) >= 0 &&
+              currentHour.compareTo(fin) < 0) {
+            if (idAula != null)
+              currentAula[idProf] = mapAulas[idAula] ?? "Aula $idAula";
           }
         }
       }
 
       return profesores.map((p) {
-        final int? idInt = int.tryParse(p.id);
+        final int? idInt = int.tryParse(p.id_profesor);
         if (idInt == null) return p;
 
         String? hEntrada, hSalida, ubicacion, estado;
@@ -98,7 +118,9 @@ class ProfesorRemoteDataSource {
           ubicacion = currentAula[idInt];
         } else {
           estado = "Disponible";
-          ubicacion = hEntrada != null ? "Dep. ${p.departamento}" : "Pabellón A";
+          ubicacion = hEntrada != null
+              ? "Dep. ${p.departamento}"
+              : "Pabellón A";
         }
 
         return p.copyWith(
@@ -120,14 +142,14 @@ class ProfesorRemoteDataSource {
 
   Future<void> eliminarProfesor(String id) async {
     final int? idInt = int.tryParse(id);
-    
+
     // 1. Borrar horarios (pueden usar id_profesor como int o como UUID string)
     try {
       if (idInt != null) {
         await _supabase.from('horario').delete().eq('id_profesor', idInt);
       }
     } catch (_) {}
-    
+
     try {
       await _supabase.from('horario').delete().eq('id_profesor', id);
     } catch (_) {}
@@ -147,11 +169,18 @@ class ProfesorRemoteDataSource {
   }
 
   Future<void> actualizarEstadoAusencia(String id, bool estado) async {
-    await _supabase.from('profesores').update({'estado_ausente': estado}).eq('id', id);
+    await _supabase
+        .from('profesores')
+        .update({'estado_ausente': estado})
+        .eq('id', id);
   }
 
   Future<ProfesorModel?> obtenerSesionActual(String id) async {
-    final response = await _supabase.from('profesores').select().eq('id', id).maybeSingle();
+    final response = await _supabase
+        .from('profesores')
+        .select()
+        .eq('id', id)
+        .maybeSingle();
     if (response == null) return null;
     return ProfesorModel.fromJson(response);
   }

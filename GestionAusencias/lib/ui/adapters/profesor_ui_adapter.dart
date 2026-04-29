@@ -42,7 +42,11 @@ class ProfesorUIAdapter {
     Color(0xFFEC407A),
   ];
 
-  static ProfesorUIModel toUIModel(Profesor profesor, int index, {bool estaOcupado = false}) {
+  static ProfesorUIModel toUIModel(
+    Profesor profesor,
+    int index, {
+    bool estaOcupado = false,
+  }) {
     String statusText = "Activo";
     Color statusColor = Colors.green;
 
@@ -60,7 +64,7 @@ class ProfesorUIAdapter {
     final String display = _formatearNombre(profesor.nombre);
 
     return ProfesorUIModel(
-      id: profesor.id,
+      id: profesor.id_profesor,
       nombre: profesor.nombre,
       nombreDisplay: display,
       asignatura: profesor.asignatura,

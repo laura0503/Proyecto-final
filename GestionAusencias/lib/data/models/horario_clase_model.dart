@@ -10,6 +10,7 @@ class HorarioClaseModel extends HorarioClase {
     required super.dia,
     required super.inicio,
     required super.fin,
+    super.esGuardia = false,
   });
 
   factory HorarioClaseModel.fromJson(Map<String, dynamic> json) {
@@ -33,6 +34,7 @@ class HorarioClaseModel extends HorarioClase {
       dia: diaNombre,
       inicio: t['horario_inicio']?.toString() ?? '',
       fin: t['horario_fin']?.toString() ?? '',
+      esGuardia: json['es_guardia'] as bool? ?? false,
     );
   }
 }

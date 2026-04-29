@@ -1,17 +1,15 @@
 class Horario {
-  final int idHorario;
+  final int id_horario;
   final String texto;
-  final String horarioInicio;
-  final String horarioFin;
-  final bool esGuardia;
+  final String horario_inicio;
+  final String horario_fin;
   final bool recreo;
 
   Horario({
-    required this.idHorario,
+    required this.id_horario,
     required this.texto,
-    required this.horarioInicio,
-    required this.horarioFin,
-    required this.esGuardia,
+    required this.horario_inicio,
+    required this.horario_fin,
     required this.recreo,
   });
 }

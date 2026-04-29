@@ -41,7 +41,10 @@ class HomeHeader extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF3D4F3C),
                   borderRadius: BorderRadius.circular(16),
@@ -71,7 +74,8 @@ class HomeHeader extends StatelessWidget {
                 return Stack(
                   children: [
                     IconButton(
-                      onPressed: () => onShowNotifications(context, notifProvider),
+                      onPressed: () =>
+                          onShowNotifications(context, notifProvider),
                       icon: Icon(
                         Icons.notifications_none_rounded,
                         color: Colors.grey[400],
@@ -108,9 +112,10 @@ class HomeHeader extends StatelessWidget {
             ),
             const SizedBox(width: 15),
             ProfesorAvatar(
-              profesor: usuario ??
+              profesor:
+                  usuario ??
                   const Profesor(
-                    id: '0',
+                    id_profesor: '0',
                     nombre: 'Invitado',
                     asignatura: '',
                     curso: '',

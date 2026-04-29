@@ -8,7 +8,6 @@ import 'package:gestion_ausencias/domain/usecases/get_horario_aula_detallado_use
 import 'package:gestion_ausencias/domain/usecases/get_horario_profesor_detallado_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_grupo_detallado_usecase.dart';
 import 'package:gestion_ausencias/ui/widgets/calendario_aula_widget.dart';
-import 'package:gestion_ausencias/ui/screens/editar_clase_screen.dart';
 
 class AulaHorarioScreen extends StatefulWidget {
   final Aula? aula;
@@ -31,30 +30,43 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
   }
 
   void _cargarHorario() {
-    final int id = widget.aula != null 
-        ? widget.aula!.id 
-        : (widget.profesor != null ? (int.tryParse(widget.profesor!.id) ?? 0) : widget.grupo!.id);
+    final int id = widget.aula != null
+        ? widget.aula!.id
+        : (widget.profesor != null
+              ? (int.tryParse(widget.profesor!.id_profesor) ?? 0)
+              : widget.grupo!.id);
 
     setState(() {
-      _horarioFuture = widget.aula != null 
-          ? Provider.of<GetHorarioAulaDetalladoUseCase>(context, listen: false).execute(id)
-          : (widget.profesor != null 
-              ? Provider.of<GetHorarioProfesorDetalladoUseCase>(context, listen: false).execute(id)
-              : Provider.of<GetHorarioGrupoDetalladoUseCase>(context, listen: false).execute(id));
+      _horarioFuture = widget.aula != null
+          ? Provider.of<GetHorarioAulaDetalladoUseCase>(
+              context,
+              listen: false,
+            ).execute(id)
+          : (widget.profesor != null
+                ? Provider.of<GetHorarioProfesorDetalladoUseCase>(
+                    context,
+                    listen: false,
+                  ).execute(id, nombreFallback: widget.profesor!.nombre)
+                : Provider.of<GetHorarioGrupoDetalladoUseCase>(
+                    context,
+                    listen: false,
+                  ).execute(id));
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final String screenTitle = widget.aula != null 
-        ? "Aula ${widget.aula!.nombre}" 
-        : (widget.profesor != null ? widget.profesor!.nombre : "Grupo ${widget.grupo!.nombre}");
-        
-    final String subtitulo = widget.aula != null 
-        ? "Dept: ${widget.aula!.departamento} • Planta 1" 
-        : (widget.profesor != null 
-            ? "Dept: ${widget.profesor!.departamento} • ${widget.profesor!.asignatura}"
-            : "Horario de Grupo");
+    final String screenTitle = widget.aula != null
+        ? "Aula ${widget.aula!.nombre}"
+        : (widget.profesor != null
+              ? widget.profesor!.nombre
+              : "Grupo ${widget.grupo!.nombre}");
+
+    final String subtitulo = widget.aula != null
+        ? "Dept: ${widget.aula!.departamento} • Planta 1"
+        : (widget.profesor != null
+              ? "Dept: ${widget.profesor!.departamento} • ${widget.profesor!.asignatura}"
+              : "Horario de Grupo");
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -70,7 +82,11 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
           children: [
             Text(
               screenTitle,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
             ),
             Text(
               subtitulo,
@@ -91,27 +107,56 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
           }
 
           final horarios = snapshot.data!;
+          if (horarios.isEmpty) {
+            return _buildSinHorario(screenTitle);
+          }
           return CalendarioAulaWidget(
             titulo: screenTitle,
             horario: horarios,
-            onCellTap: widget.profesor != null 
-              ? (dia, tramo, clase) async {
-                  final result = await EditarClaseScreen.show(
-                    context,
-                    dia: dia,
-                    tramo: tramo,
-                    clase: clase,
-                    profesor: widget.profesor!,
-                  );
-                  
-                  // Si hubo cambios, recargamos el horario automáticamente
-                  if (result != null) {
-                    _cargarHorario();
-                  }
-                }
-              : null,
+            mostrarGuardia: widget.profesor != null,
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildSinHorario(String nombre) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.calendar_today_outlined,
+              size: 56,
+              color: Color(0xFF6366F1),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            nombre,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Este docente no tiene horario asignado",
+            style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            "Comprueba que el CSV ha sido importado correctamente",
+            style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+          ),
+        ],
       ),
     );
   }

@@ -62,13 +62,12 @@ class GrupoSection extends StatelessWidget {
             }
 
             final grupos = snapshot.data!.where((g) {
-              final nombre = g.nombre.trim().toUpperCase();
+              final nombre = g.nombre.replaceAll('﻿', '').trim().toUpperCase();
               if (nombre.isEmpty) return false;
               if (nombre.contains('RECREO') || nombre.contains('GUARDIA') || nombre.contains('VARIOS') || nombre.contains('LECTIVAS')) return false;
-              if (RegExp(r'^\d+$').hasMatch(nombre)) return false; // Es un número puro (un aula que se coló)
-              if (nombre.replaceAll(RegExp(r'[\-\_\.]'), '').trim().isEmpty) return false; // Son guiones (ej. '---')
-              // Eliminar basura tipo reloj o textos con punto y coma
-              if (nombre.contains(';')) return false;
+              if (RegExp(r'^\d+$').hasMatch(nombre)) return false;
+              if (nombre.replaceAll(RegExp(r'[\-\_\.]'), '').trim().isEmpty) return false;
+              if (nombre.contains(';') || nombre.contains(',')) return false;
               if (RegExp(r'^\d{1,2}:\d{2}').hasMatch(nombre)) return false;
               return true;
             }).toList();
@@ -159,7 +158,7 @@ class GrupoSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  grupo.nombre,
+                  grupo.nombre.replaceAll('﻿', '').trim(),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

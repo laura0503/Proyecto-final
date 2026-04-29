@@ -43,7 +43,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
     try {
       final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
       final getOcupadosUseCase = context.read<GetProfesoresOcupadosUseCase>();
-      
+
       final ahora = DateTime.now();
       final hora = DateFormat('HH:mm:ss').format(ahora);
       final dia = ahora.weekday;
@@ -53,7 +53,10 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
         getProfesoresUseCase.execute(),
         getOcupadosUseCase.execute(dia, hora),
         // Consultamos todos los que tienen clase hoy (sin filtro de hora)
-        context.read<HorarioRepository>().obtenerProfesoresOcupados(dia, "TODO"), 
+        context.read<HorarioRepository>().obtenerProfesoresOcupados(
+          dia,
+          "TODO",
+        ),
       ]);
 
       if (mounted) {
@@ -74,7 +77,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
       final matchQuery = p.nombre.toLowerCase().contains(_query.toLowerCase());
       if (!matchQuery) return false;
 
-      final idInt = int.tryParse(p.id) ?? -1;
+      final idInt = int.tryParse(p.id_profesor) ?? -1;
       final estaOcupadoAhora = _idsOcupados.contains(idInt);
       final tieneClaseHoy = _idsConClaseHoy.contains(idInt);
 
@@ -115,26 +118,40 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                   _buildModernFilters(),
                   Expanded(
                     child: _cargando
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)))
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF6366F1),
+                            ),
+                          )
                         : _profesoresFiltrados.isEmpty
-                            ? _buildEstadoVacio()
-                            : GridView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        ? _buildEstadoVacio()
+                        : GridView.builder(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 15,
+                            ),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 7,
                                   crossAxisSpacing: 12,
                                   mainAxisSpacing: 12,
                                   childAspectRatio: 0.62,
                                 ),
-                                itemCount: _profesoresFiltrados.length,
-                                itemBuilder: (context, index) {
-                                  final profe = _profesoresFiltrados[index];
-                                  final esOcupado = _idsOcupados.contains(int.tryParse(profe.id) ?? -1);
-                                  return ProfesorCard(
-                                    profesor: ProfesorUIAdapter.toUIModel(profe, index, estaOcupado: esOcupado),
-                                  );
-                                },
-                              ),
+                            itemCount: _profesoresFiltrados.length,
+                            itemBuilder: (context, index) {
+                              final profe = _profesoresFiltrados[index];
+                              final esOcupado = _idsOcupados.contains(
+                                int.tryParse(profe.id_profesor) ?? -1,
+                              );
+                              return ProfesorCard(
+                                profesor: ProfesorUIAdapter.toUIModel(
+                                  profe,
+                                  index,
+                                  estaOcupado: esOcupado,
+                                ),
+                              );
+                            },
+                          ),
                   ),
                 ],
               ),
@@ -216,10 +233,19 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           hintText: "Buscar docente por nombre...",
-          hintStyle: TextStyle(color: const Color(0xFF1E293B).withValues(alpha: 0.3)),
-          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF6366F1), size: 22),
+          hintStyle: TextStyle(
+            color: const Color(0xFF1E293B).withValues(alpha: 0.3),
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: Color(0xFF6366F1),
+            size: 22,
+          ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 15,
+          ),
         ),
       ),
     );
@@ -241,20 +267,28 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                 decoration: BoxDecoration(
                   color: isSelected ? const Color(0xFF6366F1) : Colors.white,
                   borderRadius: BorderRadius.circular(15),
-                  boxShadow: isSelected ? [
-                    BoxShadow(
-                      color: const Color(0xFF6366F1).withValues(alpha: 0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
-                  ] : [],
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF6366F1,
+                            ).withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : [],
                 ),
                 child: Center(
                   child: Text(
                     f,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : const Color(0xFF1E293B).withValues(alpha: 0.6),
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                      color: isSelected
+                          ? Colors.white
+                          : const Color(0xFF1E293B).withValues(alpha: 0.6),
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w600,
                       fontSize: 13,
                     ),
                   ),
@@ -281,14 +315,20 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
                   blurRadius: 30,
-                )
-              ]
+                ),
+              ],
             ),
-            child: Icon(Icons.person_search_rounded, size: 60, color: const Color(0xFF6366F1).withValues(alpha: 0.5)),
+            child: Icon(
+              Icons.person_search_rounded,
+              size: 60,
+              color: const Color(0xFF6366F1).withValues(alpha: 0.5),
+            ),
           ),
           const SizedBox(height: 25),
           Text(
-            _query.isEmpty ? "No hay docentes registrados" : "Sin resultados para '$_query'",
+            _query.isEmpty
+                ? "No hay docentes registrados"
+                : "Sin resultados para '$_query'",
             style: const TextStyle(
               color: Color(0xFF1E293B),
               fontSize: 18,
@@ -328,7 +368,8 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
         final importarUseCase = context.read<ImportarProfesoresUseCase>();
         await importarUseCase.execute(data.text!);
         await _cargarProfesores();
-        if (mounted) _mostrarNotificacion("¡Datos sincronizados con éxito!", Colors.blue);
+        if (mounted)
+          _mostrarNotificacion("¡Datos sincronizados con éxito!", Colors.blue);
       }
     } catch (e) {
       if (mounted) _mostrarNotificacion("Error: Datos no válidos", Colors.red);

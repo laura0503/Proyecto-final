@@ -74,7 +74,16 @@ class HorarioImporter implements IHorarioImporter {
         }
       }
       if (profUpdates.isNotEmpty) {
-        await _supabase.from('profesores').upsert(profUpdates, onConflict: 'id_profesor');
+        // Usamos update uno a uno para evitar el error de columna de identidad (GENERATED ALWAYS)
+        for (final update in profUpdates) {
+          try {
+            await _supabase.from('profesores')
+                .update({'departamento': update['departamento']})
+                .eq('id_profesor', update['id_profesor']);
+          } catch (e) {
+            print("Error actualizando departamento de profe ${update['id_profesor']}: $e");
+          }
+        }
       }
 
       // 2. Sincronización de Departamentos de Aulas
@@ -524,7 +533,9 @@ class HorarioImporter implements IHorarioImporter {
       try {
         await _supabase.from('horario').upsert(
           batchToInsert, 
-          onConflict: 'id_profesor,id_tramo,dia_semana,id_asignatura'
+          // Usamos solo id_profesor, id_tramo y dia_semana como clave de conflicto
+          // Esto permite que el upsert rellene los campos que están en NULL (aula, grupo, asignatura)
+          onConflict: 'id_profesor,id_tramo,dia_semana'
         );
         print("✨ EXITO: Inserción masiva de ${batchToInsert.length} registros completada.");
       } catch (e) {

@@ -50,9 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.login(
-      _userController.text,
-    );
+    final success = await authProvider.login(_userController.text);
 
     if (success) {
       widget.onLoginSuccess();
@@ -71,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final nuevoProfe = Profesor(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id_profesor: DateTime.now().millisecondsSinceEpoch.toString(),
       nombre: _userController.text.trim(),
       asignatura: _asigController.text.trim(),
       curso: _cursoController.text.trim(),

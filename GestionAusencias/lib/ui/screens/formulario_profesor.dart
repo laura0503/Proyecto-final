@@ -236,8 +236,8 @@ class _FormularioProfesorScreenState extends State<FormularioProfesorScreen> {
   void _guardar() {
     if (_key.currentState!.validate()) {
       final p = Profesor(
-        id:
-            widget.profesor?.id ??
+        id_profesor:
+            widget.profesor?.id_profesor ??
             DateTime.now().millisecondsSinceEpoch.toString(),
         nombre: _nom.text,
         asignatura: _asig.text,

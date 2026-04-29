@@ -31,7 +31,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> checkSession() async {
     // BYPASS LOGIN: Set dummy user directly
     _profesorActual = const Profesor(
-      id: 'dummy_id',
+      id_profesor: 'dummy_id',
       nombre: 'Admin Local',
       asignatura: 'Informática',
       curso: '1',

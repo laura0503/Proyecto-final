@@ -1,19 +1,19 @@
 class Profesor {
-  final String id;
+  final String id_profesor;
   final String nombre;
   final String asignatura;
   final String curso;
   final String foto;
   final String departamento;
   final bool estadoAusente;
-  final String? tutoria; 
-  final String? horarioEntrada; 
-  final String? horarioSalida;  
+  final String? tutoria;
+  final String? horarioEntrada;
+  final String? horarioSalida;
   final String? ubicacionActual; // Nueva: Aula donde está ahora
-  final String? estadoActual;    // Nueva: "En clase", "Disponible", etc.
+  final String? estadoActual; // Nueva: "En clase", "Disponible", etc.
 
   const Profesor({
-    required this.id,
+    required this.id_profesor,
     required this.nombre,
     required this.asignatura,
     required this.curso,
@@ -42,7 +42,7 @@ class Profesor {
     String? estadoActual,
   }) {
     return Profesor(
-      id: id ?? this.id,
+      id_profesor: id ?? this.id_profesor,
       nombre: nombre ?? this.nombre,
       asignatura: asignatura ?? this.asignatura,
       curso: curso ?? this.curso,

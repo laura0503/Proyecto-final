@@ -12,11 +12,12 @@ class HorarioRemoteDataSource {
         .select('''
           id_horario,
           dia_semana,
+          es_guardia,
           profesores!id_profesor(id_profesor, nombre, departamento),
           Asignaturas!id_asignatura(id_asignaturas, nombre),
           grupo!id_grupo(id_grupo, nombre),
           aulas!id_aula(id_aulas, nombre),
-          horario_tramo(id_horario, texto, horario_inicio, horario_fin, es_guardia, recreo)
+          horario_tramo(id_horario, texto, horario_inicio, horario_fin, recreo)
         ''');
     return List<Map<String, dynamic>>.from(response);
   }
@@ -37,7 +38,7 @@ class HorarioRemoteDataSource {
   Future<List<Map<String, dynamic>>> obtenerOcupacionActual(int dia, String hora) async {
     final response = await _supabase
         .from('horario')
-        .select('id_profesor, horario_tramo!inner(horario_inicio, horario_fin, es_guardia)')
+        .select('id_profesor, es_guardia, horario_tramo!inner(horario_inicio, horario_fin)')
         .eq('dia_semana', dia);
     
     final List all = response as List;
@@ -45,7 +46,7 @@ class HorarioRemoteDataSource {
       final tramo = row['horario_tramo'];
       if (tramo == null) return false;
       
-      final esGuardia = tramo['es_guardia'] as bool? ?? false;
+      final esGuardia = row['es_guardia'] as bool? ?? false;
       if (esGuardia) return false;
 
       if (hora == "TODO") return true;

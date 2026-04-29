@@ -1,17 +1,20 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../core/utils/string_utils.dart';
 import '../../domain/entities/horario_clase.dart';
 
 class CalendarioAulaWidget extends StatelessWidget {
   final List<HorarioClase> horario;
   final String titulo;
   final void Function(String dia, String tramo, HorarioClase? clase)? onCellTap;
+  final bool mostrarGuardia;
 
   const CalendarioAulaWidget({
     super.key,
     required this.horario,
     required this.titulo,
     this.onCellTap,
+    this.mostrarGuardia = false,
   });
 
   @override
@@ -212,9 +215,35 @@ class CalendarioAulaWidget extends StatelessWidget {
   Widget _buildCell(HorarioClase? clase, bool isRecreo, String defaultGroup, Map<String, String> correctTeachers) {
     if (clase == null) {
       if (isRecreo) return const SizedBox.shrink();
-      return Text("Libre", style: TextStyle(color: Colors.black26, fontStyle: FontStyle.italic, fontSize: 12));
+      return const Text("Libre", style: TextStyle(color: Colors.black26, fontStyle: FontStyle.italic, fontSize: 12));
     }
-    
+
+    if (clase.esGuardia && mostrarGuardia) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        width: 150,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF3E0).withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.shield_outlined, size: 18, color: Colors.orange),
+            const SizedBox(height: 4),
+            const Text(
+              'GUARDIA',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.orange, letterSpacing: 0.5),
+            ),
+          ],
+        ),
+      );
+    }
+
     String displayGroup = clase.grupo;
     if (displayGroup.contains(';') || displayGroup.toLowerCase().contains('recreo') || displayGroup.length > 45) {
       displayGroup = defaultGroup.isNotEmpty ? defaultGroup : "Asignado";
@@ -224,13 +253,13 @@ class CalendarioAulaWidget extends StatelessWidget {
     if (displayTeacher.contains(';') || displayTeacher.isEmpty) {
       displayTeacher = correctTeachers[clase.asignatura] ?? displayTeacher;
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       width: 150,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(16), 
+        color: Colors.white.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -238,33 +267,33 @@ class CalendarioAulaWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            clase.asignatura, 
-            textAlign: TextAlign.center, 
-            maxLines: 1, 
-            overflow: TextOverflow.ellipsis, 
+            StringUtils.abbreviateAsignatura(clase.asignatura),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.black87)
           ),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              displayGroup, 
-              textAlign: TextAlign.center, 
-              maxLines: 2, 
-              overflow: TextOverflow.ellipsis, 
+              displayGroup,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.bold)
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            _formatProfesorName(displayTeacher), 
-            textAlign: TextAlign.center, 
-            maxLines: 1, 
-            overflow: TextOverflow.ellipsis, 
+            _formatProfesorName(displayTeacher),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 11, color: Colors.black54)
           ),
         ],

@@ -38,9 +38,21 @@ class _DetalleGuardiaFormState extends State<DetalleGuardiaForm> {
   String _tipoTarea = 'texto';
 
   final List<String> _horas = [
-    '8:00', '9:00', '10:00', '11:00', '12:00', '13:00',
-    '14:00', '15:00', '16:00', '17:00', '18:00', '19:00',
-    '20:00', '21:00', '22:00',
+    '8:00',
+    '9:00',
+    '10:00',
+    '11:00',
+    '12:00',
+    '13:00',
+    '14:00',
+    '15:00',
+    '16:00',
+    '17:00',
+    '18:00',
+    '19:00',
+    '20:00',
+    '21:00',
+    '22:00',
   ];
 
   @override
@@ -73,7 +85,7 @@ class _DetalleGuardiaFormState extends State<DetalleGuardiaForm> {
       final profesor = widget.profesores.firstWhere(
         (p) => p.nombre == widget.guardia!.profesorGuardia,
         orElse: () => const Profesor(
-          id: '',
+          id_profesor: '',
           nombre: '',
           asignatura: '',
           curso: '',
@@ -82,8 +94,8 @@ class _DetalleGuardiaFormState extends State<DetalleGuardiaForm> {
           estadoAusente: false,
         ),
       );
-      if (profesor.id.isNotEmpty) {
-        _profesorGuardiaSeleccionado = profesor.id;
+      if (profesor.id_profesor.isNotEmpty) {
+        _profesorGuardiaSeleccionado = profesor.id_profesor;
         _nombreProfesorSeleccionado = profesor.nombre;
       }
     }
@@ -180,8 +192,7 @@ class _DetalleGuardiaFormState extends State<DetalleGuardiaForm> {
               prefixIcon: Icon(Icons.person_off),
               border: OutlineInputBorder(),
             ),
-            validator: (value) =>
-                value!.isEmpty ? 'Campo obligatorio' : null,
+            validator: (value) => value!.isEmpty ? 'Campo obligatorio' : null,
           ),
           const SizedBox(height: 16),
 
@@ -193,18 +204,14 @@ class _DetalleGuardiaFormState extends State<DetalleGuardiaForm> {
               prefixIcon: Icon(Icons.book),
               border: OutlineInputBorder(),
             ),
-            validator: (value) =>
-                value!.isEmpty ? 'Campo obligatorio' : null,
+            validator: (value) => value!.isEmpty ? 'Campo obligatorio' : null,
           ),
           const SizedBox(height: 20),
 
           // Tipo de tarea
           const Text(
             'Tipo de tarea:',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 8),
           Row(
@@ -243,8 +250,7 @@ class _DetalleGuardiaFormState extends State<DetalleGuardiaForm> {
               border: OutlineInputBorder(),
               alignLabelWithHint: true,
             ),
-            validator: (value) =>
-                value!.isEmpty ? 'Campo obligatorio' : null,
+            validator: (value) => value!.isEmpty ? 'Campo obligatorio' : null,
           ),
           const SizedBox(height: 20),
 
@@ -263,7 +269,7 @@ class _DetalleGuardiaFormState extends State<DetalleGuardiaForm> {
               ),
               ...widget.profesores.map((profesor) {
                 return DropdownMenuItem(
-                  value: profesor.id, // Usar ID único
+                  value: profesor.id_profesor, // Usar ID único
                   child: Text(profesor.nombre),
                 );
               }).toList(),
@@ -272,21 +278,19 @@ class _DetalleGuardiaFormState extends State<DetalleGuardiaForm> {
               setState(() {
                 _profesorGuardiaSeleccionado = value;
                 if (value != null) {
-                  final profesorSeleccionado = widget.profesores
-                      .firstWhere(
-                        (p) => p.id == value,
-                        orElse: () => const Profesor(
-                          id: '',
-                          nombre: '',
-                          asignatura: '',
-                          curso: '',
-                          foto: '',
-                          departamento: 'General',
-                          estadoAusente: false,
-                        ),
-                      );
-                  _nombreProfesorSeleccionado =
-                      profesorSeleccionado.nombre;
+                  final profesorSeleccionado = widget.profesores.firstWhere(
+                    (p) => p.id_profesor == value,
+                    orElse: () => const Profesor(
+                      id_profesor: '',
+                      nombre: '',
+                      asignatura: '',
+                      curso: '',
+                      foto: '',
+                      departamento: 'General',
+                      estadoAusente: false,
+                    ),
+                  );
+                  _nombreProfesorSeleccionado = profesorSeleccionado.nombre;
                 } else {
                   _nombreProfesorSeleccionado = null;
                 }
@@ -409,7 +413,8 @@ class _DetalleGuardiaFormState extends State<DetalleGuardiaForm> {
   void _guardarGuardia() {
     if (_formKey.currentState!.validate()) {
       final nuevaGuardia = Guardia(
-        id: widget.guardia?.id ??
+        id:
+            widget.guardia?.id ??
             DateTime.now().millisecondsSinceEpoch.toString(),
         fecha: widget.fecha,
         horaInicio: _horaInicioController.text,

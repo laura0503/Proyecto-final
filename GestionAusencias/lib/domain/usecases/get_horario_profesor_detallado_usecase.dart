@@ -6,7 +6,7 @@ class GetHorarioProfesorDetalladoUseCase {
 
   GetHorarioProfesorDetalladoUseCase(this.repository);
 
-  Future<List<HorarioClase>> execute(int profesorId) {
-    return repository.getHorarioDetalladoByProfesor(profesorId);
+  Future<List<HorarioClase>> execute(int profesorId, {String? nombreFallback}) {
+    return repository.getHorarioDetalladoByProfesor(profesorId, nombreFallback: nombreFallback);
   }
 }

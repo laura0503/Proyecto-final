@@ -14,7 +14,8 @@ class AdminProfesoradoSection extends StatefulWidget {
   const AdminProfesoradoSection({super.key, required this.isDark});
 
   @override
-  State<AdminProfesoradoSection> createState() => _AdminProfesoradoSectionState();
+  State<AdminProfesoradoSection> createState() =>
+      _AdminProfesoradoSectionState();
 }
 
 class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
@@ -74,7 +75,7 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
 
       if (result != null) {
         String csvContent = "";
-        
+
         if (result.files.first.bytes != null) {
           try {
             csvContent = utf8.decode(result.files.first.bytes!);
@@ -89,24 +90,24 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
             csvContent = await file.readAsString(encoding: latin1);
           }
         }
-        
+
         if (csvContent.isEmpty) return;
 
         final importarUseCase = context.read<ImportarHorarioUseCase>();
         await importarUseCase.execute(csvContent);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Importación exitosa")),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Importación exitosa")));
           _loadProfesores();
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error al importar: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error al importar: $e")));
       }
     }
   }
@@ -116,7 +117,9 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Eliminar Profesor"),
-        content: Text("¿Estás seguro de que deseas eliminar a ${p.nombre}? Se borrarán también todos sus horarios."),
+        content: Text(
+          "¿Estás seguro de que deseas eliminar a ${p.nombre}? Se borrarán también todos sus horarios.",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -134,18 +137,18 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
     if (confirm == true) {
       try {
         final eliminarUseCase = context.read<EliminarProfesorUseCase>();
-        await eliminarUseCase.execute(p.id);
+        await eliminarUseCase.execute(p.id_profesor);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Profesor eliminado")),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Profesor eliminado")));
           _loadProfesores();
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error al eliminar: $e")),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("Error al eliminar: $e")));
         }
       }
     }
@@ -190,7 +193,10 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF007AFF),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 15,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -213,7 +219,10 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
             controller: _searchController,
             decoration: InputDecoration(
               hintText: "Buscar profesor por nombre...",
-              prefixIcon: Icon(Icons.search_rounded, color: textColor.withOpacity(0.5)),
+              prefixIcon: Icon(
+                Icons.search_rounded,
+                color: textColor.withOpacity(0.5),
+              ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 15),
               hintStyle: TextStyle(color: textColor.withOpacity(0.3)),
@@ -252,7 +261,9 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
   Widget _buildAdminTeacherCard(BuildContext context, Profesor p, bool isDark) {
     final textColor = isDark ? Colors.white : const Color(0xFF4A443C);
     final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final borderColor = isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFE5E0D8);
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.1)
+        : const Color(0xFFE5E0D8);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -274,10 +285,7 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
           child: Row(
             children: [
               // Left Accent Border
-              Container(
-                width: 6,
-                color: const Color(0xFF007AFF),
-              ),
+              Container(width: 6, color: const Color(0xFF007AFF)),
               const SizedBox(width: 16),
               // Name Initial Circle
               Container(

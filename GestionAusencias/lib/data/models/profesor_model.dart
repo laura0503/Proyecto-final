@@ -2,7 +2,7 @@ import 'package:gestion_ausencias/domain/entities/profesor.dart';
 
 class ProfesorModel extends Profesor {
   const ProfesorModel({
-    required super.id,
+    required super.id_profesor,
     required super.nombre,
     required super.asignatura,
     required super.curso,
@@ -18,7 +18,7 @@ class ProfesorModel extends Profesor {
 
   factory ProfesorModel.fromJson(Map<String, dynamic> json) {
     return ProfesorModel(
-      id: json['id']?.toString() ?? '',
+      id_profesor: json['id']?.toString() ?? '',
       nombre: json['nombre'] ?? '',
       asignatura: json['asignatura'] ?? '',
       curso: json['curso'] ?? '',
@@ -35,7 +35,7 @@ class ProfesorModel extends Profesor {
 
   factory ProfesorModel.fromEntity(Profesor profesor) {
     return ProfesorModel(
-      id: profesor.id,
+      id_profesor: profesor.id_profesor,
       nombre: profesor.nombre,
       asignatura: profesor.asignatura,
       curso: profesor.curso,
@@ -52,7 +52,7 @@ class ProfesorModel extends Profesor {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'id': id_profesor,
       'nombre': nombre,
       'asignatura': asignatura,
       'curso': curso,

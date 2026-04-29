@@ -1,5 +1,5 @@
 class HorarioClase {
-  final int? id; // ID real en la base de datos para edición eficiente
+  final int? id;
   final String profesor;
   final String aula;
   final String grupo;
@@ -7,6 +7,7 @@ class HorarioClase {
   final String dia;
   final String inicio;
   final String fin;
+  final bool esGuardia;
 
   HorarioClase({
     this.id,
@@ -17,5 +18,6 @@ class HorarioClase {
     required this.dia,
     required this.inicio,
     required this.fin,
+    this.esGuardia = false,
   });
 }

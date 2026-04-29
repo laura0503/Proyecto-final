@@ -42,10 +42,16 @@ class _HorariosSectionState extends State<HorariosSection> {
               return Center(
                 child: Column(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.pink, size: 48),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.pink,
+                      size: 48,
+                    ),
                     const SizedBox(height: 16),
-                    Text("Error al cargar tramos: ${snapshot.error}", 
-                         style: const TextStyle(color: Colors.white70)),
+                    Text(
+                      "Error al cargar tramos: ${snapshot.error}",
+                      style: const TextStyle(color: Colors.white70),
+                    ),
                   ],
                 ),
               );
@@ -53,14 +59,20 @@ class _HorariosSectionState extends State<HorariosSection> {
               return Center(
                 child: Column(
                   children: [
-                    const Icon(Icons.calendar_today_outlined, color: Colors.white10, size: 48),
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      color: Colors.white10,
+                      size: 48,
+                    ),
                     const SizedBox(height: 16),
-                    const Text("No hay franjas horarias en la base de datos", 
-                         style: TextStyle(color: Colors.white38)),
+                    const Text(
+                      "No hay franjas horarias en la base de datos",
+                      style: TextStyle(color: Colors.white38),
+                    ),
                     const SizedBox(height: 8),
                     TextButton(
-                      onPressed: () => setState(() {}), 
-                      child: const Text("Reintentar")
+                      onPressed: () => setState(() {}),
+                      child: const Text("Reintentar"),
                     ),
                   ],
                 ),
@@ -69,7 +81,9 @@ class _HorariosSectionState extends State<HorariosSection> {
 
             final schedules = snapshot.data!.where((h) {
               // Filtramos las franjas basura cuya descripción es literalmente puro horario (ej "16:00 \n 17:00")
-              final isTimeOnly = RegExp(r'^\s*\d{1,2}:\d{2}\s*\n?\s*\d{1,2}:\d{2}\s*$').hasMatch(h.texto.trim());
+              final isTimeOnly = RegExp(
+                r'^\s*\d{1,2}:\d{2}\s*\n?\s*\d{1,2}:\d{2}\s*$',
+              ).hasMatch(h.texto.trim());
               return !isTimeOnly;
             }).toList();
             return _buildHorarioTable(schedules, widget.isDark);
@@ -208,13 +222,13 @@ class _HorariosSectionState extends State<HorariosSection> {
                 ),
                 DataCell(
                   Text(
-                    h.horarioInicio,
+                    h.horario_inicio,
                     style: const TextStyle(color: Color(0xFFCBD5E1)),
                   ),
                 ),
                 DataCell(
                   Text(
-                    h.horarioFin,
+                    h.horario_fin,
                     style: const TextStyle(color: Color(0xFFCBD5E1)),
                   ),
                 ),

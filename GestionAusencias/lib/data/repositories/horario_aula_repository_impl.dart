@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:gestion_ausencias/domain/entities/horario_aula.dart';
 import 'package:gestion_ausencias/domain/entities/horario_clase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -48,7 +49,12 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
           'grupo': null,
         });
 
-        final String diaKey = ['','Lunes','Martes','Miercoles','Jueves','Viernes'][dia];
+        final List<String> nombresDias = ['', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
+        if (dia < 0 || dia >= nombresDias.length) {
+          print("Aviso: dia_semana fuera de rango ($dia) en fila de tramo $tramoId");
+          continue;
+        }
+        final String diaKey = nombresDias[dia];
         tramos[tramoId]![diaKey] = asign;
         tramos[tramoId]!['profesor'] = prof;
         tramos[tramoId]!['grupo'] = grupo;
@@ -71,6 +77,7 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
           .from('horario')
           .select('''
             dia_semana,
+            es_guardia,
             profesores!id_profesor(nombre),
             aulas!id_aula(nombre),
             grupo!id_grupo(nombre),
@@ -82,27 +89,57 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
       final List rows = response as List;
       return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
     } catch (e) {
+      debugPrint('ERROR getHorarioDetallado: $e');
       return [];
     }
   }
 
   @override
-  Future<List<HorarioClase>> getHorarioDetalladoByProfesor(int profesorId) async {
+  Future<List<HorarioClase>> getHorarioDetalladoByProfesor(int profesorId, {String? nombreFallback}) async {
+    const query = '''
+      dia_semana,
+      es_guardia,
+      profesores!id_profesor(nombre),
+      aulas!id_aula(nombre),
+      grupo!id_grupo(nombre),
+      Asignaturas!id_asignatura(nombre),
+      horario_tramo(texto, horario_fin, horario_inicio)
+    ''';
+
     try {
       final response = await supabase
           .from('horario')
-          .select('''
-            dia_semana,
-            profesores!id_profesor(nombre),
-            aulas!id_aula(nombre),
-            grupo!id_grupo(nombre),
-            Asignaturas!id_asignatura(nombre),
-            horario_tramo(texto, horario_fin, horario_inicio)
-          ''')
+          .select(query)
           .eq('id_profesor', profesorId);
 
       final List rows = response as List;
-      return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
+      if (rows.isNotEmpty) {
+        return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
+      }
+
+      // Fallback: el ID no tiene filas, buscamos por nombre similar
+      if (nombreFallback != null && nombreFallback.trim().isNotEmpty) {
+        final profResult = await supabase
+            .from('profesores')
+            .select('id_profesor')
+            .ilike('nombre', '%${nombreFallback.trim()}%');
+
+        final ids = (profResult as List)
+            .map((r) => r['id_profesor'] as int)
+            .where((id) => id != profesorId)
+            .toList();
+
+        if (ids.isEmpty) return [];
+
+        final fallback = await supabase
+            .from('horario')
+            .select(query)
+            .inFilter('id_profesor', ids);
+
+        return (fallback as List).map((json) => HorarioClaseModel.fromJson(json)).toList();
+      }
+
+      return [];
     } catch (e) {
       return [];
     }
@@ -115,6 +152,7 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
           .from('horario')
           .select('''
             dia_semana,
+            es_guardia,
             profesores!id_profesor(nombre),
             aulas!id_aula(nombre),
             grupo!id_grupo(nombre),
