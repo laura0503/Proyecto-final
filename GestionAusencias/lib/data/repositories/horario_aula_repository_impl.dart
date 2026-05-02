@@ -18,10 +18,11 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
           .select('''
             dia_semana,
             id_tramo,
+            es_guardia,
             horario_tramo(texto, horario_inicio, horario_fin),
-            profesores!id_profesor(nombre),
-            Asignaturas!id_asignatura(nombre),
-            grupo!id_grupo(nombre)
+            profesores(nombre),
+            Asignaturas(nombre),
+            grupo(nombre)
           ''')
           .eq('id_aula', aulaId);
 
@@ -66,70 +67,100 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
 
   @override
   Future<List<HorarioClase>> getHorarioDetallado(int aulaId) async {
-    try {
-      final response = await supabase
-          .from('horario')
-          .select('''
-            dia_semana,
-            profesores!id_profesor(nombre),
-            aulas!id_aula(nombre),
-            grupo!id_grupo(nombre),
-            Asignaturas!id_asignatura(nombre),
-            horario_tramo(texto, horario_fin, horario_inicio)
-          ''')
-          .eq('id_aula', aulaId);
+    final response = await supabase
+        .from('horario')
+        .select('''
+          id_horario:id,
+          dia_semana,
+          es_guardia,
+          profesores(nombre),
+          aulas(nombre),
+          grupo(nombre),
+          Asignaturas(nombre),
+          horario_tramo(horario_fin, horario_inicio)
+        ''')
+        .eq('id_aula', aulaId);
 
-      final List rows = response as List;
-      return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
-    } catch (e) {
-      print("ERROR en getHorarioDetallado: $e");
-      return [];
-    }
+    final List rows = response as List;
+    return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
   }
 
   @override
   Future<List<HorarioClase>> getHorarioDetalladoByProfesor(int profesorId) async {
-    try {
-      final response = await supabase
-          .from('horario')
-          .select('''
-            dia_semana,
-            profesores!id_profesor(nombre),
-            aulas!id_aula(nombre),
-            grupo!id_grupo(nombre),
-            Asignaturas!id_asignatura(nombre),
-            horario_tramo(texto, horario_fin, horario_inicio)
-          ''')
-          .eq('id_profesor', profesorId);
+    // Consultas en paralelo: clases del horario + nombre del profesor
+    final results = await Future.wait([
+      supabase.from('horario').select('''
+        id_horario:id,
+        dia_semana,
+        es_guardia,
+        profesores(nombre),
+        aulas(nombre),
+        grupo(nombre),
+        Asignaturas(nombre),
+        horario_tramo(horario_fin, horario_inicio)
+      ''').eq('id_profesor', profesorId),
+      supabase.from('profesores').select('nombre').eq('id_profesor', profesorId).limit(1),
+    ]);
 
-      final List rows = response as List;
-      return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
-    } catch (e) {
-      print("ERROR en getHorarioDetalladoByProfesor: $e");
-      return [];
-    }
+    final clases = (results[0] as List)
+        .map((json) => HorarioClaseModel.fromJson(json))
+        .toList();
+
+    // Añadir guardias de la tabla guardias por nombre del profesor
+    try {
+      final profRows = results[1] as List;
+      if (profRows.isNotEmpty) {
+        final nombreProfesor = profRows.first['nombre'] as String? ?? '';
+        if (nombreProfesor.isNotEmpty) {
+          final guardiasResp = await supabase
+              .from('guardias')
+              .select()
+              .eq('profesorGuardia', nombreProfesor);
+
+          const dias = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+          final guardiasClases = (guardiasResp as List).map((json) {
+            final fecha = DateTime.tryParse(json['fecha']?.toString() ?? '');
+            if (fecha == null) return null;
+            final wd = fecha.weekday;
+            if (wd < 1 || wd > 5) return null;
+            return HorarioClaseModel(
+              id: 0,
+              profesor: json['profesorGuardia'] ?? '',
+              aula: json['aula'] ?? '',
+              grupo: json['grupo'] ?? '',
+              asignatura: 'GUARDIA',
+              dia: dias[wd],
+              inicio: json['horaInicio'] ?? '',
+              fin: json['horaFin'] ?? '',
+              esGuardia: true,
+            );
+          }).whereType<HorarioClaseModel>().toList();
+
+          return [...clases, ...guardiasClases];
+        }
+      }
+    } catch (_) {}
+
+    return clases;
   }
 
   @override
   Future<List<HorarioClase>> getHorarioDetalladoByGrupo(int grupoId) async {
-    try {
-      final response = await supabase
-          .from('horario')
-          .select('''
-            dia_semana,
-            profesores!id_profesor(nombre),
-            aulas!id_aula(nombre),
-            grupo!id_grupo(nombre),
-            Asignaturas!id_asignatura(nombre),
-            horario_tramo(texto, horario_fin, horario_inicio)
-          ''')
-          .eq('id_grupo', grupoId);
+    final response = await supabase
+        .from('horario')
+        .select('''
+          id_horario:id,
+          dia_semana,
+          es_guardia,
+          profesores(nombre),
+          aulas(nombre),
+          grupo(nombre),
+          Asignaturas(nombre),
+          horario_tramo(horario_fin, horario_inicio)
+        ''')
+        .eq('id_grupo', grupoId);
 
-      final List rows = response as List;
-      return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
-    } catch (e) {
-      print("ERROR en getHorarioDetalladoByGrupo: $e");
-      return [];
-    }
+    final List rows = response as List;
+    return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
   }
 }

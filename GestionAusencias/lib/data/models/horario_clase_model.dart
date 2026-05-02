@@ -2,6 +2,7 @@ import '../../domain/entities/horario_clase.dart';
 
 class HorarioClaseModel extends HorarioClase {
   HorarioClaseModel({
+    super.id,
     required super.profesor,
     required super.aula,
     required super.grupo,
@@ -9,12 +10,11 @@ class HorarioClaseModel extends HorarioClase {
     required super.dia,
     required super.inicio,
     required super.fin,
+    super.esGuardia,
+    super.nota,
   });
 
   factory HorarioClaseModel.fromJson(Map<String, dynamic> json) {
-    // Para simplificar, asumo que Supabase devuelve Map<String, dynamic> 
-    // con nombres de tablas como claves (profesores, aulas, grupo, Asignaturas, horario_tramo)
-    
     final p = json['profesores']?['nombre'] ?? '';
     final a = json['aulas']?['nombre'] ?? '';
     final g = json['grupo']?['nombre'] ?? '';
@@ -25,7 +25,12 @@ class HorarioClaseModel extends HorarioClase {
     final List<String> dias = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
     final String diaNombre = (diaInt >= 1 && diaInt <= 5) ? dias[diaInt] : 'Lunes';
 
+    // es_guardia y nota son opcionales; no se seleccionan para evitar errores si no existen en BD
+    final bool esGuardia = (json['es_guardia'] as bool?) ?? false;
+    final String nota = (json['nota'] as String?) ?? '';
+
     return HorarioClaseModel(
+      id: json['id_horario'] as int? ?? 0,
       profesor: p.toString(),
       aula: a.toString(),
       grupo: g.toString(),
@@ -33,6 +38,8 @@ class HorarioClaseModel extends HorarioClase {
       dia: diaNombre,
       inicio: t['horario_inicio']?.toString() ?? '',
       fin: t['horario_fin']?.toString() ?? '',
+      esGuardia: esGuardia,
+      nota: nota,
     );
   }
 
@@ -45,6 +52,7 @@ class HorarioClaseModel extends HorarioClase {
       'dia': dia,
       'inicio': inicio,
       'fin': fin,
+      'es_guardia': esGuardia,
     };
   }
 }

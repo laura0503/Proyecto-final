@@ -10,13 +10,16 @@ class HorarioRemoteDataSource {
     final response = await _supabase
         .from('horario')
         .select('''
-          id_horario,
+          id_horario:id,
           dia_semana,
+          id_tramo,
+          es_guardia,
+          nota,
           profesores!id_profesor(id_profesor, nombre, departamento),
           Asignaturas!id_asignatura(id_asignaturas, nombre),
           grupo!id_grupo(id_grupo, nombre),
           aulas!id_aula(id_aulas, nombre),
-          horario_tramo(id_horario, texto, horario_inicio, horario_fin, es_guardia, recreo)
+          horario_tramo(id_horario, texto, horario_inicio, horario_fin)
         ''');
     return List<Map<String, dynamic>>.from(response);
   }
@@ -39,7 +42,7 @@ class HorarioRemoteDataSource {
     // Buscamos profesores que tengan una clase en este día y cuyo tramo horario cubra la hora actual
     final response = await _supabase
         .from('horario')
-        .select('id_profesor, horario_tramo!inner(horario_inicio, horario_fin, es_guardia)')
+        .select('id_profesor, es_guardia, horario_tramo!inner(horario_inicio, horario_fin)')
         .eq('dia_semana', dia);
     
     // Filtrado manual en Dart para mayor precisión con strings de hora (HH:mm:ss)
@@ -49,7 +52,7 @@ class HorarioRemoteDataSource {
       if (tramo == null) return false;
       final inicio = tramo['horario_inicio'] as String;
       final fin = tramo['horario_fin'] as String;
-      final esGuardia = tramo['es_guardia'] as bool? ?? false;
+      final esGuardia = row['es_guardia'] as bool? ?? false;
       
       // Si es guardia, cuenta como disponible según requerimiento
       if (esGuardia) return false;

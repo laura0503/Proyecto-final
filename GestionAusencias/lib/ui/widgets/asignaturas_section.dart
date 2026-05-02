@@ -1,6 +1,6 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/asignatura.dart';
 import '../../domain/usecases/get_asignaturas_usecase.dart';
 
@@ -17,16 +17,17 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
   final TextEditingController _searchController = TextEditingController();
   List<Asignatura> _allAsignaturas = [];
   List<Asignatura> _filteredAsignaturas = [];
-  List<String> _availableSubjects = ["Todas"];
-  String _selectedSubjectFilter = "Todas";
-  String? _errorMessage;
   bool _isLoading = true;
+  String? _errorMessage;
+
+  // asignatura_id → lista de grupos únicos
+  Map<int, List<String>> _gruposPorAsignatura = {};
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_applyFilters);
-    _loadAsignaturas();
+    _load();
   }
 
   @override
@@ -36,87 +37,77 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
     super.dispose();
   }
 
-  String _normalize(String text) {
-    return text
-        .toLowerCase()
-        .trim()
-        .replaceAll('á', 'a')
-        .replaceAll('é', 'e')
-        .replaceAll('í', 'i')
-        .replaceAll('ó', 'o')
-        .replaceAll('ú', 'u');
-  }
+  String _norm(String t) => t
+      .toLowerCase()
+      .trim()
+      .replaceAll('á', 'a')
+      .replaceAll('é', 'e')
+      .replaceAll('í', 'i')
+      .replaceAll('ó', 'o')
+      .replaceAll('ú', 'u');
 
   void _applyFilters() {
     if (!mounted) return;
+    final q = _norm(_searchController.text);
     setState(() {
-      _filteredAsignaturas = _allAsignaturas.where((a) {
-        final query = _normalize(_searchController.text);
-        final matchesSearch =
-            query.isEmpty || _normalize(a.nombre).contains(query);
-        final matchesChip =
-            _selectedSubjectFilter == "Todas" ||
-            _normalize(a.nombre) == _normalize(_selectedSubjectFilter);
-        return matchesSearch && matchesChip;
-      }).toList();
-
-      _filteredAsignaturas.sort((a, b) => _normalize(a.nombre).compareTo(_normalize(b.nombre)));
+      _filteredAsignaturas = _allAsignaturas
+          .where((a) => q.isEmpty || _norm(a.nombre).contains(q))
+          .toList()
+        ..sort((a, b) => _norm(a.nombre).compareTo(_norm(b.nombre)));
     });
   }
 
-  void _selectSubject(String subject) {
-    if (_selectedSubjectFilter == subject) return;
-    setState(() {
-      _selectedSubjectFilter = subject;
-      _applyFilters();
-    });
-  }
+  Future<void> _load() async {
+    setState(() { _isLoading = true; _errorMessage = null; });
 
-  Future<void> _loadAsignaturas() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-    final getAsignaturasUseCase = context.read<GetAsignaturasUseCase>();
     try {
-      final list = await getAsignaturasUseCase.call();
-      final listValida = list.where((a) {
+      final useCase = context.read<GetAsignaturasUseCase>();
+      final list = await useCase.call();
+
+      // Filtrar basura
+      final validas = list.where((a) {
         final n = a.nombre.trim().toUpperCase();
         if (n.isEmpty) return false;
         if (n.contains('RECREO') || n.contains('GUARDIA') || n.contains('LECTIVAS') || n == 'VARIOS') return false;
         if (RegExp(r'^\d+$').hasMatch(n)) return false;
-        if (n.replaceAll(RegExp(r'[\-\_\.]'), '').trim().isEmpty) return false;
         if (n.contains(';')) return false;
         if (RegExp(r'^\d{1,2}:\d{2}').hasMatch(n)) return false;
         return true;
       }).toList();
 
-      final uniqueNames = listValida.map((a) => a.nombre).toSet().toList();
-      uniqueNames.sort((a, b) => _normalize(a).compareTo(_normalize(b)));
+      // Obtener grupos desde horario
+      final horarioRows = await Supabase.instance.client
+          .from('horario')
+          .select('id_asignatura, grupo!id_grupo(nombre)')
+          .not('id_asignatura', 'is', null)
+          .not('id_grupo', 'is', null)
+          .neq('es_guardia', true);
 
-      final List<String> subjects = ["Todas", ...uniqueNames];
+      final Map<int, Set<String>> gruposMap = {};
+      for (final row in horarioRows as List) {
+        final asigId = row['id_asignatura'] as int?;
+        final grupoNombre = row['grupo']?['nombre'] as String?;
+        if (asigId == null || grupoNombre == null || grupoNombre.isEmpty) continue;
+        gruposMap.putIfAbsent(asigId, () => {}).add(grupoNombre);
+      }
+      final grupos = gruposMap.map((k, v) => MapEntry(k, v.toList()..sort()));
 
       if (mounted) {
         setState(() {
-          _allAsignaturas = listValida;
-          _availableSubjects = subjects;
+          _allAsignaturas = validas;
+          _gruposPorAsignatura = grupos;
           _isLoading = false;
           _applyFilters();
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = "Error de conexión: $e";
-        });
-      }
+      if (mounted) setState(() { _isLoading = false; _errorMessage = 'Error: $e'; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final textColor = widget.isDark ? Colors.white : Colors.black;
+    final textColor = widget.isDark ? Colors.white : const Color(0xFF1E293B);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,160 +115,78 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
         Row(
           children: [
             Text(
-              "Listado de Asignaturas",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: textColor,
-              ),
+              'Asignaturas',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: textColor),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.orange.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                "${_filteredAsignaturas.length} Entradas",
-                style: TextStyle(
-                  color: textColor.withOpacity(0.8),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
+                '${_filteredAsignaturas.length}',
+                style: const TextStyle(color: Colors.orange, fontSize: 13, fontWeight: FontWeight.w700),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 6),
+        Text(
+          'Cargadas automáticamente desde el horario de Supabase.',
+          style: TextStyle(fontSize: 13, color: textColor.withValues(alpha: 0.5)),
+        ),
+        const SizedBox(height: 20),
 
-        Row(
-          children: [
-            Expanded(
-              flex: 1,
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: widget.isDark
-                        ? Colors.white10
-                        : const Color(0xFFE5E0D8),
-                  ),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: "Buscar asignatura...",
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: textColor.withOpacity(0.5),
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    hintStyle: TextStyle(color: textColor.withOpacity(0.3)),
-                  ),
-                  style: TextStyle(color: textColor),
-                ),
-              ),
+        // Buscador
+        Container(
+          height: 44,
+          decoration: BoxDecoration(
+            color: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: widget.isDark ? Colors.white10 : const Color(0xFFE5E0D8),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 3,
-              child: SizedBox(
-                height: 48,
-                child: ScrollConfiguration(
-                  behavior: ScrollConfiguration.of(context).copyWith(
-                    dragDevices: {
-                      ui.PointerDeviceKind.touch,
-                      ui.PointerDeviceKind.mouse,
-                      ui.PointerDeviceKind.trackpad,
-                    },
-                  ),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Row(
-                      children: _availableSubjects.map((subject) {
-                        return _buildFilterChip(
-                          subject,
-                          _selectedSubjectFilter == subject,
-                          widget.isDark,
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ),
+          ),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Buscar asignatura...',
+              prefixIcon: Icon(Icons.search_rounded, color: textColor.withValues(alpha: 0.4), size: 20),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              hintStyle: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 14),
             ),
-          ],
+            style: TextStyle(color: textColor, fontSize: 14),
+          ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 28),
 
         if (_isLoading)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: CircularProgressIndicator(),
-            ),
-          )
+          const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
         else if (_errorMessage != null)
           Center(
-            child: Column(
-              children: [
-                const Icon(Icons.cloud_off_rounded, size: 64, color: Colors.redAccent),
-                const SizedBox(height: 16),
-                Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
-                const SizedBox(height: 16),
-                ElevatedButton(onPressed: _loadAsignaturas, child: const Text("Reintentar")),
-              ],
-            ),
+            child: Column(children: [
+              const Icon(Icons.cloud_off_rounded, size: 48, color: Colors.redAccent),
+              const SizedBox(height: 12),
+              Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+              const SizedBox(height: 12),
+              ElevatedButton(onPressed: _load, child: const Text('Reintentar')),
+            ]),
           )
         else if (_filteredAsignaturas.isEmpty)
           Center(
             child: Padding(
               padding: const EdgeInsets.all(40),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.auto_stories_rounded,
-                      size: 64,
-                      color: widget.isDark ? Colors.white24 : Colors.black26,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    _searchController.text.isEmpty 
-                      ? "Aún no hay asignaturas" 
-                      : "No hay resultados para tu búsqueda",
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _searchController.text.isEmpty
-                      ? "El listado de asignaturas está vacío. Asegúrate de haber importado los datos correctamente desde la gestión de horarios."
-                      : "Prueba a buscar con otros términos o limpia los filtros.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: textColor.withOpacity(0.6),
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
-              ),
+              child: Column(children: [
+                Icon(Icons.auto_stories_rounded, size: 56, color: textColor.withValues(alpha: 0.2)),
+                const SizedBox(height: 16),
+                Text(
+                  _searchController.text.isEmpty ? 'Sin asignaturas' : 'Sin resultados',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                ),
+              ]),
             ),
           )
         else
@@ -285,134 +194,103 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              crossAxisSpacing: 20,
-              mainAxisSpacing: 20,
-              childAspectRatio: 1.2, // Reducido de 1.5 a 1.2 para dar más altura y evitar el desbordamiento
+              crossAxisCount: 4,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.1,
             ),
             itemCount: _filteredAsignaturas.length,
-            itemBuilder: (context, index) {
-              final a = _filteredAsignaturas[index];
-              return _buildModernAsignaturaCard(context, a, widget.isDark);
-            },
+            itemBuilder: (context, i) => _AsignaturaCard(
+              asignatura: _filteredAsignaturas[i],
+              grupos: _gruposPorAsignatura[_filteredAsignaturas[i].id] ?? [],
+              isDark: widget.isDark,
+            ),
           ),
       ],
     );
   }
+}
 
-  Widget _buildFilterChip(String label, bool isSelected, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (val) => _selectSubject(label),
-        backgroundColor: isDark
-            ? Colors.white.withOpacity(0.05)
-            : const Color(0xFFEBE6DF),
-        selectedColor: const Color(0xFF007AFF),
-        labelStyle: TextStyle(
-          color: isSelected
-              ? Colors.white
-              : (isDark ? Colors.white70 : const Color(0xFF4A443C)),
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide.none,
-        ),
-        showCheckmark: false,
-      ),
-    );
-  }
+class _AsignaturaCard extends StatelessWidget {
+  final Asignatura asignatura;
+  final List<String> grupos;
+  final bool isDark;
 
-  Widget _buildModernAsignaturaCard(
-    BuildContext context,
-    Asignatura a,
-    bool isDark,
-  ) {
-    final cardBgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF4A443C);
-    final iconColor = isDark ? Colors.orangeAccent : Colors.orange;
+  const _AsignaturaCard({
+    required this.asignatura,
+    required this.grupos,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
+    final subColor = isDark ? Colors.white54 : Colors.grey[600];
 
     return Container(
       decoration: BoxDecoration(
-        color: cardBgColor,
-        borderRadius: BorderRadius.circular(24),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
         border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
         ),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // REDISEÑO RESTAURADO: Icono circular naranja un poco más pequeño para evitar overflow
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: Colors.orange.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.auto_stories_rounded, color: iconColor, size: 20),
+            child: const Icon(Icons.auto_stories_rounded, color: Colors.orange, size: 20),
           ),
           const SizedBox(height: 8),
           Text(
-            a.nombre,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
+            asignatura.nombre,
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textColor),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 8),
-          // Chip de Departamento
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.purple.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.business_rounded,
-                  size: 10,
-                  color: Colors.purple[700],
+          const SizedBox(height: 6),
+          // Grupos / cursos
+          if (grupos.isNotEmpty)
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              alignment: WrapAlignment.center,
+              children: grupos.take(3).map((g) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF354231).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  a.departamento,
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: Colors.purple[800],
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Text(
+                  g,
+                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF354231)),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
+              )).toList(),
+            )
+          else
+            Text('Sin grupo asignado', style: TextStyle(fontSize: 10, color: subColor)),
+          const SizedBox(height: 4),
           Text(
-            "ID: ${a.id}",
-            style: TextStyle(
-              fontSize: 11,
-              color: textColor.withOpacity(0.4),
-              fontWeight: FontWeight.w500,
-            ),
+            asignatura.departamento,
+            style: TextStyle(fontSize: 10, color: subColor),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

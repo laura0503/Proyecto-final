@@ -22,6 +22,8 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
   List<Profesor> _allProfesores = [];
   List<Profesor> _filteredProfesores = [];
   bool _isLoading = true;
+  bool _mostrandoDuplicados = false;
+  List<List<Profesor>> _gruposDuplicados = [];
 
   @override
   void initState() {
@@ -61,6 +63,32 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
         return p.nombre.toLowerCase().contains(query);
       }).toList();
       _filteredProfesores.sort((a, b) => a.nombre.compareTo(b.nombre));
+    });
+  }
+
+  void _calcularDuplicados() {
+    String norm(String s) => s
+        .toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ü', 'u')
+        .replaceAll('ñ', 'n')
+        .replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+    final Map<String, List<Profesor>> grupos = {};
+    for (final p in _allProfesores) {
+      final key = norm(p.nombre);
+      grupos.putIfAbsent(key, () => []).add(p);
+    }
+    setState(() {
+      _mostrandoDuplicados = true;
+      _gruposDuplicados = grupos.values
+          .where((g) => g.length > 1)
+          .toList()
+        ..sort((a, b) => a.first.nombre.compareTo(b.first.nombre));
     });
   }
 

@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
-
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:gestion_ausencias/core/layout/app_breakpoints.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_profesores_ocupados_usecase.dart';
 import '../providers/config_provider.dart';
 import '../providers/notification_provider.dart';
-
 import 'package:gestion_ausencias/ui/utils/app_strings.dart';
 import 'package:gestion_ausencias/ui/screens/settings_screen.dart';
-import 'package:gestion_ausencias/ui/screens/guardias_screen.dart';
 import 'package:gestion_ausencias/ui/screens/planning_screen.dart';
 import 'package:gestion_ausencias/ui/screens/profesor_screen.dart';
 import 'package:gestion_ausencias/ui/screens/admin_screen.dart';
 import '../widgets/home/home_header.dart';
-import '../widgets/home/home_info_card.dart';
-import '../widgets/home/home_department_list.dart';
+import '../widgets/home/home_kpi_row.dart';
+import '../widgets/home/home_estado_dia.dart';
+import '../widgets/home/home_asignacion.dart';
+import '../widgets/home/home_alertas.dart';
 
 class MainLayout extends StatefulWidget {
   final VoidCallback onLogout;
@@ -30,18 +32,10 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
-  String _departamentoSeleccionado = 'Todos';
 
   @override
   void initState() {
     super.initState();
-    // Initialize department if user is logged in
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = context.read<AuthProvider>().profesorActual;
-      if (user != null) {
-        setState(() => _departamentoSeleccionado = user.departamento);
-      }
-    });
   }
 
   // Colores: Verde Musgo y Crema
@@ -50,7 +44,7 @@ class _MainLayoutState extends State<MainLayout> {
   final Color backgroundColor = const Color(0xFFF9F7F2);
 
   void _irAPagina(int index) {
-    if (index >= 4) return;
+    if (index >= 3) return;
     setState(() => _selectedIndex = index);
     _pageController.jumpToPage(index);
   }
@@ -66,15 +60,9 @@ class _MainLayoutState extends State<MainLayout> {
         ? const Color(0xFF1E293B).withOpacity(0.7)
         : Colors.white.withOpacity(0.7);
 
-    final List<Widget> _screens = [
-      HomeContent(
-        onNavigate: _irAPagina,
-        departamentoSeleccionado: _departamentoSeleccionado,
-        onDepartamentoChanged: (dep) =>
-            setState(() => _departamentoSeleccionado = dep),
-      ),
+    final List<Widget> screens = [
+      const HomeContent(),
       const PlanningScreen(),
-      const GuardiasScreen(),
       const ProfesoresScreen(),
     ];
 
@@ -117,24 +105,19 @@ class _MainLayoutState extends State<MainLayout> {
                           1,
                         ),
                         _sidebarItem(
-                          Icons.shield_rounded,
-                          AppStrings.get(context, 'guardias'),
-                          2,
-                        ),
-                        _sidebarItem(
                           Icons.people_alt_rounded,
                           AppStrings.get(context, 'profesores'),
-                          3,
+                          2,
                         ),
                         _sidebarItem(
                           Icons.admin_panel_settings_rounded,
                           AppStrings.get(context, 'admin'),
-                          4,
+                          3,
                         ),
                         _sidebarItem(
                           Icons.settings_rounded,
                           AppStrings.get(context, 'ajustes'),
-                          5,
+                          4,
                         ),
                         const SizedBox(height: 30),
                       ],
@@ -149,7 +132,7 @@ class _MainLayoutState extends State<MainLayout> {
                   physics: const NeverScrollableScrollPhysics(),
                   onPageChanged: (index) =>
                       setState(() => _selectedIndex = index),
-                  children: _screens,
+                  children: screens,
                 ),
               ),
             ],
@@ -197,14 +180,14 @@ class _MainLayoutState extends State<MainLayout> {
         child: InkWell(
           onTap: isLogout
               ? widget.onLogout
-              : (index == 4
+              : (index == 3
                     ? () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const AdminScreen(),
                         ),
                       )
-                    : (index == 5
+                    : (index == 4
                           ? () => Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -250,99 +233,96 @@ class _MainLayoutState extends State<MainLayout> {
   }
 }
 
-class HomeContent extends StatelessWidget {
-  final Function(int) onNavigate;
-  final String departamentoSeleccionado;
-  final Function(String) onDepartamentoChanged;
+class HomeContent extends StatefulWidget {
+  const HomeContent({super.key});
 
-  const HomeContent({
-    super.key,
-    required this.onNavigate,
-    required this.departamentoSeleccionado,
-    required this.onDepartamentoChanged,
-  });
+  @override
+  State<HomeContent> createState() => _HomeContentState();
+}
 
-  void _mostrarNotificaciones(
-    BuildContext context,
-    NotificationProvider provider,
-  ) {
+class _HomeContentState extends State<HomeContent> {
+  List<Profesor> _profesores = [];
+  List<int> _idsOcupados = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    try {
+      final ahora = DateTime.now();
+      final hora = DateFormat('HH:mm:ss').format(ahora);
+      final dia = ahora.weekday;
+      final results = await Future.wait([
+        context.read<GetProfesoresUseCase>().execute(),
+        context.read<GetProfesoresOcupadosUseCase>().execute(dia, hora),
+      ]);
+      if (mounted) {
+        setState(() {
+          _profesores = results[0] as List<Profesor>;
+          _idsOcupados = results[1] as List<int>;
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _mostrarNotificaciones(BuildContext ctx, NotificationProvider provider) {
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: ctx,
+      builder: (_) => AlertDialog(
         title: const Text('Notificaciones'),
         content: SizedBox(
           width: double.maxFinite,
           child: provider.notifications.isEmpty
               ? const Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: Text(
-                    'No tienes notificaciones nuevas',
-                    textAlign: TextAlign.center,
-                  ),
+                  padding: EdgeInsets.all(20),
+                  child: Text('No tienes notificaciones nuevas', textAlign: TextAlign.center),
                 )
               : ListView.builder(
                   shrinkWrap: true,
                   itemCount: provider.notifications.length,
-                  itemBuilder: (context, index) {
+                  itemBuilder: (_, index) {
                     final n = provider.notifications[index];
                     return ListTile(
                       leading: Icon(
-                        n.isRead
-                            ? Icons.mark_chat_read
-                            : Icons.mark_chat_unread,
+                        n.isRead ? Icons.mark_chat_read : Icons.mark_chat_unread,
                         color: n.isRead ? Colors.grey : Colors.indigo,
                       ),
                       title: Text(n.title),
                       subtitle: Text(n.message),
-                      onTap: () {
-                        provider.markAsRead(n.id);
-                        Navigator.pop(context);
-                      },
+                      onTap: () { provider.markAsRead(n.id); Navigator.pop(ctx); },
                     );
                   },
                 ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar'))],
       ),
     );
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-    // Access providers
-    final authProvider = context.watch<AuthProvider>();
-    final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF354231)));
+    }
 
-    // Using FutureBuilder to get professors is okay, but ideally this should be moved to a Provider/ViewModel
-    return FutureBuilder<List<Profesor>>(
-      future: getProfesoresUseCase.execute(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox();
+    final usuario = context.watch<AuthProvider>().profesorActual;
+    final nombre = usuario?.nombre ?? 'Profesor';
+    final ausentes = _profesores.where((p) => p.estadoAusente).toList();
+    final total = _profesores.length;
+    final eficiencia = total > 0 ? ((total - ausentes.length) / total * 100).round() : 100;
 
-        final usuario = authProvider.profesorActual;
-        final todosProfesores = snapshot.data!;
-        final nombre = usuario?.nombre ?? "Profesor";
-
-        // Departamentos únicos (base de datos + predefinidos)
-        final depsFromDB = todosProfesores.map((p) => p.departamento).toSet();
-        final List<String> todosDepartamentos = [
-          'Todos',
-          'General', // Siempre presente por petición del usuario
-          ...depsFromDB.where((d) => d != 'General' && d != 'Todos'),
-          ...HomeDepartmentList.depIcons.keys.where(
-            (k) => k != 'Todos' && k != 'General' && !depsFromDB.contains(k),
-          ),
-        ];
-
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final padding = constraints.maxWidth < AppBreakpoints.mobile ? 20.0 : 32.0;
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(40),
+          padding: EdgeInsets.all(padding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -351,65 +331,23 @@ class HomeContent extends StatelessWidget {
                 usuario: usuario,
                 onShowNotifications: _mostrarNotificaciones,
               ),
-              const SizedBox(height: 30),
-
-              // Fila de 3 tarjetas de información principales
-              Row(
-                children: [
-                  HomeInfoCard(
-                    title: AppStrings.get(context, 'planning'),
-                    subtitle: AppStrings.get(context, 'ausencias_hoy'),
-                    icon: Icons.calendar_month_outlined,
-                    color: const Color(0xFF6C63FF),
-                    onTap: () => onNavigate(1),
-                    gradient: [
-                      const Color(0xFF6C63FF),
-                      const Color(0xFF9FA8DA).withOpacity(0.8),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  HomeInfoCard(
-                    title: AppStrings.get(context, 'guardias'),
-                    subtitle: AppStrings.get(context, 'pendientes'),
-                    icon: Icons.shield_outlined,
-                    color: const Color(0xFFFFA726),
-                    onTap: () => onNavigate(2),
-                    gradient: const [
-                      Color(0xFFFFA726),
-                      Color(0xFFFFCC80),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  HomeInfoCard(
-                    title: AppStrings.get(context, 'departamentos'),
-                    subtitle: "${todosDepartamentos.length - 1} ${AppStrings.get(context, 'areas')}",
-                    icon: Icons.grid_view_rounded,
-                    color: const Color(0xFF66BB6A),
-                    onTap: () {},
-                    gradient: const [
-                      Color(0xFF66BB6A),
-                      Color(0xFFA5D6A7),
-                    ],
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 48),
-              Text(
-                AppStrings.get(context, 'dptos_personal'),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF354231),
-                ),
+              const SizedBox(height: 24),
+              HomeKpiRow(
+                ausentes: ausentes.length,
+                retrasos: 0,
+                sustitutos: _idsOcupados.length,
+                eficiencia: eficiencia,
               ),
               const SizedBox(height: 20),
-
-              // Lista vertical de departamentos con avatares de sus profesores
-              HomeDepartmentList(
-                departamentos: todosDepartamentos,
-                profesores: todosProfesores,
+              HomeEstadoDia(
+                profesores: _profesores,
+                idsOcupados: _idsOcupados,
               ),
+              const SizedBox(height: 20),
+              HomeAsignacion(ausentes: ausentes),
+              const SizedBox(height: 20),
+              const HomeAlertas(),
+              const SizedBox(height: 32),
             ],
           ),
         );

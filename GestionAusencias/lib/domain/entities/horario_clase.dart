@@ -1,4 +1,5 @@
 class HorarioClase {
+  final int id;
   final String profesor;
   final String aula;
   final String grupo;
@@ -6,8 +7,11 @@ class HorarioClase {
   final String dia;
   final String inicio;
   final String fin;
+  final bool esGuardia;
+  final String nota;
 
   HorarioClase({
+    this.id = 0,
     required this.profesor,
     required this.aula,
     required this.grupo,
@@ -15,5 +19,7 @@ class HorarioClase {
     required this.dia,
     required this.inicio,
     required this.fin,
+    this.esGuardia = false,
+    this.nota = '',
   });
 }

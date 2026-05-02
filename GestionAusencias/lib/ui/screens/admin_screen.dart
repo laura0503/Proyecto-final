@@ -9,6 +9,7 @@ import '../widgets/aulas_section.dart';
 import '../widgets/grupo_section.dart';
 import '../widgets/asignaturas_section.dart';
 import '../widgets/admin_profesores_section.dart';
+import '../widgets/importar_horarios_section.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -147,6 +148,16 @@ class _AdminScreenState extends State<AdminScreen> {
                                     });
                                   },
                                 ),
+                                _buildSidebarItem(
+                                  icon: Icons.upload_file_rounded,
+                                  text: 'Importar CSV',
+                                  isSelected: _selectedSection == 'Importar',
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedSection = 'Importar';
+                                    });
+                                  },
+                                ),
                             ],
                           ),
                         ),
@@ -201,18 +212,15 @@ class _AdminScreenState extends State<AdminScreen> {
   }
 
   Widget _buildSelectedSection(bool isDark) {
-    if (_selectedSection == 'GestionProf')
-      return AdminProfesoradoSection(isDark: isDark);
-    else if (_selectedSection == 'Profesores')
-      return ProfesoresSection(isDark: isDark);
-    else if (_selectedSection == 'Horarios')
-      return HorariosSection(isDark: isDark);
-    else if (_selectedSection == 'Aulas')
-      return AulasSection(isDark: isDark);
-    else if (_selectedSection == 'Grupos')
-      return GrupoSection(isDark: isDark);
-    else
-      return AsignaturasSection(isDark: isDark);
+    return switch (_selectedSection) {
+      'GestionProf' => AdminProfesoradoSection(isDark: isDark),
+      'Profesores'  => ProfesoresSection(isDark: isDark),
+      'Horarios'    => HorariosSection(isDark: isDark),
+      'Aulas'       => AulasSection(isDark: isDark),
+      'Grupos'      => GrupoSection(isDark: isDark),
+      'Importar'    => ImportarHorariosSection(isDark: isDark),
+      _             => AsignaturasSection(isDark: isDark),
+    };
   }
 
   Widget _buildSidebarHeader(Color textColor) {

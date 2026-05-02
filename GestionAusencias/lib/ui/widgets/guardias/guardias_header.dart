@@ -1,48 +1,88 @@
 import 'package:flutter/material.dart';
-import '../../screens/settings_screen.dart';
 
 class GuardiasHeader extends StatelessWidget {
   final Color primaryColor;
-  final Color cardColor;
+  final VoidCallback onAddPressed;
 
   const GuardiasHeader({
     super.key,
     required this.primaryColor,
-    required this.cardColor,
+    required this.onAddPressed,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 50, 20, 10),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Guardias',
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Icon(Icons.grid_view_rounded, color: Colors.indigo, size: 28),
+              Row(
+                children: [
+                  const Icon(Icons.search_rounded, color: Colors.black54),
+                  const SizedBox(width: 16),
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Text(
+                        "JD",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 30),
+          const Text(
+            'Gestión de Guardias',
             style: TextStyle(
               fontWeight: FontWeight.w900,
-              fontSize: 24,
-              color: primaryColor,
+              fontSize: 32,
+              color: Color(0xFF1E293B),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            color: primaryColor,
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+          const SizedBox(height: 8),
+          Text(
+            'Control centralizado de ausencias y sustituciones docentes.',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black54.withOpacity(0.7),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: ElevatedButton.icon(
+              onPressed: onAddPressed,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'Nueva Guardia',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
             ),
           ),
         ],

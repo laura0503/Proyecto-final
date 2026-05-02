@@ -3,6 +3,7 @@ import 'package:gestion_ausencias/domain/entities/profesor.dart';
 class ProfesorModel extends Profesor {
   const ProfesorModel({
     required super.id,
+    super.idProfesor,
     required super.nombre,
     required super.asignatura,
     required super.curso,
@@ -15,11 +16,13 @@ class ProfesorModel extends Profesor {
     super.ubicacionActual,
     super.estadoActual,
     super.karma = 0.0,
+    super.esGuardia = false,
   });
 
   factory ProfesorModel.fromJson(Map<String, dynamic> json) {
     return ProfesorModel(
       id: json['id']?.toString() ?? '',
+      idProfesor: json['id_profesor'] as int?,
       nombre: json['nombre'] ?? '',
       asignatura: json['asignatura'] ?? '',
       curso: json['curso'] ?? '',
@@ -32,12 +35,14 @@ class ProfesorModel extends Profesor {
       ubicacionActual: json['ubicacion_actual']?.toString(),
       estadoActual: json['estado_actual']?.toString(),
       karma: (json['karma'] ?? 0).toDouble(),
+      esGuardia: json['es_guardia'] as bool? ?? false,
     );
   }
 
   factory ProfesorModel.fromEntity(Profesor profesor) {
     return ProfesorModel(
       id: profesor.id,
+      idProfesor: profesor.idProfesor,
       nombre: profesor.nombre,
       asignatura: profesor.asignatura,
       curso: profesor.curso,
@@ -50,6 +55,7 @@ class ProfesorModel extends Profesor {
       ubicacionActual: profesor.ubicacionActual,
       estadoActual: profesor.estadoActual,
       karma: profesor.karma,
+      esGuardia: profesor.esGuardia,
     );
   }
 
@@ -68,6 +74,7 @@ class ProfesorModel extends Profesor {
       'ubicacion_actual': ubicacionActual,
       'estado_actual': estadoActual,
       'karma': karma,
+      'es_guardia': esGuardia,
     };
   }
 

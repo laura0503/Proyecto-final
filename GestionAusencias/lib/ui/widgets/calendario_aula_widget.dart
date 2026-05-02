@@ -26,41 +26,38 @@ class CalendarioAulaWidget extends StatelessWidget {
       '19:15:00': '20:10:00',
       '20:10:00': '21:10:00',
       '21:10:00': '21:45:00',
-    }; 
-    
+    };
+
     // Obtenemos además cualquier otro tramo puntual que venga en el horario
     for (var h in horario) {
-      // Supabase a veces manda 16:00 en lugar de 16:00:00
-      String inicio = h.inicio;
-      String fin = h.fin;
-      if (inicio.length == 5) inicio = '$inicio:00';
-      if (fin.length == 5) fin = '$fin:00';
-      
-      tramosMap[inicio] = fin;
+      tramosMap[_normalizeTime(h.inicio)] = _normalizeTime(h.fin);
     }
     final tramosSorted = tramosMap.keys.toList()..sort();
 
     // Estructura de datos: tramo -> dia -> clase
     final matrix = <String, Map<String, HorarioClase>>{};
     for (var h in horario) {
-      String inicio = h.inicio;
-      if (inicio.length == 5) inicio = '$inicio:00';
+      final inicio = _normalizeTime(h.inicio);
       
       matrix.putIfAbsent(inicio, () => {});
       if (matrix[inicio]!.containsKey(h.dia)) {
         // En caso de desdoble o mezclas donde la misma profe da varios grupos a la vez, concatenar.
         final existente = matrix[inicio]![h.dia]!;
-        if (!existente.grupo.contains(h.grupo)) {
-            matrix[inicio]![h.dia] = HorarioClase(
-              profesor: existente.profesor,
-              aula: existente.aula,
-              grupo: '${existente.grupo}\n${h.grupo}',
-              asignatura: existente.asignatura,
-              dia: existente.dia,
-              inicio: existente.inicio,
-              fin: existente.fin,
-            );
-        }
+        final esNuevaGuardia = h.esGuardia;
+        final yaEsGuardia = existente.esGuardia;
+        
+        matrix[inicio]![h.dia] = HorarioClase(
+          id: existente.id,
+          profesor: existente.profesor,
+          aula: existente.aula,
+          grupo: existente.grupo.contains(h.grupo) ? existente.grupo : '${existente.grupo}\n${h.grupo}',
+          asignatura: (existente.asignatura == h.asignatura) ? existente.asignatura : '${existente.asignatura} / ${h.asignatura}',
+          dia: existente.dia,
+          inicio: existente.inicio,
+          fin: existente.fin,
+          esGuardia: yaEsGuardia || esNuevaGuardia,
+          nota: existente.nota,
+        );
       } else {
         matrix[inicio]![h.dia] = h;
       }
@@ -174,12 +171,13 @@ class CalendarioAulaWidget extends StatelessWidget {
                                 for (var i = 0; i < dias.length; i++)
                                   DataCell(
                                     Center(
-                                      child: isRecreo 
-                                        ? (i == 2 // Miércoles
+                                      child: isRecreo
+                                        ? (i == 2
                                             ? Text('RECREO', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[800], letterSpacing: 4.0))
                                             : const SizedBox.shrink())
-                                        : _buildCell(matrix[tramo]?[dias[i]], isRecreo, commonGroup, correctTeachers)
-                                    )
+                                        : _buildCell(matrix[tramo]?[dias[i]], isRecreo, commonGroup, correctTeachers),
+                                    ),
+                                    onTap: null,
                                   ),
                               ]
                             );
@@ -195,6 +193,14 @@ class CalendarioAulaWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _normalizeTime(String t) {
+    if (t.isEmpty) return '00:00:00';
+    final p = t.split(':');
+    final h = p[0].padLeft(2, '0');
+    final m = (p.length > 1 ? p[1] : '00').padLeft(2, '0');
+    return '$h:$m:00';
   }
 
   String _formatProfesorName(String raw) {
@@ -218,13 +224,47 @@ class CalendarioAulaWidget extends StatelessWidget {
   Widget _buildCell(HorarioClase? clase, bool isRecreo, String defaultGroup, Map<String, String> correctTeachers) {
     if (clase == null) {
       if (isRecreo) return const SizedBox.shrink();
-      return Text("Libre", style: TextStyle(color: Colors.black26, fontStyle: FontStyle.italic, fontSize: 12));
+      return const Text('Libre', style: TextStyle(color: Colors.black26, fontStyle: FontStyle.italic, fontSize: 12));
     }
-    
+
+    // Celda de GUARDIA — amarillo/ámbar destacado
+    if (clase.esGuardia) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        width: 150,
+        decoration: BoxDecoration(
+          color: Colors.amber.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.amber[700]!, width: 2),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.security_rounded, color: Colors.amber[800], size: 20),
+            const SizedBox(height: 4),
+            Text(
+              'GUARDIA',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.amber[900], letterSpacing: 1),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _formatProfesorName(clase.profesor),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 10, color: Colors.amber[900]?.withOpacity(0.8)),
+            ),
+          ],
+        ),
+      );
+    }
+
     // Limpiamos los textos basura del CSV en el campo grupo
     String displayGroup = clase.grupo;
     if (displayGroup.contains(';') || displayGroup.toLowerCase().contains('recreo') || displayGroup.length > 45) {
-      displayGroup = defaultGroup.isNotEmpty ? defaultGroup : "Asignado";
+      displayGroup = defaultGroup.isNotEmpty ? defaultGroup : 'Asignado';
     }
 
     // Corregimos nombres de profesores que quedaron mezclados en el CSV
@@ -232,13 +272,13 @@ class CalendarioAulaWidget extends StatelessWidget {
     if (displayTeacher.contains(';') || displayTeacher.isEmpty) {
       displayTeacher = correctTeachers[clase.asignatura] ?? displayTeacher;
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       width: 150,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.6), // Cajas de asignaturas en cristal blanco
-        borderRadius: BorderRadius.circular(16), 
+        color: Colors.white.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -246,34 +286,34 @@ class CalendarioAulaWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            clase.asignatura, 
-            textAlign: TextAlign.center, 
-            maxLines: 1, 
-            overflow: TextOverflow.ellipsis, 
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.black87)
+            clase.asignatura,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.black87),
           ),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9), // Fondo del grupo sólido/limpio
+              color: Colors.white.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              displayGroup, 
-              textAlign: TextAlign.center, 
-              maxLines: 2, 
-              overflow: TextOverflow.ellipsis, 
-              style: const TextStyle(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.bold)
+              displayGroup,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            _formatProfesorName(displayTeacher), 
-            textAlign: TextAlign.center, 
-            maxLines: 1, 
-            overflow: TextOverflow.ellipsis, 
-            style: const TextStyle(fontSize: 11, color: Colors.black54)
+            _formatProfesorName(displayTeacher),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, color: Colors.black54),
           ),
         ],
       ),

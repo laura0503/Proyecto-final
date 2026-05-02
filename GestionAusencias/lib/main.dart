@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:io';
 // ─── Data Sources ───
 import 'package:gestion_ausencias/data/datasources/profesor_remote_datasource.dart';
 import 'package:gestion_ausencias/data/datasources/horario_remote_datasource.dart';
@@ -92,24 +92,30 @@ void main() async {
   final horarioImporter = HorarioImporter();
   final supabaseService = SupabaseService(supabase);
 
-  // --- MOTOR DE INTEGRIDAD AUTOMÁTICO AL INICIAR LA APP ---
-  try {
-    final List<String> aulasAParchear = ['122_8.csv', '205_11.csv', '208_13.csv'];
-    for (var file in aulasAParchear) {
-      final path = 'assets/csv/$file';
-      if (await File(path).exists()) {
-        final content = await File(path).readAsString();
-        await horarioImporter.subirASupabase(content);
+  // --- AUTO-IMPORTACIÓN EN SEGUNDO PLANO (no bloquea el arranque) ---
+  Future(() async {
+    try {
+      final rows = await supabase.from('horario').select().limit(1);
+      if ((rows as List).isNotEmpty) return;
+
+      final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+      final csvKeys = manifest
+          .listAssets()
+          .where((k) => k.startsWith('assets/csv/') && k.endsWith('.csv'))
+          .toList();
+
+      for (final key in csvKeys) {
+        try {
+          final content = await rootBundle.loadString(key);
+          await horarioImporter.subirASupabase(content);
+        } catch (_) {}
       }
+      // Sincronización pesada de departamentos una sola vez tras procesar todos los archivos
+      await horarioImporter.sincronizarTodo();
+    } catch (e) {
+      print("ERROR en auto-importación: $e");
     }
-    
-    // Sintonía final: Purga basura y deduce departamentos automáticamente
-    await horarioImporter.sincronizarTodo();
-    
-    print("✅ MOTOR DE INTEGRIDAD: Aulas críticas parcheadas y base de datos saneada.");
-  } catch (e) {
-    print("Aviso: Error en el motor de integridad inicial: $e");
-  }
+  });
 
   // 4. Ejecutar la app con inyección de dependencias
   runApp(

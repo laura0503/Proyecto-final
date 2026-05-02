@@ -26,8 +26,10 @@ class HorarioImporter implements IHorarioImporter {
     'Educación Física': ['EDUCACIÓN FÍSICA', 'EF', 'EDF'],
     'Latín y Griego': ['LATÍN', 'GRIEGO', 'LAT', 'GRI'],
     'Economía': ['ECONOMÍA', 'ECO'],
+    'Guardia': ['GUARDIA', 'GDIA', 'GDA', 'VIGILANCIA'],
   };
 
+  /// Sincroniza todas las relaciones y estados derivados.
   Future<void> sincronizarTodo() async {
     // 1. Ejecutar Purga de Basura primero
     await purgeGarbage();
@@ -196,10 +198,15 @@ class HorarioImporter implements IHorarioImporter {
 
   bool _esBasura(String s) {
     if (s.isEmpty || s == ".." || s == ".") return true;
-    if (RegExp(r'^\d{2}:\d{2}').hasMatch(s)) return true; // Es una hora, no un nombre
+    if (RegExp(r'^\d{2}:\d{2}').hasMatch(s)) return true;
     final lower = s.toLowerCase();
-    if (lower == "recreo" || lower.contains("lectivas") || lower == "guardia") return true;
+    if (lower == "recreo" || lower.contains("lectivas")) return true;
     return false;
+  }
+
+  bool _esNombreLargo(String s) {
+    // Nombre largo si tiene espacios Y más de 15 chars (ej: "Aplicaciones Ofimáticas")
+    return s.length > 15 && s.contains(' ') && !RegExp(r'^\d').hasMatch(s);
   }
 
   Future<void> subirASupabase(String csvContent) async {
@@ -283,6 +290,7 @@ class HorarioImporter implements IHorarioImporter {
       context = CsvContext.aula;
       await _getOrCreateId('aulas', 'id_aulas', {'nombre': name});
       
+      /* 
       // LOGICA EXCLUSIVA: Si es el CSV de 122, 205, o 208, borramos la basura previa.
       if (name == "122" || name == "205" || name == "208") {
         try {
@@ -290,6 +298,7 @@ class HorarioImporter implements IHorarioImporter {
            if (aResult != null) await _supabase.from('horario').delete().eq('id_aula', aResult['id_aulas']);
         } catch (_) {}
       }
+      */
     } else {
       if (row0.length < 2 || row0.contains('---')) return;
       context = CsvContext.grupo;
@@ -299,9 +308,6 @@ class HorarioImporter implements IHorarioImporter {
     await _importarMaestrosDesdeResumen(rows, context, name);
     final records = _parsearCsvFilas(rows, name, context);
     if (records.isNotEmpty) await _importarRelacionesASupabase(records, context);
-    
-    // AUTOMATIZACIÓN NATIVA: Después de cada importación, auto-sincronizamos departamentos
-    await sincronizarTodo();
   }
 
   Future<void> _importarMaestrosDesdeResumen(List<List<dynamic>> rows, CsvContext context, String row0) async {
@@ -340,6 +346,9 @@ class HorarioImporter implements IHorarioImporter {
             nombreAsignatura = nombreAsignatura.split(';').last.trim();
           }
         }
+
+        // Nunca guardar nombres largos en Asignaturas — solo abreviaciones
+        if (_esNombreLargo(nombreAsignatura)) continue;
 
         if (_esCadenaValida(nombreAsignatura)) {
             await _getOrCreateId('Asignaturas', 'id_asignaturas', {'nombre': nombreAsignatura});
@@ -381,20 +390,23 @@ class HorarioImporter implements IHorarioImporter {
         if (row.isEmpty) continue;
         final tramoTexto = row[0].toString().trim();
         if (tramoTexto.toLowerCase().contains("lectivas")) break;
-        if (tramoTexto.isEmpty) continue; // Antes era break, y cortaba en el recreo!
         final tramoLines = tramoTexto.split('\n').where((s) => s.trim().isNotEmpty).toList();
         String? hInicio, hFin;
-        if (tramoLines.length >= 2) { 
+
+        // Soporte para tramos de RECREO sin horas explícitas
+        if (tramoTexto.toUpperCase().contains('RECREO') || (tramoTexto.isEmpty && i > 2)) {
+          hInicio = "19:00";
+          hFin = "19:15";
+        } else if (tramoLines.length >= 2) { 
           hInicio = tramoLines[0].trim(); 
           hFin = tramoLines[1].trim(); 
 
           // Traductor normalizador CSV -> Tramos Base de Datos
           if (hInicio == "20:10" && hFin == "21:05") hFin = "21:10";
           if (hInicio == "21:05" && hFin == "22:00") { hInicio = "21:10"; hFin = "21:45"; }
-          if (hInicio == "18:00" && hFin == "19:00") {
-            // Nota: En DB el tramo 3 (18:00) a veces está como 18:00-18:00. Ocuparemos 18:00-19:00 (id 101 existe)
-          }
         }
+
+        if (hInicio == null || hFin == null) continue; // Si no hay hora, no podemos importar el bloque
 
         for (int diaIndice = 1; diaIndice <= 5; diaIndice++) {
           if (diaIndice >= row.length) break;
@@ -411,10 +423,53 @@ class HorarioImporter implements IHorarioImporter {
             final String primeraLinea = lines[0];
             String asignatura = primeraLinea;
 
+            // Detectar celda de GUARDIA de forma flexible
+            final bool esGuardia = lines.any((l) {
+              final val = l.toLowerCase();
+              return val.contains('guardia') || 
+                     val.contains('patio') ||
+                     val.contains('vigilancia') ||
+                     val.contains('g.p.') ||
+                     val.contains('g.d.') ||
+                     val.contains('g.m.') ||
+                     val.contains('g.v.') ||
+                     val == 'g' || 
+                     val == 'g.' || 
+                     val.startsWith('guard.');
+            });
+            if (esGuardia) {
+              String? targetProf = ctxProfesor;
+              if (targetProf == null) {
+                // En CSVs de aula/grupo, buscamos si el profesor está escrito en la celda de guardia
+                for (var l in lines) {
+                  if (l.contains(',') && !l.contains('(')) {
+                    targetProf = l;
+                    break;
+                  }
+                }
+              }
+
+              if (targetProf != null) {
+                records.add(HorarioImportRecord(
+                  profesorNombre: targetProf,
+                  asignaturaNombre: 'GUARDIA',
+                  tramoTexto: tramoTexto,
+                  horarioInicio: hInicio,
+                  horarioFin: hFin,
+                  diaIndice: diaIndice,
+                  esGuardia: true,
+                ));
+              }
+              continue;
+            }
+
+            // Nunca guardar nombre largo como asignatura
+            if (_esNombreLargo(asignatura)) continue;
+
             // CASO ESPECIAL: "ASIGNATURA GRUPO (AULA)" en una sola línea
             final RegExp packedPattern = RegExp(r'^([A-Z0-9\.\s]+)\s+([0-9]º?\s*[A-Z\s\-]+)\s*\((\d+)\)$');
             final packedMatch = packedPattern.firstMatch(primeraLinea);
-            
+
             String? fProf = ctxProfesor, fAula = ctxAula;
             List<String> fGrupos = ctxGrupo != null ? [ctxGrupo] : [];
 
@@ -426,7 +481,7 @@ class HorarioImporter implements IHorarioImporter {
 
             if (!_esCadenaValida(asignatura)) continue;
 
-            for (int l = (packedMatch != null ? 1 : 1); l < lines.length; l++) {
+            for (int l = 1; l < lines.length; l++) {
               final line = lines[l];
               if (_esBasura(line)) continue;
 
@@ -447,8 +502,9 @@ class HorarioImporter implements IHorarioImporter {
             fProf ??= "Pendiente";
             for (final g in fGrupos.isEmpty ? [null] : fGrupos) {
               records.add(HorarioImportRecord(
-                profesorNombre: fProf, asignaturaNombre: asignatura, grupoNombre: g, 
-                aulaNombre: fAula, tramoTexto: tramoTexto, horarioInicio: hInicio, horarioFin: hFin, diaIndice: diaIndice
+                profesorNombre: fProf, asignaturaNombre: asignatura, grupoNombre: g,
+                aulaNombre: fAula, tramoTexto: tramoTexto, horarioInicio: hInicio, horarioFin: hFin,
+                diaIndice: diaIndice, esGuardia: false,
               ));
             }
           }
@@ -481,10 +537,11 @@ class HorarioImporter implements IHorarioImporter {
       _batchGetOrCreate('aulas', 'id_aulas', 'nombre', aulaNames, aulaMap),
     ]);
 
-    // 3. Preparar Inserción Masiva de Horarios
+    // 3. Preparar Inserción Masiva de Horarios (SOLO GUARDIAS SEGÚN REQUERIMIENTO)
     final List<Map<String, dynamic>> batchToInsert = [];
     
     for (final record in records) {
+      if (!record.esGuardia) continue; // SALTAMOS TODO LO QUE NO SEA GUARDIA
       try {
         String hI = record.horarioInicio ?? "08:00";
         String hF = record.horarioFin ?? "09:00";
@@ -512,6 +569,7 @@ class HorarioImporter implements IHorarioImporter {
           'id_asignatura': asigId,
           'id_tramo': tramoId,
           'dia_semana': record.diaIndice,
+          'es_guardia': record.esGuardia,
         });
 
       } catch (e) {
@@ -527,6 +585,26 @@ class HorarioImporter implements IHorarioImporter {
           onConflict: 'id_profesor,id_tramo,dia_semana,id_asignatura'
         );
         print("✨ EXITO: Inserción masiva de ${batchToInsert.length} registros completada.");
+        
+        // 5. ACTUALIZACIÓN AUTOMÁTICA DE PROFESORES CON GUARDIA
+        final profesoresConGuardiaIds = batchToInsert
+            .where((h) => h['es_guardia'] == true)
+            .map((h) => h['id_profesor'])
+            .toSet();
+
+        if (profesoresConGuardiaIds.isNotEmpty) {
+          final List<Map<String, dynamic>> profUpdates = profesoresConGuardiaIds.map((id) => {
+            'id_profesor': id,
+            'es_guardia': true,
+          }).toList();
+          
+          try {
+            await _supabase.from('profesores').upsert(profUpdates, onConflict: 'id_profesor');
+            print("👤 Profesores marcados con guardias: ${profesoresConGuardiaIds.length}");
+          } catch (e) {
+            print("⚠️ No se pudo actualizar flag es_guardia en profesores (posible columna inexistente): $e");
+          }
+        }
       } catch (e) {
         print("⚠️ Fallo en upsert masivo: $e. Reintentando por goteo individual...");
         int exitos = 0;
@@ -540,7 +618,13 @@ class HorarioImporter implements IHorarioImporter {
                await _supabase.from('horario').upsert(item, onConflict: 'id_profesor,id_tramo,dia_semana');
                exitos++;
             } catch (_) {
-              // Si falla todo, se ignora este registro
+              try {
+                // ÚLTIMO RECURSO: Inserción simple si no hay restricciones de unicidad configuradas
+                await _supabase.from('horario').insert(item);
+                exitos++;
+              } catch (insertErr) {
+                print("Error fatal insertando registro: $insertErr");
+              }
             }
           }
         }

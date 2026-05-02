@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../../../domain/entities/profesor.dart';
 import '../../providers/notification_provider.dart';
 import '../shared/profesor_avatar.dart';
-import '../../utils/app_strings.dart';
 
 class HomeHeader extends StatelessWidget {
   final String nombre;
@@ -18,89 +17,102 @@ class HomeHeader extends StatelessWidget {
     required this.onShowNotifications,
   });
 
+  String get _saludo {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Buenos días';
+    if (h < 20) return 'Buenas tardes';
+    return 'Buenas noches';
+  }
+
+  String get _nombreCorto {
+    if (nombre.isEmpty) return 'Profesor';
+    final partes = nombre.trim().split(' ');
+    return partes.first;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor = isDark ? Colors.white : const Color(0xFF1E293B);
+    final subColor = isDark ? Colors.white60 : Colors.grey[500];
+
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              AppStrings.get(context, 'dashboard_title'),
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: Colors.grey[800],
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF3D4F3C),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                DateFormat('EEEE, d MMMM', 'es').format(DateTime.now()),
-                style: const TextStyle(
-                  color: Color(0xFFE2E9E1),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$_saludo, $_nombreCorto',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: labelColor,
+                  letterSpacing: -0.3,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF354231).withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      DateFormat('EEEE, d MMMM', 'es').format(DateTime.now()),
+                      style: const TextStyle(
+                        color: Color(0xFFE2E9E1),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         Row(
           children: [
-            IconButton(
-              onPressed: () {},
-              icon: Icon(Icons.search, color: Colors.grey[400]),
-            ),
-            const SizedBox(width: 8),
             Consumer<NotificationProvider>(
-              builder: (context, notifProvider, child) {
-                return Stack(
-                  children: [
-                    IconButton(
-                      onPressed: () => onShowNotifications(context, notifProvider),
-                      icon: Icon(
-                        Icons.notifications_none_rounded,
-                        color: Colors.grey[400],
-                      ),
+              builder: (context, notifProvider, _) => Stack(
+                children: [
+                  IconButton(
+                    onPressed: () => onShowNotifications(context, notifProvider),
+                    icon: Icon(
+                      Icons.notifications_none_rounded,
+                      color: subColor,
                     ),
-                    if (notifProvider.unreadCount > 0)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
+                  ),
+                  if (notifProvider.unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${notifProvider.unreadCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
                           ),
-                          constraints: const BoxConstraints(
-                            minWidth: 14,
-                            minHeight: 14,
-                          ),
-                          child: Text(
-                            '${notifProvider.unreadCount}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                  ],
-                );
-              },
+                    ),
+                ],
+              ),
             ),
-            const SizedBox(width: 15),
+            const SizedBox(width: 8),
             ProfesorAvatar(
               profesor: usuario ??
                   const Profesor(
@@ -112,7 +124,7 @@ class HomeHeader extends StatelessWidget {
                     foto: 'https://i.pravatar.cc/150?u=invitado',
                     estadoAusente: false,
                   ),
-              radius: 18,
+              radius: 20,
             ),
           ],
         ),
