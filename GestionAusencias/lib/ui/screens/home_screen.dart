@@ -1,424 +1,197 @@
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:gestion_ausencias/ui/providers/config_provider.dart';
-import 'package:gestion_ausencias/ui/screens/settings_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gestion_ausencias/core/utils/date.dart';
 import '../../domain/entities/profesor.dart';
-import '../../domain/usecases/get_profesores_usecase.dart';
+import '../../domain/entities/ausencia.dart';
+import '../../domain/entities/horario_clase.dart';
+import '../../domain/usecases/get_horario_profesor_detallado_usecase.dart';
+import '../../domain/usecases/get_ausencias_usecase.dart';
 import '../providers/auth_provider.dart';
-import 'package:gestion_ausencias/ui/screens/guardias_screen.dart';
-import 'package:gestion_ausencias/ui/screens/planning_screen.dart';
-import 'package:gestion_ausencias/ui/screens/profesor_screen.dart';
+import '../providers/notification_provider.dart';
+import '../widgets/home/home_header_premium.dart';
+import '../widgets/home/home_absence_alert.dart';
+import '../widgets/home/home_weekly_schedule.dart';
+import '../widgets/home/home_sidebar_cards.dart';
 
 class HomeScreen extends StatefulWidget {
-  final VoidCallback alCambiarTema;
-  final bool esModoOscuro;
-
-  const HomeScreen({
-    super.key,
-    required this.alCambiarTema,
-    required this.esModoOscuro,
-  });
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Profesor> listaProfesores = []; // Changed to Profesor
-  bool _cargando = true;
-  String _departamentoSeleccionado = 'Todos';
+  bool _isLoading = true;
+  List<HorarioClase> _horario = [];
+  List<Ausencia> _ausenciasHoy = [];
 
   @override
   void initState() {
     super.initState();
-    _cargarProfesores();
+    _cargarDatos();
   }
 
-  Future<void> _cargarProfesores() async {
-    setState(() => _cargando = true);
+  Future<void> _cargarDatos() async {
+    setState(() => _isLoading = true);
     try {
-      final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
-      final profesores = await getProfesoresUseCase.execute();
-      final authProvider = context.read<AuthProvider>();
-      final usuario = authProvider.profesorActual;
+      final auth = context.read<AuthProvider>();
+      final prof = auth.profesorActual;
+      if (prof == null) return;
+
+      final getHorario = context.read<GetHorarioProfesorDetalladoUseCase>();
+      final getAusencias = context.read<GetAusenciasUseCase>();
+      final supabase = Supabase.instance.client;
+
+      final hoy = DateTime.now();
+      // Calcular inicio y fin de la semana (Lunes a Viernes)
+      final lunes = hoy.subtract(Duration(days: hoy.weekday - 1));
+      final inicioSemana = DateTime(lunes.year, lunes.month, lunes.day);
+      final viernes = lunes.add(const Duration(days: 4));
+      final finSemana = DateTime(viernes.year, viernes.month, viernes.day, 23, 59);
+
+      final results = await Future.wait([
+        getHorario.execute(int.parse(prof.id)),
+        getAusencias.execute(inicioSemana, finSemana),
+        supabase.from('guardias')
+            .select()
+            .eq('profesor_guardia', prof.id)
+            .gte('fecha', inicioSemana.toIso8601String())
+            .lte('fecha', finSemana.toIso8601String()),
+      ]);
 
       if (mounted) {
         setState(() {
-          listaProfesores = profesores;
+          _horario = results[0] as List<HorarioClase>;
+          _ausenciasHoy = (results[1] as List<Ausencia>).where((a) => a.profesorId == prof.id).toList();
+          
+          // Mapear guardias de sustitución a objetos HorarioClase temporales para el widget de horario
+          final guardiasAsignadas = (results[2] as List).map((json) {
+            final fechaG = DateTime.parse(json['fecha']);
+            final dias = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+            return HorarioClase(
+              id: -1, // ID negativo para diferenciarlo
+              profesor: prof.nombre,
+              aula: json['aula'] ?? 'N/A',
+              grupo: json['grupo'] ?? 'N/A',
+              asignatura: "SUSTITUCIÓN: ${json['asignatura_ausente'] ?? 'Guardia'}",
+              dia: dias[fechaG.weekday],
+              inicio: (json['hora_inicio'] as String).substring(0, 5),
+              fin: (json['hora_fin'] as String).substring(0, 5),
+              esGuardia: true,
+              nota: "Cubriendo a ${json['profesor_ausente']}",
+            );
+          }).toList();
 
-          // Redirección automática al departamento del usuario al inicio
-          if (usuario != null && _departamentoSeleccionado == 'Todos') {
-            _departamentoSeleccionado = usuario.departamento;
-          }
-
-          _cargando = false;
+          _horario.addAll(guardiasAsignadas);
+          _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _cargando = false);
+      if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  // Función necesaria para las iniciales
-  String _obtenerIniciales(String nombre) {
-    if (nombre.isEmpty) return "?";
-    List<String> partes = nombre.trim().split(" ");
-    if (partes.length >= 2) {
-      return (partes[0][0] + partes[1][0]).toUpperCase();
-    }
-    return partes[0][0].toUpperCase();
   }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final usuario = authProvider.profesorActual;
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5)));
+    }
+
+    final prof = context.watch<AuthProvider>().profesorActual;
+    final nombre = prof?.nombre.split(',').last.trim() ?? 'Profesor';
+    final fechaStr = DateFormat('EEEE, MMMM d', 'es').format(DateTime.now());
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('I.E.S Padre Suárez'),
-        centerTitle: true,
-        backgroundColor: Colors.indigo,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.schedule),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const PlanningScreen()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.people),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfesoresScreen()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const GuardiasScreen()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
-            ),
-          ),
-          IconButton(
-            icon: Icon(
-              widget.esModoOscuro ? Icons.light_mode : Icons.dark_mode,
-            ),
-            onPressed: widget.alCambiarTema,
-          ),
-
-          // --- WIDGET USUARIO ACTUAL ---
-          Padding(
-            padding: const EdgeInsets.only(right: 15, left: 5),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.white,
-              backgroundImage: (usuario != null && usuario.foto.isNotEmpty)
-                  ? NetworkImage(usuario.foto)
-                  : null,
-              child: (usuario == null || usuario.foto.isEmpty)
-                  ? Text(
-                      usuario != null ? _obtenerIniciales(usuario.nombre) : "?",
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.indigo,
-                      ),
-                    )
-                  : null,
-            ),
-          ),
-        ],
-      ),
-      body: Consumer<ConfigProvider>(
-        builder: (context, config, child) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              image: config.backgroundImageProvider != null
-                  ? DecorationImage(
-                      image: config.backgroundImageProvider!,
-                      fit: BoxFit.cover,
-                      opacity: 0.8, // Slightly more vibrant for better clarity
-                    )
-                  : null,
-            ),
-            child: _cargando
-                ? const Center(child: CircularProgressIndicator())
-                : _buildContenido(),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildContenido() {
-    final departamentos = [
-      'Todos',
-      ...listaProfesores.map((p) => p.departamento).toSet(),
-    ];
-
-    final profesoresFiltrados = listaProfesores.where((p) {
-      final esAusente = p.estadoAusente;
-      final coincideDepartamento =
-          _departamentoSeleccionado == 'Todos' ||
-          p.departamento == _departamentoSeleccionado;
-      return esAusente && coincideDepartamento;
-    }).toList();
-
-    return Column(
-      children: [
-        // Widget de Departamentos (Diseño Premium)
-        Container(
-          height: 100,
-          margin: const EdgeInsets.only(top: 10),
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: departamentos.length,
-            itemBuilder: (context, index) {
-              final dep = departamentos[index];
-              final esSeleccionado = _departamentoSeleccionado == dep;
-
-              // Contar ausencias para este departamento
-              final numAusencias = listaProfesores
-                  .where(
-                    (p) =>
-                        p.estadoAusente &&
-                        (dep == 'Todos' || p.departamento == dep),
-                  )
-                  .length;
-
-              return GestureDetector(
-                onTap: () => setState(() => _departamentoSeleccionado = dep),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: 120,
-                  margin: const EdgeInsets.only(right: 12, bottom: 10),
-                  decoration: BoxDecoration(
-                    gradient: esSeleccionado
-                        ? const LinearGradient(
-                            colors: [Colors.indigo, Colors.blueAccent],
-                          )
-                        : null,
-                    color: esSeleccionado ? null : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: esSeleccionado
-                            ? Colors.indigo.withOpacity(0.3)
-                            : Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                    border: Border.all(
-                      color: esSeleccionado
-                          ? Colors.transparent
-                          : Colors.grey.withOpacity(0.2),
-                    ),
-                  ),
+      backgroundColor: Colors.transparent, // Permitir ver el fondo global
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            HomeHeaderPremium(nombre: nombre, fecha: fechaStr),
+            const SizedBox(height: 32),
+            
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Main Column
+                Expanded(
+                  flex: 2,
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        dep,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: esSeleccionado ? Colors.white : Colors.indigo,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: esSeleccionado
-                              ? Colors.white.withOpacity(0.2)
-                              : Colors.indigo.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '$numAusencias ausencias',
-                          style: TextStyle(
-                            color: esSeleccionado
-                                ? Colors.white70
-                                : Colors.indigo[300],
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
+                      if (_ausenciasHoy.isNotEmpty)
+                        HomeAbsenceAlert(ausencia: _ausenciasHoy.first),
+                      const SizedBox(height: 32),
+                      HomeWeeklySchedule(horario: _horario),
+                      const SizedBox(height: 32),
+                      _buildLoungeBanner(),
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-        ),
-
-        // Tu contenedor de "Profesores Ausentes"
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _departamentoSeleccionado == 'Todos'
-                        ? 'Todas las Ausencias'
-                        : 'Ausencias: $_departamentoSeleccionado',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.indigo[900],
-                    ),
-                  ),
-                  Text(
-                    '${profesoresFiltrados.length} profesores hoy',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+                const SizedBox(width: 32),
+                // Sidebar Column
+                Expanded(
+                  flex: 1,
+                  child: HomeSidebarCards(profesor: prof),
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.indigo[50],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  DateFormat('d MMMM', 'es').format(DateTime.now()),
-                  style: const TextStyle(
-                    color: Colors.indigo,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
-
-        Expanded(
-          child: Container(
-            color: Colors.white,
-            child: profesoresFiltrados.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.info_outline,
-                          size: 48,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _departamentoSeleccionado == 'Todos'
-                              ? "No hay ausencias hoy"
-                              : "No hay ausencias en $_departamentoSeleccionado",
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: profesoresFiltrados.length,
-                    itemBuilder: (context, index) {
-                      final p = profesoresFiltrados[index];
-                      return Card(
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: NetworkImage(p.foto),
-                          ),
-                          title: Text(p.nombre),
-                          subtitle: Text("${p.asignatura} - ${p.departamento}"),
-                          trailing: const Icon(Icons.chevron_right),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ),
-        // Tus 3 botones inferiores: Planning, Profesores, Guardias
-        _buildBotonesInferiores(),
-      ],
+      ),
     );
   }
 
-  Widget _buildBotonesInferiores() {
+  Widget _buildLoungeBanner() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _botonMenu(
-            'Planning',
-            Icons.schedule,
-            Colors.blue,
-            const PlanningScreen(),
-          ),
-          _botonMenu(
-            'Profesores',
-            Icons.people,
-            Colors.green,
-            const ProfesoresScreen(),
-          ),
-          _botonMenu(
-            'Guardias',
-            Icons.calendar_today,
-            Colors.purple,
-            const GuardiasScreen(),
+      height: 180,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], // Indigo a Violeta Premium
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4F46E5).withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _botonMenu(String label, IconData icon, Color color, Widget screen) {
-    return ElevatedButton.icon(
-      onPressed: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => screen),
-      ),
-      icon: Icon(icon),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Icon(Icons.school_rounded, size: 150, color: Colors.white.withOpacity(0.1)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  "Sala de Profesores",
+                  style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  "Accede a recursos compartidos y comunica con tu departamento en un solo lugar.",
+                  style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
- //Logica, seria FutureBuilder, la esctrucutura visual seria stack y la estetica seria el avatar 

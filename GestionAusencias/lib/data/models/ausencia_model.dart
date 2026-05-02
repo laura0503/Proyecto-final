@@ -7,6 +7,7 @@ class AusenciaModel extends Ausencia {
     required super.fecha,
     required super.idHorario,
     super.observaciones,
+    super.tipo,
   });
 
   factory AusenciaModel.fromJson(Map<String, dynamic> json) {
@@ -16,6 +17,7 @@ class AusenciaModel extends Ausencia {
       fecha: DateTime.parse(json['fecha']),
       idHorario: json['id_horario'] ?? 0,
       observaciones: json['observaciones'],
+      tipo: json['tipo'] ?? 'FALTA',
     );
   }
 
@@ -26,6 +28,7 @@ class AusenciaModel extends Ausencia {
       'fecha': fecha.toIso8601String(),
       'id_horario': idHorario,
       'observaciones': observaciones,
+      'tipo': tipo,
     };
   }
 
@@ -39,6 +42,7 @@ class AusenciaModel extends Ausencia {
       fecha: ausencia.fecha,
       idHorario: ausencia.idHorario,
       observaciones: ausencia.observaciones,
+      tipo: ausencia.tipo,
     );
   }
 }

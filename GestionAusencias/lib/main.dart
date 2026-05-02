@@ -17,6 +17,7 @@ import 'package:gestion_ausencias/data/repositories/aula_repository_impl.dart';
 import 'package:gestion_ausencias/data/repositories/horario_aula_repository_impl.dart';
 import 'package:gestion_ausencias/data/repositories/grupo_repository_impl.dart';
 import 'package:gestion_ausencias/data/repositories/asignatura_repository_impl.dart';
+import 'package:gestion_ausencias/data/repositories/ausencia_repository_impl.dart';
 
 // ─── Repositorios (interfaces) ───
 import 'package:gestion_ausencias/domain/repositories/profesor_repository.dart';
@@ -25,6 +26,7 @@ import 'package:gestion_ausencias/domain/repositories/aula_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/horario_aula_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/grupo_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/asignatura_repository.dart';
+import 'package:gestion_ausencias/domain/repositories/ausencia_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/horario_importer_repository.dart';
 
 // ─── Casos de uso ───
@@ -48,6 +50,8 @@ import 'package:gestion_ausencias/domain/usecases/get_horario_aula_detallado_use
 import 'package:gestion_ausencias/domain/usecases/get_horario_profesor_detallado_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_horario_grupo_detallado_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_ocupados_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_ausencias_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/reportar_ausencia_usecase.dart';
 import 'package:gestion_ausencias/data/services/horario_importer.dart';
 import 'package:gestion_ausencias/data/services/supabase_service.dart';
 // ─── Proveedores y pantallas (UI) ───
@@ -88,6 +92,7 @@ void main() async {
   final horarioAulaRepository = HorarioAulaRepositoryImpl(supabase);
   final grupoRepository = GrupoRepositoryImpl(supabase);
   final asignaturaRepository = AsignaturaRepositoryImpl(asignaturaDataSource);
+  final ausenciaRepository = AusenciaRepositoryImpl(supabase);
 
   final horarioImporter = HorarioImporter();
   final supabaseService = SupabaseService(supabase);
@@ -128,6 +133,7 @@ void main() async {
         Provider<HorarioAulaRepository>.value(value: horarioAulaRepository),
         Provider<GrupoRepository>.value(value: grupoRepository),
         Provider<AsignaturaRepository>.value(value: asignaturaRepository),
+        Provider<AusenciaRepository>.value(value: ausenciaRepository),
         Provider<IHorarioImporter>.value(value: horarioImporter),
         Provider<SupabaseService>.value(value: supabaseService),
 
@@ -191,6 +197,12 @@ void main() async {
         ),
         Provider<GetProfesoresOcupadosUseCase>(
           create: (context) => GetProfesoresOcupadosUseCase(context.read<HorarioRepository>()),
+        ),
+        Provider<GetAusenciasUseCase>(
+          create: (context) => GetAusenciasUseCase(context.read<AusenciaRepository>()),
+        ),
+        Provider<ReportarAusenciaUseCase>(
+          create: (context) => ReportarAusenciaUseCase(context.read<AusenciaRepository>()),
         ),
 
         // ── Proveedores de estado ──

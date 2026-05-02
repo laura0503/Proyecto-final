@@ -14,6 +14,7 @@ import 'package:gestion_ausencias/ui/screens/settings_screen.dart';
 import 'package:gestion_ausencias/ui/screens/planning_screen.dart';
 import 'package:gestion_ausencias/ui/screens/profesor_screen.dart';
 import 'package:gestion_ausencias/ui/screens/admin_screen.dart';
+import 'package:gestion_ausencias/ui/screens/home_screen.dart';
 import '../widgets/home/home_header.dart';
 import '../widgets/home/home_kpi_row.dart';
 import '../widgets/home/home_estado_dia.dart';
@@ -61,7 +62,7 @@ class _MainLayoutState extends State<MainLayout> {
         : Colors.white.withOpacity(0.7);
 
     final List<Widget> screens = [
-      const HomeContent(),
+      const HomeScreen(),
       const PlanningScreen(),
       const ProfesoresScreen(),
     ];
@@ -233,125 +234,3 @@ class _MainLayoutState extends State<MainLayout> {
   }
 }
 
-class HomeContent extends StatefulWidget {
-  const HomeContent({super.key});
-
-  @override
-  State<HomeContent> createState() => _HomeContentState();
-}
-
-class _HomeContentState extends State<HomeContent> {
-  List<Profesor> _profesores = [];
-  List<int> _idsOcupados = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _cargar();
-  }
-
-  Future<void> _cargar() async {
-    try {
-      final ahora = DateTime.now();
-      final hora = DateFormat('HH:mm:ss').format(ahora);
-      final dia = ahora.weekday;
-      final results = await Future.wait([
-        context.read<GetProfesoresUseCase>().execute(),
-        context.read<GetProfesoresOcupadosUseCase>().execute(dia, hora),
-      ]);
-      if (mounted) {
-        setState(() {
-          _profesores = results[0] as List<Profesor>;
-          _idsOcupados = results[1] as List<int>;
-          _loading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  void _mostrarNotificaciones(BuildContext ctx, NotificationProvider provider) {
-    showDialog(
-      context: ctx,
-      builder: (_) => AlertDialog(
-        title: const Text('Notificaciones'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: provider.notifications.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Text('No tienes notificaciones nuevas', textAlign: TextAlign.center),
-                )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: provider.notifications.length,
-                  itemBuilder: (_, index) {
-                    final n = provider.notifications[index];
-                    return ListTile(
-                      leading: Icon(
-                        n.isRead ? Icons.mark_chat_read : Icons.mark_chat_unread,
-                        color: n.isRead ? Colors.grey : Colors.indigo,
-                      ),
-                      title: Text(n.title),
-                      subtitle: Text(n.message),
-                      onTap: () { provider.markAsRead(n.id); Navigator.pop(ctx); },
-                    );
-                  },
-                ),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar'))],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF354231)));
-    }
-
-    final usuario = context.watch<AuthProvider>().profesorActual;
-    final nombre = usuario?.nombre ?? 'Profesor';
-    final ausentes = _profesores.where((p) => p.estadoAusente).toList();
-    final total = _profesores.length;
-    final eficiencia = total > 0 ? ((total - ausentes.length) / total * 100).round() : 100;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final padding = constraints.maxWidth < AppBreakpoints.mobile ? 20.0 : 32.0;
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(padding),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              HomeHeader(
-                nombre: nombre,
-                usuario: usuario,
-                onShowNotifications: _mostrarNotificaciones,
-              ),
-              const SizedBox(height: 24),
-              HomeKpiRow(
-                ausentes: ausentes.length,
-                retrasos: 0,
-                sustitutos: _idsOcupados.length,
-                eficiencia: eficiencia,
-              ),
-              const SizedBox(height: 20),
-              HomeEstadoDia(
-                profesores: _profesores,
-                idsOcupados: _idsOcupados,
-              ),
-              const SizedBox(height: 20),
-              HomeAsignacion(ausentes: ausentes),
-              const SizedBox(height: 20),
-              const HomeAlertas(),
-              const SizedBox(height: 32),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}

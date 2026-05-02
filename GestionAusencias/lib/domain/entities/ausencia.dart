@@ -4,6 +4,7 @@ class Ausencia {
   final DateTime fecha;
   final int idHorario;
   final String? observaciones;
+  final String? tipo; // FALTA, RETRASO, JUSTIFICADO
 
   const Ausencia({
     this.id,
@@ -11,6 +12,7 @@ class Ausencia {
     required this.fecha,
     required this.idHorario,
     this.observaciones,
+    this.tipo = 'FALTA',
   });
 
   Ausencia copyWith({
@@ -19,6 +21,7 @@ class Ausencia {
     DateTime? fecha,
     int? idHorario,
     String? observaciones,
+    String? tipo,
   }) {
     return Ausencia(
       id: id ?? this.id,
@@ -26,6 +29,7 @@ class Ausencia {
       fecha: fecha ?? this.fecha,
       idHorario: idHorario ?? this.idHorario,
       observaciones: observaciones ?? this.observaciones,
+      tipo: tipo ?? this.tipo,
     );
   }
 }

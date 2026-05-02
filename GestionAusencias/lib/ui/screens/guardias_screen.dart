@@ -446,7 +446,7 @@ class _ModernGuardiaItem extends StatelessWidget {
               const SizedBox(width: 12),
               const Expanded(
                 child: Text(
-                  'Pending Assignment',
+                  'Asignación Pendiente',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black38),
                 ),
               ),

@@ -211,18 +211,45 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
                 ),
               ],
             ),
-            ElevatedButton.icon(
-              onPressed: _importarCSV,
-              icon: const Icon(Icons.upload_file_rounded),
-              label: const Text("Importar CSV"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF007AFF),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    if (_mostrandoDuplicados) {
+                      setState(() => _mostrandoDuplicados = false);
+                    } else {
+                      _calcularDuplicados();
+                    }
+                  },
+                  icon: Icon(_mostrandoDuplicados ? Icons.list_rounded : Icons.people_rounded),
+                  label: Text(_mostrandoDuplicados ? "Ver todos" : "Ver duplicados"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _mostrandoDuplicados
+                        ? Colors.orange
+                        : Colors.orange.withOpacity(0.15),
+                    foregroundColor: _mostrandoDuplicados ? Colors.white : Colors.orange[800],
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _importarCSV,
+                  icon: const Icon(Icons.upload_file_rounded),
+                  label: const Text("Importar CSV"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF007AFF),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
