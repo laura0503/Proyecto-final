@@ -4,12 +4,14 @@ import 'package:gestion_ausencias/domain/usecases/login_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/register_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_sesion_actual_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/cerrar_sesion_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 
 class AuthProvider extends ChangeNotifier {
   final LoginProfesorUseCase _loginUseCase;
   final RegisterProfesorUseCase _registerUseCase;
   final GetSesionActualUseCase _getSesionActualUseCase;
   final CerrarSesionUseCase _cerrarSesionUseCase;
+  final GetProfesoresUseCase _getProfesoresUseCase;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -23,22 +25,21 @@ class AuthProvider extends ChangeNotifier {
     required RegisterProfesorUseCase registerUseCase,
     required GetSesionActualUseCase getSesionActualUseCase,
     required CerrarSesionUseCase cerrarSesionUseCase,
+    required GetProfesoresUseCase getProfesoresUseCase,
   }) : _loginUseCase = loginUseCase,
        _registerUseCase = registerUseCase,
        _getSesionActualUseCase = getSesionActualUseCase,
-       _cerrarSesionUseCase = cerrarSesionUseCase;
+       _cerrarSesionUseCase = cerrarSesionUseCase,
+       _getProfesoresUseCase = getProfesoresUseCase;
 
   Future<void> checkSession() async {
-    // BYPASS LOGIN: Set dummy user directly
-    _profesorActual = const Profesor(
-      id: 'dummy_id',
-      nombre: 'Admin Local',
-      asignatura: 'Informática',
-      curso: '1',
-      foto: '',
-      departamento: 'Tecnología',
-      estadoAusente: false,
-    );
+    // BYPASS LOGIN: carga el primer profesor real de la BD
+    try {
+      final profesores = await _getProfesoresUseCase.execute();
+      if (profesores.isNotEmpty) {
+        _profesorActual = profesores.first;
+      }
+    } catch (_) {}
     notifyListeners();
   }
 

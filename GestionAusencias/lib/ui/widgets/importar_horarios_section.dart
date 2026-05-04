@@ -2,7 +2,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../data/services/horario_importer.dart';
+import 'package:provider/provider.dart';
+import '../../domain/usecases/importar_horario_usecase.dart';
 
 enum _EstadoArchivo { pendiente, importando, ok, error }
 
@@ -22,7 +23,6 @@ class ImportarHorariosSection extends StatefulWidget {
 }
 
 class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
-  final HorarioImporter _importer = HorarioImporter();
   final List<_ArchivoItem> _archivos = [];
   bool _importando = false;
   int _procesados = 0;
@@ -48,6 +48,7 @@ class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
 
   Future<void> _iniciarImportacion(List<PlatformFile> files) async {
     setState(() => _importando = true);
+    final useCase = context.read<ImportarHorarioUseCase>();
 
     for (int i = 0; i < files.length; i++) {
       final file = files[i];
@@ -61,7 +62,7 @@ class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
           contenido = await File(file.path!).readAsString();
         }
 
-        await _importer.subirASupabase(contenido);
+        await useCase.execute(contenido);
 
         setState(() {
           _archivos[i].estado = _EstadoArchivo.ok;

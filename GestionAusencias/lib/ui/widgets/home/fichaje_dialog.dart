@@ -3,9 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
-import 'package:gestion_ausencias/data/models/profesor_model.dart';
+import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/ui/providers/guardia_provider.dart';
@@ -47,47 +46,24 @@ class _FichajeDialogState extends State<FichajeDialog> {
   Future<void> _cargarProfesores() async {
     setState(() => _isLoadingTeam = true);
     try {
-      final supabase = Supabase.instance.client;
-      final response = await supabase.from('profesores').select().order('karma', ascending: true);
-      
-      final profes = (response as List).map((json) => ProfesorModel.fromJson(json)).toList();
-
-      // Consultar quiénes tienen guardia PROGRAMADA ahora
-      final now = DateTime.now();
-      final dia = _getDiaSemana(now);
-      final currentTime = DateFormat('HH:mm').format(now);
-
-      final scheduledResponse = await supabase.from('horario_clase')
-          .select('profesor')
-          .eq('dia', dia)
-          .eq('es_guardia', true)
-          .lte('inicio', currentTime)
-          .gt('fin', currentTime);
-      
-      final scheduledNames = (scheduledResponse as List).map((s) => s['profesor'].toString()).toList();
+      final profes = await context.read<GetProfesoresUseCase>().execute();
 
       if (mounted) {
         setState(() {
           _allProfesores = profes;
-          _scheduledGuardNames = scheduledNames;
+          _scheduledGuardNames = [];
 
-          // Buscar al profesor actual
           try {
             _me = profes.firstWhere(
-              (p) => p.nombre.contains(widget.profesorNombre) || widget.profesorNombre.contains(p.nombre)
+              (p) => p.nombre.contains(widget.profesorNombre) || widget.profesorNombre.contains(p.nombre),
             );
           } catch (_) {
             _me = null;
           }
-          
-          // Usar el KarmaService para la recomendación
+
           final karmaService = context.read<KarmaService>();
-          final scheduledProfes = profes.where((p) => scheduledNames.any((name) => p.nombre.contains(name) || name.contains(p.nombre))).toList();
-          
-          if (scheduledProfes.isNotEmpty) {
-            _recommendedProfesor = karmaService.getRecommendedProfessor(scheduledProfes);
-          } else if (_allProfesores.isNotEmpty) {
-            _recommendedProfesor = karmaService.getRecommendedProfessor(_allProfesores);
+          if (profes.isNotEmpty) {
+            _recommendedProfesor = karmaService.getRecommendedProfessor(profes);
           }
 
           _isLoadingTeam = false;

@@ -14,6 +14,7 @@ class Profesor {
   final String? estadoActual;
   final double karma;
   final bool esGuardia;
+  final bool esAdmin;
 
   const Profesor({
     required this.id,
@@ -31,6 +32,7 @@ class Profesor {
     this.estadoActual,
     this.karma = 0.0,
     this.esGuardia = false,
+    this.esAdmin = false,
   });
 
   Profesor copyWith({
@@ -49,6 +51,7 @@ class Profesor {
     String? estadoActual,
     double? karma,
     bool? esGuardia,
+    bool? esAdmin,
   }) {
     return Profesor(
       id: id ?? this.id,
@@ -66,6 +69,7 @@ class Profesor {
       estadoActual: estadoActual ?? this.estadoActual,
       karma: karma ?? this.karma,
       esGuardia: esGuardia ?? this.esGuardia,
+      esAdmin: esAdmin ?? this.esAdmin,
     );
   }
 }

@@ -14,9 +14,12 @@ import '../providers/notification_provider.dart';
 import '../widgets/home/home_header_premium.dart';
 import '../widgets/home/home_absence_alert.dart';
 import '../widgets/home/home_weekly_schedule.dart';
+import '../widgets/home/home_active_guard_monitor.dart';
+import '../widgets/home/fichaje_dialog.dart';
 import 'dart:async';
 import '../widgets/home/home_sidebar_cards.dart';
 import '../widgets/planning/agenda_modal_content.dart';
+import 'planning_screen.dart' show DatosSlot;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<HorarioClase> _sustituciones = [];
   late Timer _timer;
   String _currentTime = "";
+  bool _showSimulation = false;
 
   @override
   void initState() {
@@ -60,7 +64,11 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final auth = context.read<AuthProvider>();
       final prof = auth.profesorActual;
-      if (prof == null) return;
+      if (prof == null) {
+        // Esperar un poco a que cargue el profesor si estamos saltando el login
+        Future.delayed(const Duration(milliseconds: 500), () => _cargarDatos());
+        return;
+      }
 
       final getHorario = context.read<GetHorarioProfesorDetalladoUseCase>();
       final getAusencias = context.read<GetAusenciasUseCase>();
@@ -72,16 +80,11 @@ class _HomeScreenState extends State<HomeScreen> {
       final viernes = lunes.add(const Duration(days: 4));
       final finSemana = DateTime(viernes.year, viernes.month, viernes.day, 23, 59);
 
-      final results = await Future.wait([
-        getHorario.execute(int.parse(prof.id)),
-        getAusencias.execute(inicioSemana, finSemana),
-        supabase.from('guardias')
-            .select()
-            .eq('profesor_guardia', prof.id)
-            .gte('fecha', inicioSemana.toIso8601String())
-            .lte('fecha', finSemana.toIso8601String()),
-        supabase.from('sustitucion')
-            .select('''
+      final profId = prof.idProfesor ?? int.tryParse(prof.id) ?? 0;
+      
+      // Consultas base
+      var guardiasQuery = supabase.from('guardias').select();
+      var sustitucionesQuery = supabase.from('sustitucion').select('''
               *,
               ausencia:id_ausencia (
                 *,
@@ -94,31 +97,53 @@ class _HomeScreenState extends State<HomeScreen> {
                   horario_tramo:id_tramo (horario_inicio, horario_fin)
                 )
               )
-            ''')
-            .eq('id_profesor_sustituto', int.tryParse(prof.id) ?? 0)
+            ''');
+
+      // Si no es admin, filtramos solo por sus propias guardias
+      if (!prof.esAdmin) {
+        guardiasQuery = guardiasQuery.or('profesorGuardia.eq."${prof.nombre}",profesor_guardia.eq.$profId');
+        sustitucionesQuery = sustitucionesQuery.eq('id_profesor_sustituto', profId);
+      }
+
+      final results = await Future.wait([
+        getHorario.execute(profId),
+        getAusencias.execute(inicioSemana, finSemana),
+        guardiasQuery
+            .gte('fecha', inicioSemana.toIso8601String())
+            .lte('fecha', finSemana.toIso8601String()),
+        sustitucionesQuery
             .gte('ausencia.fecha', inicioSemana.toIso8601String())
             .lte('ausencia.fecha', finSemana.toIso8601String()),
       ]);
 
       if (mounted) {
         setState(() {
-          _horario = results[0] as List<HorarioClase>;
-          _ausenciasSemana = (results[1] as List<Ausencia>).where((a) => a.profesorId == prof.id).toList();
+          _horario = List<HorarioClase>.from(results[0] as List<HorarioClase>);
+          _ausenciasSemana = (results[1] as List<Ausencia>).where((a) => a.profesorId == prof.id || a.profesorId == prof.idProfesor.toString()).toList();
           
           final guardiasAntiguas = (results[2] as List).map((json) {
             final fechaG = DateTime.parse(json['fecha']);
             final dias = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+            
+            final hInicio = (json['horaInicio'] ?? json['hora_inicio'] ?? '00:00') as String;
+            final hFin = (json['horaFin'] ?? json['hora_fin'] ?? '00:00') as String;
+            final pAusente = (json['profesorAusente'] ?? json['profesor_ausente'] ?? 'Compañero') as String;
+            final asign = (json['asignaturaAusente'] ?? json['asignatura_ausente'] ?? 'Guardia') as String;
+
             return HorarioClase(
               id: -1,
               profesor: prof.nombre,
               aula: json['aula'] ?? 'N/A',
               grupo: json['grupo'] ?? 'N/A',
-              asignatura: "SUSTITUCIÓN: ${json['asignatura_ausente'] ?? 'Guardia'}",
+              asignatura: "SUSTITUCIÓN: $asign",
               dia: dias[fechaG.weekday],
-              inicio: (json['hora_inicio'] as String).substring(0, 5),
-              fin: (json['hora_fin'] as String).substring(0, 5),
+              inicio: hInicio.length >= 5 ? hInicio.substring(0, 5) : hInicio,
+              fin: hFin.length >= 5 ? hFin.substring(0, 5) : hFin,
               esGuardia: true,
-              nota: "Cubriendo a ${json['profesor_ausente']}",
+              nota: "Cubriendo a $pAusente",
+              profesorAusente: pAusente,
+              instrucciones: (json['observaciones'] ?? json['instrucciones'] ?? ''),
+              fecha: fechaG,
             );
           }).toList();
 
@@ -140,6 +165,9 @@ class _HomeScreenState extends State<HomeScreen> {
               fin: t['horario_fin']?.toString().substring(0, 5) ?? '00:00',
               esGuardia: true,
               nota: "Cubriendo a ${h['profesores']?['nombre'] ?? 'Compañero'}",
+              profesorAusente: h['profesores']?['nombre'] ?? 'Compañero',
+              instrucciones: ausenciaJson['observaciones'] ?? '',
+              fecha: fechaG,
             );
           }).whereType<HorarioClase>().toList();
 
@@ -164,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => AgendaModalContent(
         profesor: prof,
         fecha: fecha,
-        registroFaltas: const {},
+        registroFaltas: const <String, DatosSlot>{},
         primaryColor: const Color(0xFF4F46E5),
         onDataChanged: () {
           _cargarDatos();
@@ -176,6 +204,45 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _esHoy(DateTime d) {
     final ahora = DateTime.now();
     return d.day == ahora.day && d.month == ahora.month && d.year == ahora.year;
+  }
+
+  bool _esSesionHoy(HorarioClase s) {
+    if (s.fecha != null) return _esHoy(s.fecha!);
+    final dias = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+    return s.dia.toUpperCase() == dias[DateTime.now().weekday];
+  }
+
+  List<HorarioClase> _getGuardiaActiva() {
+    final ahora = DateTime.now();
+    final horaActualStr = DateFormat('HH:mm').format(ahora);
+    final List<HorarioClase> activas = [];
+
+    // MODO SIMULACIÓN PARA TEST
+    if (_showSimulation) {
+      activas.add(HorarioClase(
+        id: -99,
+        profesor: "PROF. PRUEBA",
+        aula: "SALA 204",
+        grupo: "2º BACH A",
+        asignatura: "GUARDIA: MATEMÁTICAS",
+        dia: "LUNES",
+        inicio: "08:00",
+        fin: "23:59",
+        esGuardia: true,
+        profesorAusente: "Compañero de Test",
+        instrucciones: "Esta es una guardia de prueba para verificar que el monitor se ve correctamente. Los alumnos deben terminar el ejercicio 4.",
+      ));
+    }
+
+    for (var s in _sustituciones) {
+      if (_esSesionHoy(s)) {
+        // Comparamos si la hora actual está dentro del tramo de la guardia
+        if (horaActualStr.compareTo(s.inicio) >= 0 && horaActualStr.compareTo(s.fin) < 0) {
+          activas.add(s);
+        }
+      }
+    }
+    return activas;
   }
 
   String _getGreeting() {
@@ -203,10 +270,25 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            HomeHeaderPremium(
-              nombre: nombre, 
-              fecha: "$fechaStr • $_currentTime", 
-              saludo: _getGreeting(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: HomeHeaderPremium(
+                    nombre: nombre, 
+                    fecha: "$fechaStr • $_currentTime", 
+                    saludo: _getGreeting(),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    _showSimulation ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                    color: _showSimulation ? const Color(0xFFF43F5E) : Colors.grey[300],
+                  ),
+                  onPressed: () => setState(() => _showSimulation = !_showSimulation),
+                  tooltip: "Simular Guardia Activa",
+                ),
+              ],
             ),
             const SizedBox(height: 32),
             
@@ -218,6 +300,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   flex: 2,
                   child: Column(
                     children: [
+                      HomeActiveGuardMonitor(
+                        guardiasActivas: _getGuardiaActiva(),
+                        onCheckIn: (g) {
+                          showDialog(
+                            context: context,
+                            barrierColor: Colors.black.withOpacity(0.4),
+                            builder: (context) => FichajeDialog(
+                              profesorNombre: g.profesor,
+                            ),
+                          );
+                        },
+                      ),
                       if (_ausenciasSemana.any((a) => _esHoy(a.fecha)))
                         HomeAbsenceAlert(ausencia: _ausenciasSemana.firstWhere((a) => _esHoy(a.fecha))),
                       const SizedBox(height: 32),

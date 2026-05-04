@@ -10,6 +10,9 @@ class HorarioClase {
   final String fin;
   final bool esGuardia;
   final String nota;
+  final String instrucciones;
+  final String profesorAusente;
+  final DateTime? fecha;
 
   HorarioClase({
     this.id = 0,
@@ -23,5 +26,8 @@ class HorarioClase {
     required this.fin,
     this.esGuardia = false,
     this.nota = '',
+    this.instrucciones = '',
+    this.profesorAusente = '',
+    this.fecha,
   });
 }

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../data/models/guardia_model.dart';
 import '../../domain/entities/guardia.dart';
 import '../../domain/entities/profesor.dart';
 import '../../domain/usecases/get_profesores_usecase.dart';
+import '../../domain/usecases/get_guardias_usecase.dart';
+import '../../domain/usecases/guardar_guardia_usecase.dart';
+import '../../domain/usecases/eliminar_guardia_usecase.dart';
 import 'detalle_guardia_screen.dart';
 import '../widgets/guardias/guardias_date_selector.dart';
 import '../adapters/guardia_ui_adapter.dart';
@@ -46,17 +48,16 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
   Future<void> _cargarDatos() async {
     setState(() => _cargando = true);
     try {
-      final profesores = await context.read<GetProfesoresUseCase>().execute();
-      
       final results = await Future.wait([
-        _supabase.from('guardias').select().order('fecha'),
+        context.read<GetProfesoresUseCase>().execute(),
+        context.read<GetGuardiasUseCase>().execute(),
         _supabase.from('horario_tramo').select().order('horario_inicio'),
       ]);
 
       setState(() {
-        _profesores = profesores;
-        _guardias = (results[0] as List).map((json) => GuardiaModel.fromJson(json)).toList();
-        _tramos = List<Map<String, dynamic>>.from(results[1] as List);
+        _profesores = results[0] as List<Profesor>;
+        _guardias = results[1] as List<Guardia>;
+        _tramos = List<Map<String, dynamic>>.from(results[2] as List);
         _cargando = false;
       });
     } catch (e) {
@@ -73,6 +74,8 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
   }
 
   Future<void> _navegarADetalleGuardia([Guardia? guardia]) async {
+    final eliminarUseCase = context.read<EliminarGuardiaUseCase>();
+    final guardarUseCase = context.read<GuardarGuardiaUseCase>();
     final resultado = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -88,13 +91,13 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
       if (resultado == 'eliminar') {
         if (guardia != null) {
           try {
-            await _supabase.from('guardias').delete().eq('id', guardia.id);
+            await eliminarUseCase.execute(guardia.id);
           } catch (_) {}
           setState(() => _guardias.removeWhere((g) => g.id == guardia.id));
         }
       } else if (resultado is Guardia) {
         try {
-          await _supabase.from('guardias').upsert(GuardiaModel.fromEntity(resultado).toJson());
+          await guardarUseCase.execute(resultado);
         } catch (_) {}
         setState(() {
           if (guardia == null || guardia.id.isEmpty) {

@@ -10,7 +10,7 @@ import '../../../domain/usecases/get_horario_profesor_detallado_usecase.dart';
 import '../../../domain/usecases/get_horarios_usecase.dart';
 import '../../../domain/usecases/get_ausencias_usecase.dart';
 import '../../../domain/usecases/reportar_ausencia_usecase.dart';
-import '../../../domain/repositories/ausencia_repository.dart';
+import '../../../domain/usecases/eliminar_ausencia_usecase.dart';
 import '../../screens/planning_screen.dart' show DatosSlot;
 
 class AgendaModalContent extends StatefulWidget {
@@ -337,8 +337,7 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
       if (tipo == "LIMPIAR") {
         debugPrint('LIMPIAR: ausenciaActual.id=${ausenciaActual?.id}');
         if (ausenciaActual?.id != null) {
-          final repo = context.read<AusenciaRepository>();
-          await repo.eliminarAusencia(ausenciaActual!.id!);
+          await context.read<EliminarAusenciaUseCase>().execute(ausenciaActual!.id!);
         }
       } else {
         final ausencia = Ausencia(

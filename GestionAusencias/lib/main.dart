@@ -28,6 +28,8 @@ import 'package:gestion_ausencias/domain/repositories/grupo_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/asignatura_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/ausencia_repository.dart';
 import 'package:gestion_ausencias/domain/repositories/horario_importer_repository.dart';
+import 'package:gestion_ausencias/domain/repositories/guardia_repository.dart';
+import 'package:gestion_ausencias/data/repositories/guardia_repository_impl.dart';
 
 // ─── Casos de uso ───
 import 'package:gestion_ausencias/domain/usecases/login_profesor_usecase.dart';
@@ -53,6 +55,10 @@ import 'package:gestion_ausencias/domain/usecases/get_profesores_ocupados_usecas
 import 'package:gestion_ausencias/domain/usecases/get_ausencias_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_all_horarios_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/reportar_ausencia_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/eliminar_ausencia_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_guardias_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/guardar_guardia_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/eliminar_guardia_usecase.dart';
 import 'package:gestion_ausencias/data/services/horario_importer.dart';
 import 'package:gestion_ausencias/data/services/supabase_service.dart';
 // ─── Proveedores y pantallas (UI) ───
@@ -96,6 +102,7 @@ void main() async {
   final grupoRepository = GrupoRepositoryImpl(supabase);
   final asignaturaRepository = AsignaturaRepositoryImpl(asignaturaDataSource);
   final ausenciaRepository = AusenciaRepositoryImpl(supabase);
+  final guardiaRepository = GuardiaRepositoryImpl(supabase);
 
   final horarioImporter = HorarioImporter();
   final supabaseService = SupabaseService(supabase);
@@ -138,6 +145,7 @@ void main() async {
         Provider<GrupoRepository>.value(value: grupoRepository),
         Provider<AsignaturaRepository>.value(value: asignaturaRepository),
         Provider<AusenciaRepository>.value(value: ausenciaRepository),
+        Provider<GuardiaRepository>.value(value: guardiaRepository),
         Provider<IHorarioImporter>.value(value: horarioImporter),
         Provider<SupabaseService>.value(value: supabaseService),
         Provider<KarmaService>.value(value: karmaService),
@@ -212,6 +220,18 @@ void main() async {
         Provider<GetAllHorariosUseCase>(
           create: (context) => GetAllHorariosUseCase(context.read<HorarioAulaRepository>()),
         ),
+        Provider<EliminarAusenciaUseCase>(
+          create: (context) => EliminarAusenciaUseCase(context.read<AusenciaRepository>()),
+        ),
+        Provider<GetGuardiasUseCase>(
+          create: (context) => GetGuardiasUseCase(context.read<GuardiaRepository>()),
+        ),
+        Provider<GuardarGuardiaUseCase>(
+          create: (context) => GuardarGuardiaUseCase(context.read<GuardiaRepository>()),
+        ),
+        Provider<EliminarGuardiaUseCase>(
+          create: (context) => EliminarGuardiaUseCase(context.read<GuardiaRepository>()),
+        ),
 
         // ── Proveedores de estado ──
         ChangeNotifierProvider<AuthProvider>(
@@ -220,6 +240,7 @@ void main() async {
             registerUseCase: context.read<RegisterProfesorUseCase>(),
             getSesionActualUseCase: context.read<GetSesionActualUseCase>(),
             cerrarSesionUseCase: context.read<CerrarSesionUseCase>(),
+            getProfesoresUseCase: context.read<GetProfesoresUseCase>(),
           )..checkSession(),
         ),
         ChangeNotifierProvider<ConfigProvider>(create: (_) => ConfigProvider()),
@@ -266,9 +287,7 @@ class GestionAusencias extends StatelessWidget {
       ],
       supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
       locale: configProvider.appLocale,
-      home: authProvider.isLoggedIn
-          ? MainLayout(onLogout: () => authProvider.logout())
-          : LoginScreen(onLoginSuccess: () {}),
+      home: MainLayout(onLogout: () => authProvider.logout()),
     );
   }
 }

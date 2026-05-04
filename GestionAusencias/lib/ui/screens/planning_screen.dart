@@ -19,7 +19,7 @@ import '../widgets/planning/planning_header.dart';
 import '../widgets/planning/karma_sidebar.dart';
 import '../widgets/planning/timeline_view.dart';
 import '../widgets/planning/agenda_modal_content.dart';
-import '../../domain/repositories/ausencia_repository.dart';
+import '../../domain/usecases/eliminar_ausencia_usecase.dart';
 
 class DatosSlot {
   final TextEditingController controller;
@@ -153,10 +153,9 @@ class _PlanningScreenState extends State<PlanningScreen> {
                             onEmptySlotClick: _showProfessorSelectionDialog,
                             onClear: (ausencia) async {
                               if (ausencia.id == null) return;
-                              final repo = context.read<AusenciaRepository>();
                               final messenger = ScaffoldMessenger.of(context);
                               try {
-                                await repo.eliminarAusencia(ausencia.id!);
+                                await context.read<EliminarAusenciaUseCase>().execute(ausencia.id!);
                                 await _cargarDatos();
                                 messenger.showSnackBar(
                                   const SnackBar(content: Text("Ausencia eliminada"), backgroundColor: Colors.blueGrey),
