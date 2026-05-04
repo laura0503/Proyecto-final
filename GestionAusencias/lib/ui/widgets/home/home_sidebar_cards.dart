@@ -1,12 +1,17 @@
-
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import '../../../domain/entities/profesor.dart';
+import '../../../domain/entities/horario_clase.dart';
 
 class HomeSidebarCards extends StatelessWidget {
   final Profesor? profesor;
+  final List<HorarioClase> sustituciones;
 
-  const HomeSidebarCards({super.key, this.profesor});
+  const HomeSidebarCards({
+    super.key, 
+    this.profesor, 
+    this.sustituciones = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -127,13 +132,28 @@ class HomeSidebarCards extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("Mis Guardias", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF334155))),
-              Text("Ver Todo", style: TextStyle(color: const Color(0xFF4F46E5), fontWeight: FontWeight.w800, fontSize: 11)),
+              Text("${sustituciones.length} total", style: TextStyle(color: const Color(0xFF4F46E5), fontWeight: FontWeight.w800, fontSize: 11)),
             ],
           ),
           const SizedBox(height: 16),
-          _guardItem(Icons.security_rounded, "Guardia de Patio", "Hoy, 12:00", "CONFIRMADA", Colors.green),
-          _guardItem(Icons.people_alt_rounded, "Sustitución", "Vie, 09:00", "PENDIENTE", Colors.orange),
-          _guardItem(Icons.science_rounded, "Supervisión Lab", "23 Oct", "HECHO", Colors.grey),
+          if (sustituciones.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Text(
+                  "No tienes guardias esta semana.",
+                  style: TextStyle(color: Colors.grey[400], fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ),
+            )
+          else
+            ...sustituciones.take(3).map((s) => _guardItem(
+              Icons.security_rounded, 
+              s.asignatura.replaceAll("GUARDIA: ", ""), 
+              "${s.dia.substring(0,3)}, ${s.inicio}", 
+              "ACTIVO", 
+              const Color(0xFF4F46E5),
+            )).toList(),
         ],
       ),
     );

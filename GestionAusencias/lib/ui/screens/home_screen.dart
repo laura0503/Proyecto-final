@@ -14,7 +14,9 @@ import '../providers/notification_provider.dart';
 import '../widgets/home/home_header_premium.dart';
 import '../widgets/home/home_absence_alert.dart';
 import '../widgets/home/home_weekly_schedule.dart';
+import 'dart:async';
 import '../widgets/home/home_sidebar_cards.dart';
+import '../widgets/planning/agenda_modal_content.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,12 +28,31 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   List<HorarioClase> _horario = [];
-  List<Ausencia> _ausenciasHoy = [];
+  List<Ausencia> _ausenciasSemana = [];
+  List<HorarioClase> _sustituciones = [];
+  late Timer _timer;
+  String _currentTime = "";
 
   @override
   void initState() {
     super.initState();
     _cargarDatos();
+    _updateTime();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) => _updateTime());
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  void _updateTime() {
+    if (mounted) {
+      setState(() {
+        _currentTime = DateFormat('HH:mm:ss').format(DateTime.now());
+      });
+    }
   }
 
   Future<void> _cargarDatos() async {
@@ -46,7 +67,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final supabase = Supabase.instance.client;
 
       final hoy = DateTime.now();
-      // Calcular inicio y fin de la semana (Lunes a Viernes)
       final lunes = hoy.subtract(Duration(days: hoy.weekday - 1));
       final inicioSemana = DateTime(lunes.year, lunes.month, lunes.day);
       final viernes = lunes.add(const Duration(days: 4));
@@ -60,19 +80,36 @@ class _HomeScreenState extends State<HomeScreen> {
             .eq('profesor_guardia', prof.id)
             .gte('fecha', inicioSemana.toIso8601String())
             .lte('fecha', finSemana.toIso8601String()),
+        supabase.from('sustitucion')
+            .select('''
+              *,
+              ausencia:id_ausencia (
+                *,
+                horario:id_horario_sesion (
+                  *,
+                  profesores:id_profesor (nombre),
+                  Asignaturas:id_asignatura (nombre),
+                  aulas:id_aula (nombre),
+                  grupo:id_grupo (nombre),
+                  horario_tramo:id_tramo (horario_inicio, horario_fin)
+                )
+              )
+            ''')
+            .eq('id_profesor_sustituto', int.tryParse(prof.id) ?? 0)
+            .gte('ausencia.fecha', inicioSemana.toIso8601String())
+            .lte('ausencia.fecha', finSemana.toIso8601String()),
       ]);
 
       if (mounted) {
         setState(() {
           _horario = results[0] as List<HorarioClase>;
-          _ausenciasHoy = (results[1] as List<Ausencia>).where((a) => a.profesorId == prof.id).toList();
+          _ausenciasSemana = (results[1] as List<Ausencia>).where((a) => a.profesorId == prof.id).toList();
           
-          // Mapear guardias de sustitución a objetos HorarioClase temporales para el widget de horario
-          final guardiasAsignadas = (results[2] as List).map((json) {
+          final guardiasAntiguas = (results[2] as List).map((json) {
             final fechaG = DateTime.parse(json['fecha']);
             final dias = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
             return HorarioClase(
-              id: -1, // ID negativo para diferenciarlo
+              id: -1,
               profesor: prof.nombre,
               aula: json['aula'] ?? 'N/A',
               grupo: json['grupo'] ?? 'N/A',
@@ -85,13 +122,67 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }).toList();
 
-          _horario.addAll(guardiasAsignadas);
+          final sustitucionesNuevas = (results[3] as List).map((json) {
+            final ausenciaJson = json['ausencia'];
+            if (ausenciaJson == null || ausenciaJson['horario'] == null) return null;
+            final h = ausenciaJson['horario'];
+            final t = h['horario_tramo'] ?? {};
+            final fechaG = DateTime.parse(ausenciaJson['fecha']);
+            final dias = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+            return HorarioClase(
+              id: -2, 
+              profesor: prof.nombre,
+              aula: h['aulas']?['nombre'] ?? 'N/A',
+              grupo: h['grupo']?['nombre'] ?? 'N/A',
+              asignatura: "GUARDIA: ${h['Asignaturas']?['nombre'] ?? 'Clase'}",
+              dia: dias[fechaG.weekday],
+              inicio: t['horario_inicio']?.toString().substring(0, 5) ?? '00:00',
+              fin: t['horario_fin']?.toString().substring(0, 5) ?? '00:00',
+              esGuardia: true,
+              nota: "Cubriendo a ${h['profesores']?['nombre'] ?? 'Compañero'}",
+            );
+          }).whereType<HorarioClase>().toList();
+
+          _sustituciones = [...guardiasAntiguas, ...sustitucionesNuevas];
+          _horario.addAll(_sustituciones);
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showActionMenu(HorarioClase sesion, DateTime fecha) {
+    final prof = context.read<AuthProvider>().profesorActual;
+    if (prof == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AgendaModalContent(
+        profesor: prof,
+        fecha: fecha,
+        registroFaltas: const {},
+        primaryColor: const Color(0xFF4F46E5),
+        onDataChanged: () {
+          _cargarDatos();
+        },
+      ),
+    );
+  }
+
+  bool _esHoy(DateTime d) {
+    final ahora = DateTime.now();
+    return d.day == ahora.day && d.month == ahora.month && d.year == ahora.year;
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return "Buenos días";
+    if (hour < 20) return "Buenas tardes";
+    return "Buenas noches";
   }
 
   @override
@@ -102,17 +193,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final prof = context.watch<AuthProvider>().profesorActual;
     final nombre = prof?.nombre.split(',').last.trim() ?? 'Profesor';
-    final fechaStr = DateFormat('EEEE, MMMM d', 'es').format(DateTime.now());
+    final fechaStr = DateFormat('EEEE, d MMMM', 'es').format(DateTime.now());
 
     return Scaffold(
-      backgroundColor: Colors.transparent, // Permitir ver el fondo global
+      backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            HomeHeaderPremium(nombre: nombre, fecha: fechaStr),
+            HomeHeaderPremium(
+              nombre: nombre, 
+              fecha: "$fechaStr • $_currentTime", 
+              saludo: _getGreeting(),
+            ),
             const SizedBox(height: 32),
             
             Row(
@@ -123,10 +218,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   flex: 2,
                   child: Column(
                     children: [
-                      if (_ausenciasHoy.isNotEmpty)
-                        HomeAbsenceAlert(ausencia: _ausenciasHoy.first),
+                      if (_ausenciasSemana.any((a) => _esHoy(a.fecha)))
+                        HomeAbsenceAlert(ausencia: _ausenciasSemana.firstWhere((a) => _esHoy(a.fecha))),
                       const SizedBox(height: 32),
-                      HomeWeeklySchedule(horario: _horario),
+                      HomeWeeklySchedule(
+                        horario: _horario,
+                        ausencias: _ausenciasSemana,
+                        onAction: _showActionMenu,
+                      ),
                       const SizedBox(height: 32),
                       _buildLoungeBanner(),
                     ],
@@ -136,7 +235,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Sidebar Column
                 Expanded(
                   flex: 1,
-                  child: HomeSidebarCards(profesor: prof),
+                  child: HomeSidebarCards(
+                    profesor: prof,
+                    sustituciones: _sustituciones,
+                  ),
                 ),
               ],
             ),

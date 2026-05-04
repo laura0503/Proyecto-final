@@ -6,11 +6,13 @@ import './fichaje_dialog.dart';
 class HomeHeaderPremium extends StatelessWidget {
   final String nombre;
   final String fecha;
+  final String saludo;
 
   const HomeHeaderPremium({
     super.key,
     required this.nombre,
     required this.fecha,
+    required this.saludo,
   });
 
   @override
@@ -22,7 +24,7 @@ class HomeHeaderPremium extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Buenos días, Prof. $nombre",
+              "$saludo, Prof. $nombre",
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w900,

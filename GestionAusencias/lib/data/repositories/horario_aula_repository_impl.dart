@@ -72,6 +72,7 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
         .select('''
           id_horario:id,
           dia_semana,
+          id_tramo,
           es_guardia,
           profesores(nombre),
           aulas(nombre),
@@ -92,6 +93,7 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
       supabase.from('horario').select('''
         id_horario:id,
         dia_semana,
+        id_tramo,
         es_guardia,
         profesores(nombre),
         aulas(nombre),
@@ -151,6 +153,7 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
         .select('''
           id_horario:id,
           dia_semana,
+          id_tramo,
           es_guardia,
           profesores(nombre),
           aulas(nombre),
@@ -159,6 +162,26 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
           horario_tramo(horario_fin, horario_inicio)
         ''')
         .eq('id_grupo', grupoId);
+
+    final List rows = response as List;
+    return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
+  }
+
+  @override
+  Future<List<HorarioClase>> getAllHorariosDetallados() async {
+    final response = await supabase
+        .from('horario')
+        .select('''
+          id_horario:id,
+          dia_semana,
+          id_tramo,
+          es_guardia,
+          profesores(nombre),
+          aulas(nombre),
+          grupo(nombre),
+          Asignaturas(nombre),
+          horario_tramo(horario_fin, horario_inicio)
+        ''');
 
     final List rows = response as List;
     return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();

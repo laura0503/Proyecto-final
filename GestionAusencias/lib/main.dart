@@ -51,6 +51,7 @@ import 'package:gestion_ausencias/domain/usecases/get_horario_profesor_detallado
 import 'package:gestion_ausencias/domain/usecases/get_horario_grupo_detallado_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_ocupados_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_ausencias_usecase.dart';
+import 'package:gestion_ausencias/domain/usecases/get_all_horarios_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/reportar_ausencia_usecase.dart';
 import 'package:gestion_ausencias/data/services/horario_importer.dart';
 import 'package:gestion_ausencias/data/services/supabase_service.dart';
@@ -61,6 +62,7 @@ import 'package:gestion_ausencias/ui/providers/notification_provider.dart';
 import 'package:gestion_ausencias/ui/providers/guardia_provider.dart';
 import 'package:gestion_ausencias/ui/screens/login_screen.dart';
 import 'package:gestion_ausencias/ui/screens/main_layout.dart';
+import 'package:gestion_ausencias/core/services/karma_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -97,6 +99,7 @@ void main() async {
 
   final horarioImporter = HorarioImporter();
   final supabaseService = SupabaseService(supabase);
+  final karmaService = KarmaService();
 
   // --- AUTO-IMPORTACIÓN EN SEGUNDO PLANO (no bloquea el arranque) ---
   Future(() async {
@@ -137,6 +140,7 @@ void main() async {
         Provider<AusenciaRepository>.value(value: ausenciaRepository),
         Provider<IHorarioImporter>.value(value: horarioImporter),
         Provider<SupabaseService>.value(value: supabaseService),
+        Provider<KarmaService>.value(value: karmaService),
 
         // ── Casos de uso ──
         Provider<LoginProfesorUseCase>(
@@ -205,6 +209,9 @@ void main() async {
         Provider<ReportarAusenciaUseCase>(
           create: (context) => ReportarAusenciaUseCase(context.read<AusenciaRepository>()),
         ),
+        Provider<GetAllHorariosUseCase>(
+          create: (context) => GetAllHorariosUseCase(context.read<HorarioAulaRepository>()),
+        ),
 
         // ── Proveedores de estado ──
         ChangeNotifierProvider<AuthProvider>(
@@ -220,7 +227,9 @@ void main() async {
           create: (_) => NotificationProvider(),
         ),
         ChangeNotifierProvider<GuardiaProvider>(
-          create: (_) => GuardiaProvider(),
+          create: (context) => GuardiaProvider(
+            karmaService: context.read<KarmaService>(),
+          ),
         ),
       ],
       child: const GestionAusencias(),

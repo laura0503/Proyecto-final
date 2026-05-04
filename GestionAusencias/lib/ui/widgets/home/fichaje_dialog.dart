@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/ui/providers/guardia_provider.dart';
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
+import 'package:gestion_ausencias/core/services/karma_service.dart';
 
 class FichajeDialog extends StatefulWidget {
   final String profesorNombre;
@@ -79,14 +80,14 @@ class _FichajeDialogState extends State<FichajeDialog> {
             _me = null;
           }
           
-          // El recomendado es el que tiene menos karma Y tiene guardia programada
+          // Usar el KarmaService para la recomendación
+          final karmaService = context.read<KarmaService>();
           final scheduledProfes = profes.where((p) => scheduledNames.any((name) => p.nombre.contains(name) || name.contains(p.nombre))).toList();
           
           if (scheduledProfes.isNotEmpty) {
-            _recommendedProfesor = scheduledProfes.first; // Ya vienen ordenados por karma
+            _recommendedProfesor = karmaService.getRecommendedProfessor(scheduledProfes);
           } else if (_allProfesores.isNotEmpty) {
-            // Si no hay nadie programado ahora (ej: tarde), mostrar el de menos karma general
-            _recommendedProfesor = _allProfesores.first;
+            _recommendedProfesor = karmaService.getRecommendedProfessor(_allProfesores);
           }
 
           _isLoadingTeam = false;
@@ -247,6 +248,9 @@ class _FichajeDialogState extends State<FichajeDialog> {
                         _buildTimerSection(guardProvider),
                         const SizedBox(height: 32),
                         _buildPrimaryButton(guardProvider),
+                        if (guardProvider.isOnGuard && 
+                            guardProvider.currentProfessorId != (context.read<AuthProvider>().profesorActual?.id))
+                          _buildRelayButton(guardProvider),
                         const SizedBox(height: 40),
                         _buildTeamSection(guardProvider),
                         const SizedBox(height: 32),
@@ -315,6 +319,7 @@ class _FichajeDialogState extends State<FichajeDialog> {
   }
 
   Widget _buildTimerSection(GuardiaProvider provider) {
+    final double points = provider.elapsedTime.inMinutes / 60.0;
     return Column(
       children: [
         Text(
@@ -337,6 +342,29 @@ class _FichajeDialogState extends State<FichajeDialog> {
             fontFeatures: [ui.FontFeature.tabularFigures()],
           ),
         ),
+        if (provider.isOnGuard)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF34C759).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.stars_rounded, color: Color(0xFF34C759), size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  "+${points.toStringAsFixed(2)} Puntos de Karma",
+                  style: const TextStyle(
+                    color: Color(0xFF34C759),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -528,6 +556,52 @@ class _FichajeDialogState extends State<FichajeDialog> {
           Text(
             content,
             style: TextStyle(fontSize: 9, height: 1.3, color: const Color(0xFF3A3A3C), fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRelayButton(GuardiaProvider provider) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: OutlinedButton.icon(
+        onPressed: () {
+          _showRelayConfirmation(provider);
+        },
+        icon: const Icon(Icons.swap_calls_rounded, color: Color(0xFF5856D6)),
+        label: Text(
+          "RELEVAR A ${provider.currentProfessorName?.split(',').last.trim() ?? 'PROFESOR'}",
+          style: const TextStyle(color: Color(0xFF5856D6), fontWeight: FontWeight.bold),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Color(0xFF5856D6)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+        ),
+      ),
+    );
+  }
+
+  void _showRelayConfirmation(GuardiaProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white.withOpacity(0.9),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: const Text("Hacer Relevo", style: TextStyle(fontWeight: FontWeight.w900)),
+        content: Text("El Prof. ${provider.currentProfessorName} no ha fichado la salida. ¿Quieres finalizar su sesión y empezar la tuya?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              provider.stopGuard().then((_) {
+                _startGuard();
+              });
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5856D6)),
+            child: const Text("Confirmar Relevo", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

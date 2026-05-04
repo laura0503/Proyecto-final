@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:collection/collection.dart';
 import 'package:provider/provider.dart';
 import '../../../domain/entities/profesor.dart';
 import '../../../domain/entities/horario_clase.dart';
@@ -64,7 +65,8 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
         s.esGuardia
       ).toList();
       
-      _ausenciasHoy = (results[1] as List<Ausencia>).where((a) => a.profesorId == widget.profesor.id).toList();
+      final idProf = widget.profesor.idProfesor?.toString() ?? widget.profesor.id;
+      _ausenciasHoy = (results[1] as List<Ausencia>).where((a) => a.profesorId == idProf).toList();
 
       if (mounted) setState(() => _isLoading = false);
     } catch (e) {
@@ -102,9 +104,8 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
                         itemCount: _sesionesHoy.length,
                         itemBuilder: (context, index) {
                           final sesion = _sesionesHoy[index];
-                          final ausencia = _ausenciasHoy.firstWhere(
+                          final ausencia = _ausenciasHoy.firstWhereOrNull(
                             (a) => a.idHorario == sesion.id,
-                            orElse: () => Ausencia(profesorId: "", fecha: DateTime.now(), idHorario: -1, tipo: null),
                           );
                           return _buildGuardiaCard(sesion, ausencia);
                         },
@@ -176,8 +177,8 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
     );
   }
 
-  Widget _buildGuardiaCard(HorarioClase sesion, Ausencia ausencia) {
-    final String tipoAusencia = ausencia.tipo ?? "";
+  Widget _buildGuardiaCard(HorarioClase sesion, Ausencia? ausencia) {
+    final String tipoAusencia = ausencia?.tipo ?? "";
     final bool reportada = tipoAusencia.isNotEmpty;
     final Color statusColor = reportada ? _getColorForTipo(tipoAusencia) : widget.primaryColor;
 
@@ -271,7 +272,7 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
     );
   }
 
-  void _mostrarOpcionesAccion(HorarioClase sesion, Ausencia ausenciaActual) {
+  void _mostrarOpcionesAccion(HorarioClase sesion, Ausencia? ausenciaActual) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -305,7 +306,7 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
     );
   }
 
-  Widget _buildActionCircle(IconData icon, String tipo, Color color, HorarioClase sesion, Ausencia ausenciaActual) {
+  Widget _buildActionCircle(IconData icon, String tipo, Color color, HorarioClase sesion, Ausencia? ausenciaActual) {
     return Column(
       children: [
         GestureDetector(
@@ -328,19 +329,21 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
     );
   }
 
-  Future<void> _reportarEstado(HorarioClase sesion, String tipo, Ausencia ausenciaActual) async {
+  Future<void> _reportarEstado(HorarioClase sesion, String tipo, Ausencia? ausenciaActual) async {
     setState(() => _isLoading = true);
     try {
       final reportarUseCase = context.read<ReportarAusenciaUseCase>();
       
       if (tipo == "LIMPIAR") {
-        if (ausenciaActual.id != null) {
+        debugPrint('LIMPIAR: ausenciaActual.id=${ausenciaActual?.id}');
+        if (ausenciaActual?.id != null) {
           final repo = context.read<AusenciaRepository>();
-          await repo.eliminarAusencia(ausenciaActual.id!);
+          await repo.eliminarAusencia(ausenciaActual!.id!);
         }
       } else {
         final ausencia = Ausencia(
-          profesorId: widget.profesor.id,
+          id: ausenciaActual?.id,
+          profesorId: widget.profesor.idProfesor?.toString() ?? widget.profesor.id,
           fecha: widget.fecha,
           idHorario: sesion.id,
           tipo: tipo,

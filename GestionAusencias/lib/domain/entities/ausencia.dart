@@ -3,6 +3,7 @@ class Ausencia {
   final String profesorId;
   final DateTime fecha;
   final int idHorario;
+  final int? idTramo;
   final String? observaciones;
   final String? tipo; // FALTA, RETRASO, JUSTIFICADO
 
@@ -11,6 +12,7 @@ class Ausencia {
     required this.profesorId,
     required this.fecha,
     required this.idHorario,
+    this.idTramo,
     this.observaciones,
     this.tipo = 'FALTA',
   });
@@ -20,6 +22,7 @@ class Ausencia {
     String? profesorId,
     DateTime? fecha,
     int? idHorario,
+    int? idTramo,
     String? observaciones,
     String? tipo,
   }) {
@@ -28,6 +31,7 @@ class Ausencia {
       profesorId: profesorId ?? this.profesorId,
       fecha: fecha ?? this.fecha,
       idHorario: idHorario ?? this.idHorario,
+      idTramo: idTramo ?? this.idTramo,
       observaciones: observaciones ?? this.observaciones,
       tipo: tipo ?? this.tipo,
     );

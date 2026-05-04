@@ -2,16 +2,29 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import '../../../domain/entities/horario_clase.dart';
+import '../../../domain/entities/ausencia.dart';
 
 class HomeWeeklySchedule extends StatelessWidget {
   final List<HorarioClase> horario;
+  final List<Ausencia> ausencias;
+  final Function(HorarioClase, DateTime) onAction;
 
-  const HomeWeeklySchedule({super.key, required this.horario});
+  const HomeWeeklySchedule({
+    super.key, 
+    required this.horario, 
+    this.ausencias = const [],
+    required this.onAction,
+  });
 
   @override
   Widget build(BuildContext context) {
     final diasCortos = ["LUN", "MAR", "MIÉ", "JUE", "VIE"];
-    final hoyIndex = DateTime.now().weekday - 1;
+    final hoy = DateTime.now();
+    final hoyIndex = hoy.weekday - 1;
+    
+    // Calcular fechas de la semana actual
+    final lunes = hoy.subtract(Duration(days: hoy.weekday - 1));
+    final fechasSemana = List.generate(5, (i) => lunes.add(Duration(days: i)));
 
     // Ordenar horario por hora de inicio
     final sortedHorario = List<HorarioClase>.from(horario)
@@ -28,6 +41,7 @@ class HomeWeeklySchedule extends StatelessWidget {
             final diaNombre = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"][index];
             final sesiones = sortedHorario.where((h) => h.dia.toUpperCase() == diaNombre).toList();
             final isToday = index == hoyIndex;
+            final fechaDia = fechasSemana[index];
             
             return Expanded(
               child: Column(
@@ -39,6 +53,15 @@ class HomeWeeklySchedule extends StatelessWidget {
                   ...sesiones.asMap().entries.map((entry) {
                     final i = entry.key;
                     final s = entry.value;
+                    
+                    // Buscar si hay una ausencia para esta sesión
+                    final ausencia = ausencias.firstWhere(
+                      (a) => a.idHorario == s.id && 
+                             a.fecha.day == fechaDia.day && 
+                             a.fecha.month == fechaDia.month,
+                      orElse: () => Ausencia(profesorId: "", fecha: fechaDia, idHorario: -1, tipo: null),
+                    );
+
                     return TweenAnimationBuilder<double>(
                       tween: Tween(begin: 0.0, end: 1.0),
                       duration: Duration(milliseconds: 500 + (i * 100)),
@@ -48,7 +71,10 @@ class HomeWeeklySchedule extends StatelessWidget {
                           offset: Offset(0, 20 * (1 - value)),
                           child: Opacity(
                             opacity: value,
-                            child: _buildSwiftUICard(s, isToday, context),
+                            child: GestureDetector(
+                              onTap: () => onAction(s, fechaDia),
+                              child: _buildSwiftUICard(s, isToday, context, ausencia),
+                            ),
                           ),
                         );
                       },
@@ -124,9 +150,14 @@ class HomeWeeklySchedule extends StatelessWidget {
     );
   }
 
-  Widget _buildSwiftUICard(HorarioClase s, bool isToday, BuildContext context) {
+  Widget _buildSwiftUICard(HorarioClase s, bool isToday, BuildContext context, Ausencia ausencia) {
     final bool isSubstitution = s.id == -1;
-    final Color accentColor = isSubstitution ? Colors.orange[600]! : _getAccentColor(s.asignatura, isToday);
+    final bool hasAusencia = ausencia.tipo != null;
+    
+    Color accentColor = isSubstitution ? Colors.orange[600]! : _getAccentColor(s.asignatura, isToday);
+    if (hasAusencia) {
+      accentColor = ausencia.tipo == 'FALTA' ? const Color(0xFFBE123C) : const Color(0xFFD97706);
+    }
 
     return Container(
       margin: const EdgeInsets.fromLTRB(5, 0, 5, 14),
@@ -137,11 +168,11 @@ class HomeWeeklySchedule extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.75),
+              color: hasAusencia ? accentColor.withOpacity(0.1) : Colors.white.withOpacity(0.75),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: isToday ? accentColor.withOpacity(0.4) : Colors.white.withOpacity(0.5),
-                width: isToday ? 2 : 1,
+                color: hasAusencia ? accentColor.withOpacity(0.5) : (isToday ? accentColor.withOpacity(0.4) : Colors.white.withOpacity(0.5)),
+                width: (isToday || hasAusencia) ? 2 : 1,
               ),
             ),
             child: Column(
@@ -155,25 +186,35 @@ class HomeWeeklySchedule extends StatelessWidget {
                       style: TextStyle(color: accentColor, fontSize: 10, fontWeight: FontWeight.w900),
                     ),
                     if (isSubstitution)
-                      const Icon(Icons.swap_calls_rounded, size: 12, color: Colors.orange),
+                      const Icon(Icons.swap_calls_rounded, size: 12, color: Colors.orange)
+                    else if (hasAusencia)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: accentColor, borderRadius: BorderRadius.circular(6)),
+                        child: Text(
+                          ausencia.tipo!,
+                          style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold),
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
                   s.asignatura,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w800, 
                     fontSize: 14, 
-                    color: Color(0xFF1E293B),
+                    color: hasAusencia ? accentColor : const Color(0xFF1E293B),
                     height: 1.1,
+                    decoration: ausencia.tipo == 'FALTA' ? TextDecoration.lineThrough : null,
                   ),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (s.nota.isNotEmpty) ...[
+                if (s.nota.isNotEmpty || hasAusencia) ...[
                   const SizedBox(height: 6),
                   Text(
-                    s.nota,
+                    hasAusencia ? (ausencia.observaciones ?? "Estado: ${ausencia.tipo}") : s.nota,
                     style: TextStyle(color: accentColor.withOpacity(0.8), fontSize: 9, fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -182,12 +223,12 @@ class HomeWeeklySchedule extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.location_on_rounded, size: 10, color: Colors.grey[400]),
+                    Icon(Icons.location_on_rounded, size: 10, color: hasAusencia ? accentColor.withOpacity(0.5) : Colors.grey[400]),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         s.aula,
-                        style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: hasAusencia ? accentColor.withOpacity(0.7) : Colors.grey[500], fontSize: 10, fontWeight: FontWeight.w600),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),

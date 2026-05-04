@@ -6,33 +6,33 @@ class AusenciaModel extends Ausencia {
     required super.profesorId,
     required super.fecha,
     required super.idHorario,
+    super.idTramo,
     super.observaciones,
     super.tipo,
   });
 
   factory AusenciaModel.fromJson(Map<String, dynamic> json) {
     return AusenciaModel(
-      id: json['id'],
-      profesorId: json['id_profesor'] ?? '',
+      id: json['id_ausencia'],
+      profesorId: json['id_profesor_ausente']?.toString() ?? '',
       fecha: DateTime.parse(json['fecha']),
-      idHorario: json['id_horario'] ?? 0,
+      idHorario: json['id_horario_sesion'] ?? 0,
       observaciones: json['observaciones'],
-      tipo: json['tipo'] ?? 'FALTA',
+      tipo: 'FALTA',
     );
   }
 
+  // Solo columnas que existen en la tabla ausencia de Supabase:
+  // id_ausencia, id_profesor_ausente, id_horario_sesion, fecha, observaciones
   Map<String, dynamic> toMap() {
     return {
-      if (id != null) 'id': id,
-      'id_profesor': profesorId,
-      'fecha': fecha.toIso8601String(),
-      'id_horario': idHorario,
-      'observaciones': observaciones,
-      'tipo': tipo,
+      'id_profesor_ausente': int.tryParse(profesorId) ?? 0,
+      if (idHorario > 0) 'id_horario_sesion': idHorario,
+      'fecha': '${fecha.year.toString().padLeft(4, '0')}-${fecha.month.toString().padLeft(2, '0')}-${fecha.day.toString().padLeft(2, '0')}',
+      if (observaciones != null) 'observaciones': observaciones,
     };
   }
 
-  // Alias para cumplir con la petición del usuario de toMap/toJson
   Map<String, dynamic> toJson() => toMap();
 
   factory AusenciaModel.fromEntity(Ausencia ausencia) {
@@ -41,6 +41,7 @@ class AusenciaModel extends Ausencia {
       profesorId: ausencia.profesorId,
       fecha: ausencia.fecha,
       idHorario: ausencia.idHorario,
+      idTramo: ausencia.idTramo,
       observaciones: ausencia.observaciones,
       tipo: ausencia.tipo,
     );

@@ -6,4 +6,5 @@ abstract class HorarioAulaRepository {
   Future<List<HorarioClase>> getHorarioDetallado(int aulaId);
   Future<List<HorarioClase>> getHorarioDetalladoByProfesor(int profesorId);
   Future<List<HorarioClase>> getHorarioDetalladoByGrupo(int grupoId);
+  Future<List<HorarioClase>> getAllHorariosDetallados();
 }

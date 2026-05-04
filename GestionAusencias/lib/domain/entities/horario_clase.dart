@@ -1,5 +1,6 @@
 class HorarioClase {
   final int id;
+  final int? idTramo;
   final String profesor;
   final String aula;
   final String grupo;
@@ -12,6 +13,7 @@ class HorarioClase {
 
   HorarioClase({
     this.id = 0,
+    this.idTramo,
     required this.profesor,
     required this.aula,
     required this.grupo,

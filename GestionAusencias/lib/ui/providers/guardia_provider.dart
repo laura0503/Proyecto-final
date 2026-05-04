@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gestion_ausencias/core/services/karma_service.dart';
 
 class GuardiaProvider extends ChangeNotifier {
+  final KarmaService _karmaService;
   bool _isOnGuard = false;
   Duration _elapsedTime = Duration.zero;
   DateTime? _startTime;
@@ -14,8 +16,10 @@ class GuardiaProvider extends ChangeNotifier {
   bool get isOnGuard => _isOnGuard;
   Duration get elapsedTime => _elapsedTime;
   DateTime? get startTime => _startTime;
+  String? get currentProfessorName => _currentProfessorName;
+  String? get currentProfessorId => _currentProfessorId;
 
-  GuardiaProvider() {
+  GuardiaProvider({required KarmaService karmaService}) : _karmaService = karmaService {
     _loadFromPrefs();
   }
 
@@ -77,16 +81,39 @@ class GuardiaProvider extends ChangeNotifier {
   }
 
   Future<void> stopGuard() async {
-    if (_currentProfessorId != null) {
-      // Update Supabase
-      try {
-        await Supabase.instance.client
-            .from('profesores')
-            .update({'es_guardia': false})
-            .eq('id', _currentProfessorId!);
-      } catch (e) {
-        debugPrint("Error updating Supabase: $e");
-      }
+    if (_currentProfessorId == null || _startTime == null) return;
+
+    final double pointsEarned = _karmaService.calculatePoints(_elapsedTime);
+
+    // Update Supabase
+    try {
+      final supabase = Supabase.instance.client;
+      
+      // 1. Obtener karma actual del profesor
+      final profData = await supabase
+          .from('profesores')
+          .select('karma')
+          .eq('id', _currentProfessorId!)
+          .single();
+      
+      final double currentKarma = (profData['karma'] ?? 0).toDouble();
+      final double newKarma = currentKarma + pointsEarned;
+
+      // 2. Actualizar profesor (karma y estado guardia)
+      await supabase
+          .from('profesores')
+          .update({
+            'es_guardia': false,
+            'karma': newKarma,
+          })
+          .eq('id', _currentProfessorId!);
+      
+      // 3. (Opcional) Registrar en tabla sustitucion si hay una pendiente
+      // Buscamos una sustitución sin profesor asignado para este profesor o para este tramo
+      // Por ahora, simplemente registramos el fin de la sesión.
+      
+    } catch (e) {
+      debugPrint("Error updating karma/guard status: $e");
     }
 
     _timer?.cancel();

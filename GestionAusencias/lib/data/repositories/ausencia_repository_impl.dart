@@ -30,7 +30,7 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
   Future<void> reportarAusencia(Ausencia ausencia) async {
     try {
       final model = AusenciaModel.fromEntity(ausencia);
-      await _supabase.from('ausencia').upsert(model.toJson());
+      await _supabase.from('ausencia').insert(model.toJson());
     } catch (e) {
       print("Error reporting ausencia: $e");
       rethrow;
@@ -41,16 +41,26 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
   Future<void> reportarAusenciaConSustitucion(Ausencia ausencia) async {
     try {
       final model = AusenciaModel.fromEntity(ausencia);
+      
+      // 1. Upsert de la ausencia para obtener el ID (si es nueva) o actualizarla
       final res = await _supabase.from('ausencia').insert(model.toJson()).select().single();
-      
-      final ausenciaId = res['id'];
-      
-      // Crear sustitución vinculada (pendiente)
-      await _supabase.from('sustitucion').insert({
-        'id_ausencia': ausenciaId,
-        'id_profesor_sustituto': null, // Dejamos null para que sea una guardia pendiente
-        'puntos_karma': 1.0
-      });
+      final ausenciaId = res['id_ausencia'];
+
+      // 2. Verificar si ya existe una sustitución para esta ausencia
+      final existingSust = await _supabase
+          .from('sustitucion')
+          .select()
+          .eq('id_ausencia', ausenciaId)
+          .maybeSingle();
+
+      // 3. Si no existe, crearla
+      if (existingSust == null) {
+        await _supabase.from('sustitucion').insert({
+          'id_ausencia': ausenciaId,
+          'id_profesor_sustituto': null,
+          'puntos_karma': 1.0
+        });
+      }
     } catch (e) {
       print("Error reporting ausencia con sustitucion: $e");
       rethrow;
@@ -59,6 +69,7 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
 
   @override
   Future<void> eliminarAusencia(int id) async {
-    await _supabase.from('ausencia').delete().eq('id', id);
+    await _supabase.from('sustitucion').delete().eq('id_ausencia', id);
+    await _supabase.from('ausencia').delete().eq('id_ausencia', id);
   }
 }

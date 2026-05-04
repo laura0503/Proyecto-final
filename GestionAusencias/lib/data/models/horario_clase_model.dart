@@ -3,6 +3,7 @@ import '../../domain/entities/horario_clase.dart';
 class HorarioClaseModel extends HorarioClase {
   HorarioClaseModel({
     super.id,
+    super.idTramo,
     required super.profesor,
     required super.aula,
     required super.grupo,
@@ -31,6 +32,7 @@ class HorarioClaseModel extends HorarioClase {
 
     return HorarioClaseModel(
       id: json['id_horario'] as int? ?? 0,
+      idTramo: json['id_tramo'] as int?,
       profesor: p.toString(),
       aula: a.toString(),
       grupo: g.toString(),
