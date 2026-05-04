@@ -45,9 +45,12 @@ class _MainLayoutState extends State<MainLayout> {
   final Color backgroundColor = const Color(0xFFF9F7F2);
 
   void _irAPagina(int index) {
-    if (index >= 3) return;
     setState(() => _selectedIndex = index);
-    _pageController.jumpToPage(index);
+    _pageController.animateToPage(
+      index, 
+      duration: const Duration(milliseconds: 600), 
+      curve: Curves.easeInOutQuart,
+    );
   }
 
   // ... imports ...

@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
 
 class PlanningHeader extends StatelessWidget {
@@ -22,20 +23,17 @@ class PlanningHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
           ),
-        ],
-      ),
-      child: Column(
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Top Row: Search and Nav
@@ -69,9 +67,9 @@ class PlanningHeader extends StatelessWidget {
           // Breadcrumbs
           Row(
             children: [
-              Text("LUMINOUS", style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2)),
+              Text("GUARDIAMASTER", style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2)),
               Icon(Icons.chevron_right, size: 12, color: Colors.grey[400]),
-              Text("SCHEDULING", style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2)),
+              Text("MONITOR DE GUARDIAS", style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2)),
             ],
           ),
           const SizedBox(height: 8),
@@ -83,44 +81,41 @@ class PlanningHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "${mesAno.toUpperCase()} - Planificación Semanal",
+                    "Línea de Tiempo",
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
-                      fontSize: 20,
-                      color: Color(0xFF1E293B),
+                      fontSize: 28,
+                      color: Color(0xFF0F172A),
                     ),
+                  ),
+                  Text(
+                    DateFormat('EEEE, d \'de\' MMMM', 'es').format(diasSemana[0]),
+                    style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w500, fontSize: 14),
                   ),
                 ],
               ),
               const Spacer(),
+              _exportButton(),
+              const SizedBox(width: 12),
               _weekSelector(),
             ],
           ),
           const SizedBox(height: 20),
 
-          // Legend
+          // Legend (Simplified)
           Row(
             children: [
-              _legendItem(Colors.red, "Falta"),
-              const SizedBox(width: 15),
-              _legendItem(Colors.orange, "Retraso"),
-              const SizedBox(width: 15),
-              _legendItem(Colors.blue, "Justificado"),
-            ],
-          ),
-          const SizedBox(height: 30),
-
-          // Days Header
-          Row(
-            children: [
-              const SizedBox(width: 120, child: Text("PERSONAL\nDOCENTE", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 11))),
-              ...diasSemana.map((d) => Expanded(child: _dayColumnHeader(d))),
+              _legendItem(Colors.redAccent, "Absencia Crítica"),
+              const SizedBox(width: 20),
+              _legendItem(Colors.orangeAccent, "Sustitución Pendiente"),
             ],
           ),
         ],
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   Widget _iconButton(IconData icon) {
     return Container(
@@ -136,19 +131,34 @@ class PlanningHeader extends StatelessWidget {
 
   Widget _weekSelector() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          InkWell(onTap: () => onCambiarSemana(-1), child: const Icon(Icons.chevron_left, size: 20)),
-          const SizedBox(width: 10),
-          Text("Semana $nSemana", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(width: 10),
-          InkWell(onTap: () => onCambiarSemana(1), child: const Icon(Icons.chevron_right, size: 20)),
+          IconButton(onPressed: () => onCambiarSemana(-1), icon: const Icon(Icons.chevron_left_rounded, size: 20), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+          const SizedBox(width: 8),
+          Text("Semana $nSemana", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF0F172A))),
+          const SizedBox(width: 8),
+          IconButton(onPressed: () => onCambiarSemana(1), icon: const Icon(Icons.chevron_right_rounded, size: 20), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
         ],
+      ),
+    );
+  }
+
+  Widget _exportButton() {
+    return ElevatedButton.icon(
+      onPressed: () {},
+      icon: const Icon(Icons.ios_share_rounded, size: 16),
+      label: const Text("Exportar"),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF4F46E5),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

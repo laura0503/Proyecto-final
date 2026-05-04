@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/core/utils/date.dart';
@@ -12,8 +13,8 @@ import '../../domain/usecases/get_horario_profesor_detallado_usecase.dart';
 import '../../domain/entities/horario_clase.dart';
 import '../providers/config_provider.dart';
 import '../widgets/planning/planning_header.dart';
-import '../widgets/planning/planning_profesor_row.dart';
-import '../widgets/planning/planning_summary_widgets.dart';
+import '../widgets/planning/karma_sidebar.dart';
+import '../widgets/planning/timeline_view.dart';
 import '../widgets/planning/agenda_modal_content.dart';
 import '../../domain/repositories/ausencia_repository.dart';
 
@@ -42,10 +43,13 @@ class _PlanningScreenState extends State<PlanningScreen> {
   DateTime _fechaSeleccionada = DateTime.now();
   List<Profesor> _profesores = [];
   List<Ausencia> _ausencias = [];
+  List<HorarioClase> _horarios = [];
   bool _isLoading = true;
 
   // Estilo Luminous
-  final Color primaryColor = const Color(0xFF4F46E5); // Indigo 600
+  // Estilo Premium
+  final Color primaryColor = const Color(0xFF4F46E5);
+  final Color accentColor = const Color(0xFF007AFF);
   final Color backgroundColor = const Color(0xFFF8FAFC);
   final Color cardColor = Colors.white;
 
@@ -95,64 +99,76 @@ class _PlanningScreenState extends State<PlanningScreen> {
     final nSemana = DateUtilsCustom.numeroSemanaDelMes(_fechaSeleccionada);
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: Colors.transparent,
       body: _isLoading 
         ? Center(child: CircularProgressIndicator(color: primaryColor))
-        : CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // Header Premium
-              SliverToBoxAdapter(
-                child: PlanningHeader(
-                  mesAno: mesAno,
-                  nSemana: nSemana,
-                  onCambiarSemana: _cambiarSemana,
-                  primaryColor: primaryColor,
-                  cardColor: cardColor,
-                  diasSemana: diasSemana,
-                ),
-              ),
-
-              // Lista de Profesores
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final profesor = _profesores[index];
-                      return PlanningProfesorRow(
-                        profesor: profesor,
-                        diasSemana: diasSemana,
-                        ausencias: _ausencias.where((a) => a.profesorId == profesor.id).toList(),
-                        onAction: _showActionMenu,
+        : Row(
+            children: [
+              // Lado Izquierdo: Timeline y Control Central
+              Expanded(
+                flex: 3,
+                child: TweenAnimationBuilder(
+                  duration: const Duration(milliseconds: 800),
+                  tween: Tween<double>(begin: 0, end: 1),
+                  curve: Curves.easeInOutQuart,
+                  builder: (context, double value, child) {
+                    return Opacity(opacity: value, child: child);
+                  },
+                  child: Column(
+                    children: [
+                      PlanningHeader(
+                        mesAno: mesAno,
+                        nSemana: nSemana,
+                        onCambiarSemana: _cambiarSemana,
                         primaryColor: primaryColor,
-                      );
-                    },
-                    childCount: _profesores.length,
-                  ),
-                ),
-              ),
-
-              // Widgets de Resumen inferiores
-              SliverPadding(
-                padding: const EdgeInsets.all(20),
-                sliver: SliverToBoxAdapter(
-                  child: PlanningSummaryWidgets(
-                    ausencias: _ausencias,
-                    totalProfesores: _profesores.length,
+                        cardColor: cardColor,
+                        diasSemana: diasSemana,
+                      ),
+                      Expanded(
+                        child: TimelineView(
+                          fecha: _fechaSeleccionada,
+                          ausencias: _ausencias.where((a) => 
+                            a.fecha.year == _fechaSeleccionada.year &&
+                            a.fecha.month == _fechaSeleccionada.month &&
+                            a.fecha.day == _fechaSeleccionada.day
+                          ).toList(),
+                          profesores: _profesores,
+                          horarios: _horarios,
+                          sustituciones: const [], // TODO: Cargar sustituciones reales
+                          onAction: _showActionMenu,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
               
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              // Lado Derecho: Sidebar de Karma y Analíticas
+              Container(
+                width: 320,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  border: Border(left: BorderSide(color: Colors.white.withOpacity(0.1))),
+                ),
+                child: ClipRRect(
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: KarmaSidebar(
+                      profesores: _profesores,
+                      primaryColor: primaryColor,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-           // Acción rápida para añadir falta global o similar
+           // Acción rápida para añadir falta
         },
         backgroundColor: primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text("Nueva Ausencia", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }

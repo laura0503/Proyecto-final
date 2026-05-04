@@ -58,6 +58,7 @@ import 'package:gestion_ausencias/data/services/supabase_service.dart';
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
 import 'package:gestion_ausencias/ui/providers/config_provider.dart';
 import 'package:gestion_ausencias/ui/providers/notification_provider.dart';
+import 'package:gestion_ausencias/ui/providers/guardia_provider.dart';
 import 'package:gestion_ausencias/ui/screens/login_screen.dart';
 import 'package:gestion_ausencias/ui/screens/main_layout.dart';
 
@@ -217,6 +218,9 @@ void main() async {
         ChangeNotifierProvider<ConfigProvider>(create: (_) => ConfigProvider()),
         ChangeNotifierProvider<NotificationProvider>(
           create: (_) => NotificationProvider(),
+        ),
+        ChangeNotifierProvider<GuardiaProvider>(
+          create: (_) => GuardiaProvider(),
         ),
       ],
       child: const GestionAusencias(),

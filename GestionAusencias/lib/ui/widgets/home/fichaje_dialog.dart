@@ -3,6 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gestion_ausencias/domain/entities/profesor.dart';
+import 'package:gestion_ausencias/data/models/profesor_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:gestion_ausencias/ui/providers/guardia_provider.dart';
+import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
 
 class FichajeDialog extends StatefulWidget {
   final String profesorNombre;
@@ -14,21 +21,138 @@ class FichajeDialog extends StatefulWidget {
 }
 
 class _FichajeDialogState extends State<FichajeDialog> {
-  bool _isOnGuard = false;
-  Duration _elapsedTime = Duration.zero;
-  Timer? _timer;
+  String _currentTurno = "Calculando...";
+  bool _isLoadingTeam = true;
+  List<Profesor> _allProfesores = [];
+  Profesor? _recommendedProfesor;
+  Profesor? _me;
+  List<String> _scheduledGuardNames = [];
   
+  // Datos simulados para demostración (sustituidos por reales abajo)
   int _teachersOnGuard = 1;
-  String _suggestedTeacher = "Elena Roa";
+
+  @override
+  void initState() {
+    super.initState();
+    _updateTurnoActual();
+    _cargarProfesores();
+    
+    // Timer para actualizar el turno actual visualmente
+    Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) _updateTurnoActual();
+    });
+  }
+
+  Future<void> _cargarProfesores() async {
+    setState(() => _isLoadingTeam = true);
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase.from('profesores').select().order('karma', ascending: true);
+      
+      final profes = (response as List).map((json) => ProfesorModel.fromJson(json)).toList();
+
+      // Consultar quiénes tienen guardia PROGRAMADA ahora
+      final now = DateTime.now();
+      final dia = _getDiaSemana(now);
+      final currentTime = DateFormat('HH:mm').format(now);
+
+      final scheduledResponse = await supabase.from('horario_clase')
+          .select('profesor')
+          .eq('dia', dia)
+          .eq('es_guardia', true)
+          .lte('inicio', currentTime)
+          .gt('fin', currentTime);
+      
+      final scheduledNames = (scheduledResponse as List).map((s) => s['profesor'].toString()).toList();
+
+      if (mounted) {
+        setState(() {
+          _allProfesores = profes;
+          _scheduledGuardNames = scheduledNames;
+
+          // Buscar al profesor actual
+          try {
+            _me = profes.firstWhere(
+              (p) => p.nombre.contains(widget.profesorNombre) || widget.profesorNombre.contains(p.nombre)
+            );
+          } catch (_) {
+            _me = null;
+          }
+          
+          // El recomendado es el que tiene menos karma Y tiene guardia programada
+          final scheduledProfes = profes.where((p) => scheduledNames.any((name) => p.nombre.contains(name) || name.contains(p.nombre))).toList();
+          
+          if (scheduledProfes.isNotEmpty) {
+            _recommendedProfesor = scheduledProfes.first; // Ya vienen ordenados por karma
+          } else if (_allProfesores.isNotEmpty) {
+            // Si no hay nadie programado ahora (ej: tarde), mostrar el de menos karma general
+            _recommendedProfesor = _allProfesores.first;
+          }
+
+          _isLoadingTeam = false;
+          _teachersOnGuard = profes.where((p) => p.esGuardia).length;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingTeam = false);
+    }
+  }
+
+  String _getDiaSemana(DateTime date) {
+    switch (date.weekday) {
+      case 1: return 'Lunes';
+      case 2: return 'Martes';
+      case 3: return 'Miércoles';
+      case 4: return 'Jueves';
+      case 5: return 'Viernes';
+      case 6: return 'Sábado';
+      case 7: return 'Domingo';
+      default: return 'Lunes';
+    }
+  }
 
   @override
   void dispose() {
-    _timer?.cancel();
     super.dispose();
   }
 
+  void _updateTurnoActual() {
+    final now = DateTime.now();
+    final hour = now.hour;
+    final minute = now.minute;
+    final currentTimeInMinutes = hour * 60 + minute;
+
+    // Tramos horarios estándar
+    final tramos = [
+      {"inicio": "08:00", "fin": "09:00"},
+      {"inicio": "09:00", "fin": "10:00"},
+      {"inicio": "10:00", "fin": "11:00"},
+      {"inicio": "11:00", "fin": "11:30", "label": "RECREO"},
+      {"inicio": "11:30", "fin": "12:30"},
+      {"inicio": "12:30", "fin": "13:30"},
+      {"inicio": "13:30", "fin": "14:30"},
+    ];
+
+    String match = "Fuera de horario";
+    for (var tramo in tramos) {
+      final inicioParts = tramo["inicio"]!.split(":");
+      final finParts = tramo["fin"]!.split(":");
+      
+      final inicioMins = int.parse(inicioParts[0]) * 60 + int.parse(inicioParts[1]);
+      final finMins = int.parse(finParts[0]) * 60 + int.parse(finParts[1]);
+
+      if (currentTimeInMinutes >= inicioMins && currentTimeInMinutes < finMins) {
+        match = "${tramo["inicio"]} - ${tramo["fin"]}${tramo.containsKey("label") ? " (${tramo["label"]})" : ""}";
+        break;
+      }
+    }
+
+    setState(() => _currentTurno = match);
+  }
+
   void _toggleGuard() {
-    if (_isOnGuard) {
+    final guardProvider = Provider.of<GuardiaProvider>(context, listen: false);
+    if (guardProvider.isOnGuard) {
       _showEndGuardConfirmation();
     } else {
       _startGuard();
@@ -36,48 +160,47 @@ class _FichajeDialogState extends State<FichajeDialog> {
   }
 
   void _startGuard() {
-    setState(() {
-      _isOnGuard = true;
-      _elapsedTime = Duration.zero;
-      _teachersOnGuard++;
-    });
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _elapsedTime = Duration(seconds: _elapsedTime.inSeconds + 1);
-      });
-    });
+    final auth = context.read<AuthProvider>();
+    final me = _me ?? auth.profesorActual;
+
+    if (me != null) {
+      context.read<GuardiaProvider>().startGuard(me.id, me.nombre);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("No se pudo identificar al profesor. Reintenta en un momento."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   void _stopGuard() {
-    _timer?.cancel();
-    setState(() {
-      _isOnGuard = false;
-      _teachersOnGuard--;
-    });
+    context.read<GuardiaProvider>().stopGuard();
   }
 
   void _showEndGuardConfirmation() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text("Finalizar Guardia", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text(_teachersOnGuard > 1 
-          ? "Hay otros profesores de guardia. ¿Estás seguro de que quieres salir?"
-          : "¿Deseas finalizar tu turno de guardia?"),
+        backgroundColor: Colors.white.withOpacity(0.9),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: const Text("Finalizar Guardia", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+        content: const Text("¿Deseas finalizar tu turno de guardia actual?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancelar", style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold))),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               _stopGuard();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red, 
+              backgroundColor: const Color(0xFFE11D48),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              elevation: 0,
             ),
-            child: const Text("Finalizar"),
+            child: const Text("Finalizar", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -93,41 +216,46 @@ class _FichajeDialogState extends State<FichajeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final guardProvider = Provider.of<GuardiaProvider>(context);
+    
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(35),
+        borderRadius: BorderRadius.circular(40),
         child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ui.ImageFilter.blur(sigmaX: 25, sigmaY: 25),
           child: Container(
             width: 550,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(35),
-              border: Border.all(color: Colors.white.withOpacity(0.5)),
+              color: Colors.white.withOpacity(0.85),
+              borderRadius: BorderRadius.circular(40),
+              border: Border.all(color: Colors.white.withOpacity(0.4)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 40, offset: const Offset(0, 20)),
+              ],
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildTopStatus(),
-                  Padding(
-                    padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildAppleTopBar(guardProvider),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(32, 10, 32, 32),
                     child: Column(
                       children: [
-                        _buildTimerSection(),
+                        _buildTimerSection(guardProvider),
                         const SizedBox(height: 32),
-                        _buildPrimaryButton(),
+                        _buildPrimaryButton(guardProvider),
                         const SizedBox(height: 40),
-                        _buildTeamSection(),
+                        _buildTeamSection(guardProvider),
                         const SizedBox(height: 32),
                         _buildInfoSections(),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -135,46 +263,58 @@ class _FichajeDialogState extends State<FichajeDialog> {
     );
   }
 
-  Widget _buildTopStatus() {
+  Widget _buildAppleTopBar(GuardiaProvider guardProvider) {
+    final isOnGuard = guardProvider.isOnGuard;
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 32),
-      decoration: BoxDecoration(
-        color: _isOnGuard ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.05),
-        border: Border(bottom: BorderSide(color: Colors.black.withOpacity(0.05))),
-      ),
+      padding: const EdgeInsets.fromLTRB(32, 24, 32, 16),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: _isOnGuard ? Colors.green : Colors.grey,
-              shape: BoxShape.circle,
-              boxShadow: _isOnGuard ? [BoxShadow(color: Colors.green.withOpacity(0.5), blurRadius: 10)] : null,
-            ),
+          Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 500),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: isOnGuard ? const Color(0xFF34C759) : const Color(0xFFAEAEB2),
+                  shape: BoxShape.circle,
+                  boxShadow: isOnGuard ? [
+                    BoxShadow(color: const Color(0xFF34C759).withOpacity(0.5), blurRadius: 8, spreadRadius: 2)
+                  ] : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                isOnGuard ? "GUARDIA ACTIVA" : "NO ESTÁS DE GUARDIA",
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                  color: isOnGuard ? const Color(0xFF34C759) : const Color(0xFF8E8E93),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Text(
-            _isOnGuard ? "ESTÁS DE GUARDIA" : "NO ESTÁS DE GUARDIA",
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
-              letterSpacing: 1.5,
-              color: _isOnGuard ? Colors.green[700] : Colors.grey[600],
-            ),
-          ),
-          const Spacer(),
-          Text(
-            "Turno Actual: 09:00 - 10:00",
-            style: TextStyle(color: Colors.grey[500], fontSize: 11, fontWeight: FontWeight.bold),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                "Turno Actual",
+                style: TextStyle(color: Colors.grey[500], fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+              ),
+              Text(
+                _currentTurno,
+                style: const TextStyle(color: Color(0xFF1C1C1E), fontSize: 12, fontWeight: FontWeight.w900),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTimerSection() {
+  Widget _buildTimerSection(GuardiaProvider provider) {
     return Column(
       children: [
         Text(
@@ -186,28 +326,46 @@ class _FichajeDialogState extends State<FichajeDialog> {
             color: Colors.grey[400],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
-          _formatDuration(_elapsedTime),
+          _formatDuration(provider.elapsedTime),
           style: const TextStyle(
-            fontSize: 80,
+            fontSize: 86,
             fontWeight: FontWeight.w900,
-            letterSpacing: -4,
+            letterSpacing: -5,
             color: Color(0xFF0F172A),
+            fontFeatures: [ui.FontFeature.tabularFigures()],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPrimaryButton() {
+  Widget _buildPrimaryButton(GuardiaProvider provider) {
     return _AnimatedPressButton(
       onPressed: _toggleGuard,
-      isOnGuard: _isOnGuard,
+      isOnGuard: provider.isOnGuard,
+      isLoading: _isLoadingTeam,
     );
   }
 
-  Widget _buildTeamSection() {
+  Widget _buildTeamSection(GuardiaProvider guardProvider) {
+    if (_isLoadingTeam) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+
+    // El objeto displayMe viene del proveedor si estamos en guardia, sino del local _me
+    final displayMe = (guardProvider.isOnGuard && _me != null) ? _me! : (_me ?? const Profesor(
+        id: "0", 
+        nombre: "Usuario", 
+        asignatura: "", 
+        curso: "", 
+        foto: "", 
+        departamento: "Admin", 
+        estadoAusente: false,
+        karma: 0,
+      ));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -216,17 +374,19 @@ class _FichajeDialogState extends State<FichajeDialog> {
           children: [
             const Text(
               "Equipo en Turno",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1E293B), letterSpacing: -0.5),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: const Color(0xFF007AFF).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                "$_teachersOnGuard profesores de guardia",
-                style: const TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold),
+                _scheduledGuardNames.isEmpty 
+                  ? "$_teachersOnGuard activos (Sin programar)"
+                  : "$_teachersOnGuard activos de ${_scheduledGuardNames.length} programados",
+                style: const TextStyle(color: Color(0xFF007AFF), fontSize: 9, fontWeight: FontWeight.w900),
               ),
             ),
           ],
@@ -234,60 +394,81 @@ class _FichajeDialogState extends State<FichajeDialog> {
         const SizedBox(height: 16),
         Row(
           children: [
+            // Profesor actual
             Expanded(
               child: _buildTeamCard(
-                name: widget.profesorNombre,
-                time: _isOnGuard ? "Desde las ${DateFormat('HH:mm').format(DateTime.now().subtract(_elapsedTime))}" : "Fuera de turno",
-                location: "Aula 204",
+                name: displayMe.nombre.contains(',') ? displayMe.nombre.split(',').last.trim() : displayMe.nombre,
+                time: guardProvider.isOnGuard ? "En sesión" : "Fuera de turno",
+                location: displayMe.departamento,
                 isMe: true,
+                avatar: displayMe.foto.isNotEmpty ? displayMe.foto : null,
               ),
             ),
             const SizedBox(width: 12),
-            Expanded(
-              child: _buildTeamCard(
-                name: "Prof. $_suggestedTeacher",
-                time: "Sugerido (por karma)",
-                location: "Turno Recomendado",
-                isRecommended: true,
+            // Recomendación real basada en el karma más bajo de la BD
+            if (_recommendedProfesor != null)
+              Expanded(
+                child: _buildTeamCard(
+                  name: _recommendedProfesor!.nombre.contains(',') ? _recommendedProfesor!.nombre.split(',').last.trim() : _recommendedProfesor!.nombre,
+                  time: _scheduledGuardNames.any((name) => _recommendedProfesor!.nombre.contains(name) || name.contains(_recommendedProfesor!.nombre))
+                      ? "Programado (${_recommendedProfesor!.karma.round()} pts)"
+                      : "Sugerido (${_recommendedProfesor!.karma.round()} pts)",
+                  location: _recommendedProfesor!.departamento,
+                  isRecommended: true,
+                  avatar: _recommendedProfesor!.foto.isNotEmpty ? _recommendedProfesor!.foto : null,
+                ),
               ),
-            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildTeamCard({required String name, required String time, required String location, bool isMe = false, bool isRecommended = false}) {
+  Widget _buildTeamCard({
+    required String name, 
+    required String time, 
+    required String location, 
+    bool isMe = false, 
+    bool isRecommended = false,
+    String? avatar,
+  }) {
+    final Color cardColor = isMe ? const Color(0xFF5856D6) : (isRecommended ? const Color(0xFF007AFF) : Colors.grey);
+    
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF4F46E5).withOpacity(0.05) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: isMe ? const Color(0xFF4F46E5).withOpacity(0.3) : (isRecommended ? Colors.blue.withOpacity(0.2) : Colors.grey[200]!),
+          color: cardColor.withOpacity(isMe || isRecommended ? 0.3 : 0.1),
           width: 1.5,
         ),
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 18, 
-            backgroundColor: isRecommended ? Colors.blue[50] : Colors.grey[200],
-            child: Icon(isMe ? Icons.person : Icons.person_outline, size: 20, color: isMe ? Colors.indigo : Colors.blue),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: cardColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+              image: avatar != null ? DecorationImage(image: NetworkImage(avatar), fit: BoxFit.cover) : null,
+            ),
+            child: avatar == null ? Icon(isMe ? Icons.person_rounded : Icons.person_outline_rounded, size: 16, color: cardColor) : null,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                Text(time, style: TextStyle(color: Colors.grey[500], fontSize: 10)),
+                Text(name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Color(0xFF1C1C1E))),
+                Text(time, style: TextStyle(color: Colors.grey[500], fontSize: 9, fontWeight: FontWeight.w600)),
                 if (isRecommended)
                   Container(
                     margin: const EdgeInsets.only(top: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(4)),
-                    child: const Text("RECOMENDADO", style: TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold)),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(color: const Color(0xFF007AFF), borderRadius: BorderRadius.circular(4)),
+                    child: const Text("RECOMENDADO", style: TextStyle(color: Colors.white, fontSize: 6, fontWeight: FontWeight.w900)),
                   ),
               ],
             ),
@@ -303,21 +484,21 @@ class _FichajeDialogState extends State<FichajeDialog> {
       children: [
         Expanded(
           child: _buildInfoCard(
-            title: "Información de Aula",
-            subtitle: "Aula 204 • Planta 2",
+            title: "Aula 204",
+            subtitle: "Sustitución Física",
             icon: Icons.meeting_room_rounded,
-            content: "Sustitución: Prof. Thorne (Física)\nNotas: Los alumnos deben continuar con la página 42 del libro de texto.",
-            color: Colors.orange,
+            content: "Continuar con la página 42 del libro de texto.",
+            color: const Color(0xFFFF9500),
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: _buildInfoCard(
             title: "Instrucciones",
-            subtitle: "Protocolo de Guardia",
+            subtitle: "Protocolo",
             icon: Icons.list_alt_rounded,
-            content: "• Revisar pasillos del bloque B cada 15 min.\n• Asegurar que el baño permanezca libre.",
-            color: Colors.blue,
+            content: "Revisar pasillos B y asegurar baños libres.",
+            color: const Color(0xFF007AFF),
           ),
         ),
       ],
@@ -326,28 +507,27 @@ class _FichajeDialogState extends State<FichajeDialog> {
 
   Widget _buildInfoCard({required String title, required String subtitle, required IconData icon, required String content, required Color color}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.1)),
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(22),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: 8),
-              Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color)),
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 6),
+              Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: color)),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 11, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
+          const SizedBox(height: 2),
+          Text(subtitle, style: TextStyle(color: color.withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
           Text(
             content,
-            style: const TextStyle(fontSize: 10, height: 1.5, color: Color(0xFF334155)),
+            style: TextStyle(fontSize: 9, height: 1.3, color: const Color(0xFF3A3A3C), fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -358,8 +538,9 @@ class _FichajeDialogState extends State<FichajeDialog> {
 class _AnimatedPressButton extends StatefulWidget {
   final VoidCallback onPressed;
   final bool isOnGuard;
+  final bool isLoading;
 
-  const _AnimatedPressButton({required this.onPressed, required this.isOnGuard});
+  const _AnimatedPressButton({required this.onPressed, required this.isOnGuard, this.isLoading = false});
 
   @override
   State<_AnimatedPressButton> createState() => _AnimatedPressButtonState();
@@ -373,7 +554,7 @@ class _AnimatedPressButtonState extends State<_AnimatedPressButton> with SingleT
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 100));
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.94).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
   }
@@ -390,36 +571,53 @@ class _AnimatedPressButtonState extends State<_AnimatedPressButton> with SingleT
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) => _controller.reverse(),
       onTapCancel: () => _controller.reverse(),
-      onTap: widget.onPressed,
+      onTap: widget.isLoading ? null : widget.onPressed,
       child: ScaleTransition(
         scale: _scaleAnimation,
         child: Container(
           width: double.infinity,
-          height: 80,
+          height: 75,
           decoration: BoxDecoration(
-            color: widget.isOnGuard ? const Color(0xFFE11D48) : const Color(0xFF4F46E5),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: widget.isLoading 
+                ? [Colors.grey[400]!, Colors.grey[500]!]
+                : (widget.isOnGuard 
+                    ? [const Color(0xFFFF3B30), const Color(0xFFFF453A)] 
+                    : [const Color(0xFF5856D6), const Color(0xFF4F46E5)]),
+            ),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
-              BoxShadow(
-                color: (widget.isOnGuard ? Colors.red : Colors.indigo).withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
+              if (!widget.isLoading)
+                BoxShadow(
+                  color: (widget.isOnGuard ? const Color(0xFFFF3B30) : const Color(0xFF5856D6)).withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
             ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                widget.isOnGuard ? Icons.stop_circle_rounded : Icons.play_circle_filled_rounded,
-                size: 32,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 16),
-              Text(
-                widget.isOnGuard ? "Finalizar Guardia" : "Iniciar Guardia",
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5),
-              ),
+              if (widget.isLoading)
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                )
+              else ...[
+                Icon(
+                  widget.isOnGuard ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                  size: 28,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  widget.isOnGuard ? "Finalizar Guardia" : "Iniciar Guardia",
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5),
+                ),
+              ],
             ],
           ),
         ),
