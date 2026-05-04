@@ -16,6 +16,7 @@ import '../widgets/home/home_absence_alert.dart';
 import '../widgets/home/home_weekly_schedule.dart';
 import '../widgets/home/home_active_guard_monitor.dart';
 import '../widgets/home/fichaje_dialog.dart';
+import 'guard_session_screen.dart';
 import 'dart:async';
 import '../widgets/home/home_sidebar_cards.dart';
 import '../widgets/planning/agenda_modal_content.dart';
@@ -297,28 +298,55 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 // Main Column
                 Expanded(
-                  flex: 2,
                   child: Column(
                     children: [
-                      HomeActiveGuardMonitor(
-                        guardiasActivas: _getGuardiaActiva(),
-                        onCheckIn: (g) {
-                          showDialog(
-                            context: context,
-                            barrierColor: Colors.black.withOpacity(0.4),
-                            builder: (context) => FichajeDialog(
-                              profesorNombre: g.profesor,
-                            ),
-                          );
-                        },
-                      ),
                       if (_ausenciasSemana.any((a) => _esHoy(a.fecha)))
                         HomeAbsenceAlert(ausencia: _ausenciasSemana.firstWhere((a) => _esHoy(a.fecha))),
                       const SizedBox(height: 32),
+                      const Text(
+                        "Horario Semanal",
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
+                      ),
+                      const SizedBox(height: 16),
                       HomeWeeklySchedule(
                         horario: _horario,
                         ausencias: _ausenciasSemana,
-                        onAction: _showActionMenu,
+                        onAction: (s, fecha) {
+                          showDialog(
+                            context: context,
+                            barrierColor: Colors.transparent,
+                            builder: (context) => Dialog(
+                              backgroundColor: Colors.transparent,
+                              child: AgendaModalContent(
+                                profesor: prof!,
+                                fecha: fecha,
+                                primaryColor: const Color(0xFF4F46E5),
+                                onDataChanged: _cargarDatos,
+                                registroFaltas: Map<String, DatosSlot>.from(
+                                  _ausenciasSemana.asMap().map((k, v) => MapEntry(
+                                    (v.id ?? k).toString(), 
+                                    DatosSlot(
+                                      tipo: v.tipo ?? "FALTA", 
+                                      controller: TextEditingController(text: v.observaciones ?? "")
+                                    )
+                                  ))
+                                ),
+                              ),
+                            ),
+                          ).then((_) => _cargarDatos());
+                        },
+                      ),
+                      const SizedBox(height: 40),
+                      HomeActiveGuardMonitor(
+                        guardiasActivas: _getGuardiaActiva(),
+                        onCheckIn: (g) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GuardSessionScreen(guardia: g),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 32),
                       _buildLoungeBanner(),

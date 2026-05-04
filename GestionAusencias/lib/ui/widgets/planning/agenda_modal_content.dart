@@ -296,6 +296,7 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
                 _buildActionCircle(Icons.cancel_rounded, "FALTA", Colors.red, sesion, ausenciaActual),
                 _buildActionCircle(Icons.access_time_filled_rounded, "RETRASO", Colors.orange, sesion, ausenciaActual),
                 _buildActionCircle(Icons.check_circle_rounded, "JUSTIFICADO", Colors.blue, sesion, ausenciaActual),
+                _buildActionCircle(Icons.edit_note_rounded, "TAREAS", Colors.purple, sesion, ausenciaActual),
                 _buildActionCircle(Icons.cleaning_services_rounded, "LIMPIAR", Colors.grey, sesion, ausenciaActual),
               ],
             ),
@@ -312,7 +313,11 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
         GestureDetector(
           onTap: () async {
             Navigator.pop(context);
-            await _reportarEstado(sesion, tipo, ausenciaActual);
+            if (tipo == "TAREAS") {
+              _mostrarDialogoTareas(sesion, ausenciaActual);
+            } else {
+              await _reportarEstado(sesion, tipo, ausenciaActual);
+            }
           },
           child: Container(
             padding: const EdgeInsets.all(20),
@@ -329,7 +334,35 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
     );
   }
 
-  Future<void> _reportarEstado(HorarioClase sesion, String tipo, Ausencia? ausenciaActual) async {
+  void _mostrarDialogoTareas(HorarioClase sesion, Ausencia? ausenciaActual) {
+    final TextEditingController tasksController = TextEditingController(text: ausenciaActual?.observaciones ?? "");
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Plan de Tareas para la Guardia", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: tasksController,
+          maxLines: 5,
+          decoration: const InputDecoration(
+            hintText: "Escribe aquí las tareas para los alumnos...",
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCELAR")),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _reportarEstado(sesion, "FALTA", ausenciaActual, obs: tasksController.text);
+            },
+            child: const Text("GUARDAR Y NOTIFICAR"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _reportarEstado(HorarioClase sesion, String tipo, Ausencia? ausenciaActual, {String? obs}) async {
     setState(() => _isLoading = true);
     try {
       final reportarUseCase = context.read<ReportarAusenciaUseCase>();
@@ -346,10 +379,10 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
           fecha: widget.fecha,
           idHorario: sesion.id,
           tipo: tipo,
-          observaciones: "Reportado desde Mis Guardias",
+          observaciones: obs ?? (ausenciaActual?.observaciones ?? "Reportado desde Mis Guardias"),
         );
 
-        if (tipo == 'FALTA') {
+        if (tipo == 'FALTA' || obs != null) {
           await reportarUseCase.executeConSustitucion(ausencia);
         } else {
           await reportarUseCase.execute(ausencia);
@@ -361,6 +394,7 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
       
       if (mounted) {
         String msg = tipo == "LIMPIAR" ? "Estado eliminado" : "Estado $tipo registrado";
+        if (obs != null) msg = "Plan de tareas guardado";
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg), backgroundColor: tipo == "LIMPIAR" ? Colors.blueGrey : Colors.green),
         );

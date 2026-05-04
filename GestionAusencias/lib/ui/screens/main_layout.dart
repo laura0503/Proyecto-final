@@ -97,6 +97,7 @@ class _MainLayoutState extends State<MainLayout> {
                     width: 90,
                     color: glassColor,
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _sidebarItem(
                           Icons.dashboard_rounded,
@@ -141,7 +142,89 @@ class _MainLayoutState extends State<MainLayout> {
               ),
             ],
           ),
+
+          // 3. IN-APP NOTIFICATION OVERLAY
+          _buildNotificationOverlay(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationOverlay() {
+    final notifications = context.watch<NotificationProvider>().notifications;
+    if (notifications.isEmpty) return const SizedBox.shrink();
+
+    final latest = notifications.first;
+    // Solo mostramos si es de hace menos de 5 segundos para simular el "pop"
+    final diff = DateTime.now().difference(latest.timestamp).inSeconds;
+    if (diff > 5) return const SizedBox.shrink();
+
+    return Positioned(
+      top: 40,
+      right: 40,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.elasticOut,
+        builder: (context, value, child) {
+          return Transform.translate(
+            offset: Offset(100 * (1 - value), 0),
+            child: Opacity(
+              opacity: value,
+              child: child,
+            ),
+          );
+        },
+        child: Container(
+          width: 350,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+              ),
+            ],
+            border: Border.all(color: const Color(0xFF4F46E5).withOpacity(0.1)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4F46E5).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.notifications_active_rounded, color: Color(0xFF4F46E5), size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      latest.title,
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1E293B)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      latest.message,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13, height: 1.2),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded, size: 18),
+                onPressed: () => context.read<NotificationProvider>().markAsRead(latest.id),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
