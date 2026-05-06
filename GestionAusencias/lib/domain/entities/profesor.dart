@@ -14,7 +14,7 @@ class Profesor {
   final String? estadoActual;
   final double karma;
   final bool esGuardia;
-  final bool esAdmin;
+  final String rol; // 'admin', 'directiva', 'profesor'
 
   const Profesor({
     required this.id,
@@ -32,8 +32,11 @@ class Profesor {
     this.estadoActual,
     this.karma = 0.0,
     this.esGuardia = false,
-    this.esAdmin = false,
+    this.rol = 'profesor',
   });
+
+  // Helper para saber si es parte de la directiva o admin
+  bool get isAdmin => rol == 'admin' || rol == 'directiva';
 
   Profesor copyWith({
     String? id,
@@ -51,7 +54,7 @@ class Profesor {
     String? estadoActual,
     double? karma,
     bool? esGuardia,
-    bool? esAdmin,
+    String? rol,
   }) {
     return Profesor(
       id: id ?? this.id,
@@ -69,7 +72,7 @@ class Profesor {
       estadoActual: estadoActual ?? this.estadoActual,
       karma: karma ?? this.karma,
       esGuardia: esGuardia ?? this.esGuardia,
-      esAdmin: esAdmin ?? this.esAdmin,
+      rol: rol ?? this.rol,
     );
   }
 }

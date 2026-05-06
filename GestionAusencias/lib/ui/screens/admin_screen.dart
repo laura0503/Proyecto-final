@@ -11,6 +11,7 @@ import '../widgets/asignaturas_section.dart';
 import '../widgets/admin_profesores_section.dart';
 import '../widgets/importar_horarios_section.dart';
 
+
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
 
@@ -19,8 +20,7 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  String _selectedSection =
-      'Profesores'; // 'Profesores', 'Horarios', 'Aulas', 'Grupos', 'Asignaturas'
+  String _selectedSection = 'Profesores';
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +87,7 @@ class _AdminScreenState extends State<AdminScreen> {
                               horizontal: 16,
                             ),
                             children: [
+
                               _buildSidebarSectionHeader("GESTIÓN", isDark),
                                 _buildSidebarItem(
                                   icon: Icons.people_alt_rounded,
@@ -213,13 +214,13 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _buildSelectedSection(bool isDark) {
     return switch (_selectedSection) {
-      'GestionProf' => AdminProfesoradoSection(isDark: isDark),
-      'Profesores'  => ProfesoresSection(isDark: isDark),
-      'Horarios'    => HorariosSection(isDark: isDark),
-      'Aulas'       => AulasSection(isDark: isDark),
-      'Grupos'      => GrupoSection(isDark: isDark),
-      'Importar'    => ImportarHorariosSection(isDark: isDark),
-      _             => AsignaturasSection(isDark: isDark),
+      'GestionProf'  => AdminProfesoradoSection(isDark: isDark),
+      'Profesores'   => ProfesoresSection(isDark: isDark),
+      'Horarios'     => HorariosSection(isDark: isDark),
+      'Aulas'        => AulasSection(isDark: isDark),
+      'Grupos'       => GrupoSection(isDark: isDark),
+      'Importar'     => ImportarHorariosSection(isDark: isDark),
+      _              => AsignaturasSection(isDark: isDark),
     };
   }
 

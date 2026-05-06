@@ -15,11 +15,9 @@ import 'package:gestion_ausencias/ui/screens/planning_screen.dart';
 import 'package:gestion_ausencias/ui/screens/profesor_screen.dart';
 import 'package:gestion_ausencias/ui/screens/admin_screen.dart';
 import 'package:gestion_ausencias/ui/screens/home_screen.dart';
+import 'package:gestion_ausencias/ui/screens/monitor_screen.dart';
+import 'package:gestion_ausencias/ui/screens/karma_screen.dart';
 import '../widgets/home/home_header.dart';
-import '../widgets/home/home_kpi_row.dart';
-import '../widgets/home/home_estado_dia.dart';
-import '../widgets/home/home_asignacion.dart';
-import '../widgets/home/home_alertas.dart';
 
 class MainLayout extends StatefulWidget {
   final VoidCallback onLogout;
@@ -53,8 +51,6 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
-  // ... imports ...
-
   @override
   Widget build(BuildContext context) {
     final configProvider = context.watch<ConfigProvider>();
@@ -64,10 +60,16 @@ class _MainLayoutState extends State<MainLayout> {
         ? const Color(0xFF1E293B).withOpacity(0.7)
         : Colors.white.withOpacity(0.7);
 
+    final auth = context.watch<AuthProvider>();
+    final prof = auth.profesorActual;
+    final isAdmin = prof?.isAdmin ?? false;
+
     final List<Widget> screens = [
       const HomeScreen(),
       const PlanningScreen(),
       const ProfesoresScreen(),
+      if (isAdmin) const MonitorScreen(),
+      if (isAdmin) const KarmaScreen(),
     ];
 
     return Scaffold(
@@ -97,8 +99,36 @@ class _MainLayoutState extends State<MainLayout> {
                     width: 90,
                     color: glassColor,
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        const SizedBox(height: 60),
+                        // BLOQUE SUPERIOR: DIRECCIÓN / ADMINISTRACIÓN
+                        if (isAdmin) ...[
+                          _sidebarItem(
+                            Icons.radar_rounded,
+                            'Monitor',
+                            3,
+                          ),
+                          _sidebarItem(
+                            Icons.auto_awesome_rounded,
+                            'Karma',
+                            4,
+                          ),
+                          _sidebarItem(
+                            Icons.admin_panel_settings_rounded,
+                            AppStrings.get(context, 'admin'),
+                            5,
+                          ),
+                        ] else ...[
+                          _sidebarItem(
+                            Icons.admin_panel_settings_rounded,
+                            AppStrings.get(context, 'admin'),
+                            3,
+                          ),
+                        ],
+
+                        const Spacer(),
+
+                        // BLOQUE CENTRAL: PROFESORES / DÍA A DÍA
                         _sidebarItem(
                           Icons.dashboard_rounded,
                           AppStrings.get(context, 'inicio'),
@@ -114,15 +144,21 @@ class _MainLayoutState extends State<MainLayout> {
                           AppStrings.get(context, 'profesores'),
                           2,
                         ),
-                        _sidebarItem(
-                          Icons.admin_panel_settings_rounded,
-                          AppStrings.get(context, 'admin'),
-                          3,
-                        ),
+
+                        const Spacer(),
+
+                        // BLOQUE INFERIOR: AJUSTES Y SALIDA
                         _sidebarItem(
                           Icons.settings_rounded,
                           AppStrings.get(context, 'ajustes'),
-                          4,
+                          isAdmin ? 6 : 4,
+                        ),
+                        const SizedBox(height: 10),
+                        _sidebarItem(
+                          Icons.logout_rounded,
+                          'Salir',
+                          -1,
+                          isLogout: true,
                         ),
                         const SizedBox(height: 30),
                       ],
@@ -155,7 +191,6 @@ class _MainLayoutState extends State<MainLayout> {
     if (notifications.isEmpty) return const SizedBox.shrink();
 
     final latest = notifications.first;
-    // Solo mostramos si es de hace menos de 5 segundos para simular el "pop"
     final diff = DateTime.now().difference(latest.timestamp).inSeconds;
     if (diff > 5) return const SizedBox.shrink();
 
@@ -235,7 +270,6 @@ class _MainLayoutState extends State<MainLayout> {
     super.dispose();
   }
 
-  // 1. Sidebar Item corrección para estilo Glass (texto oscuro)
   Widget _sidebarItem(
     IconData icon,
     String label,
@@ -245,7 +279,6 @@ class _MainLayoutState extends State<MainLayout> {
     bool isSelected = _selectedIndex == index;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Darker colors for light glass background, lighter for dark
     final Color iconColor = isSelected
         ? Colors.white
         : (isLogout
@@ -266,15 +299,35 @@ class _MainLayoutState extends State<MainLayout> {
         message: label,
         child: InkWell(
           onTap: isLogout
-              ? widget.onLogout
-              : (index == 3
+              ? () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Cerrar sesión'),
+                      content: const Text('¿Seguro que quieres salir?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancelar'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                          child: const Text('Salir'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true) widget.onLogout();
+                }
+              : (index == 5 || (index == 3 && _selectedIndex != index && label == 'Administrador')
                     ? () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const AdminScreen(),
                         ),
                       )
-                    : (index == 4
+                    : (index == 6 || (index == 4 && label == 'Ajustes')
                           ? () => Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -319,4 +372,3 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 }
-

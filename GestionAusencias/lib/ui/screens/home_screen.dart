@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -67,7 +66,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final auth = context.read<AuthProvider>();
       final prof = auth.profesorActual;
       if (prof == null) {
-        // Esperar un poco a que cargue el profesor si estamos saltando el login
         Future.delayed(const Duration(milliseconds: 500), () => _cargarDatos());
         return;
       }
@@ -84,7 +82,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final profId = prof.idProfesor ?? int.tryParse(prof.id) ?? 0;
       
-      // Consultas base
       var guardiasQuery = supabase.from('guardias').select();
       var sustitucionesQuery = supabase.from('sustitucion').select('''
               *,
@@ -101,8 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
               )
             ''');
 
-      // Si no es admin, filtramos solo por sus propias guardias
-      if (!prof.esAdmin) {
+      if (!prof.isAdmin) {
         guardiasQuery = guardiasQuery.or('profesorGuardia.eq."${prof.nombre}",profesor_guardia.eq.$profId');
         sustitucionesQuery = sustitucionesQuery.eq('id_profesor_sustituto', profId);
       }
@@ -183,35 +179,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showActionMenu(HorarioClase sesion, DateTime fecha) {
-    final prof = context.read<AuthProvider>().profesorActual;
-    if (prof == null) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => AgendaModalContent(
-        profesor: prof,
-        fecha: fecha,
-        registroFaltas: const <String, DatosSlot>{},
-        primaryColor: const Color(0xFF4F46E5),
-        onDataChanged: () {
-          _cargarDatos();
-        },
-      ),
-    );
-  }
-
   bool _esHoy(DateTime d) {
     final ahora = DateTime.now();
     return d.day == ahora.day && d.month == ahora.month && d.year == ahora.year;
-  }
-
-  bool _esSesionHoy(HorarioClase s) {
-    if (s.fecha != null) return _esHoy(s.fecha!);
-    final dias = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
-    return s.dia.toUpperCase() == dias[DateTime.now().weekday];
   }
 
   List<HorarioClase> _getGuardiaActiva() {
@@ -219,7 +189,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final horaActualStr = DateFormat('HH:mm').format(ahora);
     final List<HorarioClase> activas = [];
 
-    // MODO SIMULACIÓN PARA TEST
     if (_showSimulation) {
       activas.add(HorarioClase(
         id: -99,
@@ -232,13 +201,15 @@ class _HomeScreenState extends State<HomeScreen> {
         fin: "23:59",
         esGuardia: true,
         profesorAusente: "Compañero de Test",
-        instrucciones: "Esta es una guardia de prueba para verificar que el monitor se ve correctamente. Los alumnos deben terminar el ejercicio 4.",
+        instrucciones: "Esta es una guardia de prueba. Los alumnos deben terminar el ejercicio 4.",
       ));
     }
 
     for (var s in _sustituciones) {
-      if (_esSesionHoy(s)) {
-        // Comparamos si la hora actual está dentro del tramo de la guardia
+      final dias = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+      bool esHoy = s.fecha != null ? _esHoy(s.fecha!) : s.dia.toUpperCase() == dias[ahora.weekday];
+      
+      if (esHoy) {
         if (horaActualStr.compareTo(s.inicio) >= 0 && horaActualStr.compareTo(s.fin) < 0) {
           activas.add(s);
         }
@@ -262,7 +233,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final prof = context.watch<AuthProvider>().profesorActual;
     final rawNombre = prof?.nombre ?? 'Profesor';
-    // Quitamos la parte del correo y nos quedamos con el nombre limpio
     final nombreSinEmail = rawNombre.split('@').first;
     final nombre = nombreSinEmail.split(',').last.trim();
     final fechaStr = DateFormat('EEEE, d MMMM', 'es').format(DateTime.now());
@@ -279,10 +249,30 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: HomeHeaderPremium(
-                    nombre: nombre, 
-                    fecha: "$fechaStr • $_currentTime", 
-                    saludo: _getGreeting(),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: HomeHeaderPremium(
+                          nombre: nombre, 
+                          fecha: "$fechaStr • $_currentTime", 
+                          saludo: _getGreeting(),
+                        ),
+                      ),
+                      if (prof?.isAdmin ?? false)
+                        Container(
+                          margin: const EdgeInsets.only(left: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4F46E5).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF4F46E5).withOpacity(0.2)),
+                          ),
+                          child: const Text(
+                            "DIRECTIVA",
+                            style: TextStyle(color: Color(0xFF4F46E5), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 IconButton(
@@ -305,6 +295,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     HomeAbsenceAlert(ausencia: _ausenciasSemana.firstWhere((a) => _esHoy(a.fecha))),
                     const SizedBox(height: 24),
                   ],
+                  const Text(
+                    "Mi Horario Semanal",
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
+                  ),
+                  const SizedBox(height: 16),
                   HomeWeeklySchedule(
                     horario: _horario,
                     ausencias: _ausenciasSemana,
@@ -361,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Expanded(flex: 3, child: mainCol),
                     const SizedBox(width: 24),
-                    SizedBox(width: 300, child: sidebar),
+                    SizedBox(width: 320, child: sidebar),
                   ],
                 );
               }
@@ -370,7 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   mainCol,
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   sidebar,
                 ],
               );
@@ -390,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)], // Indigo a Violeta Premium
+          colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
         ),
         boxShadow: [
           BoxShadow(
@@ -407,19 +402,19 @@ class _HomeScreenState extends State<HomeScreen> {
             top: -20,
             child: Icon(Icons.school_rounded, size: 150, color: Colors.white.withOpacity(0.1)),
           ),
-          Padding(
-            padding: const EdgeInsets.all(32),
+          const Padding(
+            padding: EdgeInsets.all(32),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   "Sala de Profesores",
                   style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1),
                 ),
                 SizedBox(height: 8),
                 Text(
-                  "Accede a recursos compartidos y comunica con tu departamento en un solo lugar.",
+                  "Accede a recursos compartidos y comunica con tu departamento.",
                   style: TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w500),
                 ),
               ],

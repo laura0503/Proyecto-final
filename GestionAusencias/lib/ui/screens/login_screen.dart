@@ -86,7 +86,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       body: Stack(
@@ -97,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
             height: double.infinity,
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/images/login_background.png'), // Asumiendo que se moverá a assets o se usa un placeholder
+                image: AssetImage('assets/images/login_background.png'),
                 fit: BoxFit.cover,
               ),
               gradient: LinearGradient(
@@ -118,102 +117,104 @@ class _LoginScreenState extends State<LoginScreen> {
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 500),
-                width: 450,
-                padding: const EdgeInsets.all(40),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(35),
-                  border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 40,
-                      offset: const Offset(0, 20),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(35),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Logo e Identidad
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            shape: BoxShape.circle,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 450),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 500),
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(35),
+                    border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 40,
+                        offset: const Offset(0, 20),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(35),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Logo e Identidad
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.auto_awesome_mosaic_rounded, size: 50, color: Colors.white),
                           ),
-                          child: const Icon(Icons.auto_awesome_mosaic_rounded, size: 50, color: Colors.white),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          "GuardiaMaster",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -1,
+                          const SizedBox(height: 24),
+                          const Text(
+                            "GuardiaMaster",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -1,
+                            ),
                           ),
-                        ),
-                        Text(
-                          esModoRegistro ? "Únete a la plataforma docente" : "Gestión de Ausencias Premium",
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                          Text(
+                            esModoRegistro ? "Únete a la plataforma docente" : "Gestión de Ausencias Premium",
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.6),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 48),
+                          const SizedBox(height: 48),
 
-                        // Campo de Entrada (User)
-                        _buildInputField(
-                          controller: _userController,
-                          label: esModoRegistro ? "Nuevo Usuario IDEA" : "Usuario IDEA",
-                          icon: Icons.person_outline_rounded,
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Botones de Acción
-                        if (authProvider.isLoading)
-                          const CircularProgressIndicator(color: Colors.white)
-                        else ...[
-                          _buildPrimaryButton(
-                            text: esModoRegistro ? "CONFIRMAR REGISTRO" : "ENTRAR AL PANEL",
-                            onPressed: esModoRegistro ? _registrar : _login,
-                            color: esModoRegistro ? Colors.emeraldAccent[400]! : const Color(0xFF4F46E5),
+                          // Campo de Entrada (User)
+                          _buildInputField(
+                            controller: _userController,
+                            label: esModoRegistro ? "Nuevo Usuario IDEA" : "Usuario IDEA",
+                            icon: Icons.person_outline_rounded,
                           ),
-                          const SizedBox(height: 20),
-                          
-                          if (!esModoRegistro) ...[
-                            _buildGoogleButton(authProvider),
-                            const SizedBox(height: 32),
-                            GestureDetector(
-                              onTap: () => setState(() => esModoRegistro = true),
-                              child: Text(
-                                "¿No tienes cuenta? Regístrate gratis",
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontWeight: FontWeight.w600,
-                                  decoration: TextDecoration.underline,
+                          const SizedBox(height: 32),
+
+                          // Botones de Acción
+                          if (authProvider.isLoading)
+                            const CircularProgressIndicator(color: Colors.white)
+                          else ...[
+                            _buildPrimaryButton(
+                              text: esModoRegistro ? "CONFIRMAR REGISTRO" : "ENTRAR AL PANEL",
+                              onPressed: esModoRegistro ? _registrar : _login,
+                              color: esModoRegistro ? const Color(0xFF10B981) : const Color(0xFF4F46E5),
+                            ),
+                            const SizedBox(height: 20),
+                            
+                            if (!esModoRegistro) ...[
+                              _buildGoogleButton(authProvider),
+                              const SizedBox(height: 32),
+                              GestureDetector(
+                                onTap: () => setState(() => esModoRegistro = true),
+                                child: Text(
+                                  "¿No tienes cuenta? Regístrate gratis",
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.8),
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.underline,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ] else ...[
-                            TextButton(
-                              onPressed: () => setState(() => esModoRegistro = false),
-                              child: Text(
-                                "Volver al inicio de sesión",
-                                style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                            ] else ...[
+                              TextButton(
+                                onPressed: () => setState(() => esModoRegistro = false),
+                                child: Text(
+                                  "Volver al inicio de sesión",
+                                  style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                                ),
                               ),
-                            ),
+                            ],
                           ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -312,7 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
           widget.onLoginSuccess();
         }
       },
-      icon: Image.network('https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_\"G\"_logo.svg', height: 20, errorBuilder: (c, e, s) => const Icon(Icons.g_mobiledata, color: Colors.white)),
+      icon: const Icon(Icons.g_mobiledata, color: Colors.white, size: 30),
       label: const Text("CONTINUAR CON GOOGLE"),
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(double.infinity, 60),

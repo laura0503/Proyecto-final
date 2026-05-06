@@ -17,7 +17,7 @@ class ProfesorModel extends Profesor {
     super.estadoActual,
     super.karma = 0.0,
     super.esGuardia = false,
-    super.esAdmin = false,
+    super.rol = 'profesor',
   });
 
   factory ProfesorModel.fromJson(Map<String, dynamic> json) {
@@ -37,7 +37,7 @@ class ProfesorModel extends Profesor {
       estadoActual: json['estado_actual']?.toString(),
       karma: (json['karma'] ?? 0).toDouble(),
       esGuardia: json['es_guardia'] as bool? ?? false,
-      esAdmin: json['es_admin'] as bool? ?? false,
+      rol: json['rol']?.toString() ?? 'profesor',
     );
   }
 
@@ -58,7 +58,7 @@ class ProfesorModel extends Profesor {
       estadoActual: profesor.estadoActual,
       karma: profesor.karma,
       esGuardia: profesor.esGuardia,
-      esAdmin: profesor.esAdmin,
+      rol: profesor.rol,
     );
   }
 
@@ -66,7 +66,7 @@ class ProfesorModel extends Profesor {
     return {
       if (idProfesor != null) 'id_profesor': idProfesor,
       'nombre': nombre,
-      // Se ha eliminado 'id' porque no existe en la tabla profesores
+      'rol': rol,
     };
   }
 

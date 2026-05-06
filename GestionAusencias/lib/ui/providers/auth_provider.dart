@@ -29,6 +29,7 @@ class AuthProvider extends ChangeNotifier {
   Profesor? get profesorActual => _profesorActual;
 
   bool get isLoggedIn => _profesorActual != null;
+  bool get isAdmin => _profesorActual?.isAdmin ?? false;
 
   AuthProvider({
     required LoginProfesorUseCase loginUseCase,
@@ -51,6 +52,12 @@ class AuthProvider extends ChangeNotifier {
       final AuthChangeEvent event = data.event;
       final Session? session = data.session;
 
+      if (event == AuthChangeEvent.signedOut) {
+        _profesorActual = null;
+        notifyListeners();
+        return;
+      }
+
       if (event == AuthChangeEvent.signedIn && session != null) {
         // Validación de dominio para seguridad
         final userEmail = session.user.email;
@@ -63,28 +70,42 @@ class AuthProvider extends ChangeNotifier {
 
         // Al iniciar sesión con Google (u otro), intentamos cargar el perfil del profesor
         try {
-          // Buscamos si existe un profesor con el email o nombre que viene de Google
-          final userEmail = session.user.email;
-          if (userEmail != null) {
-             final profesores = await _getProfesoresUseCase.execute();
-             // Intentamos buscar por email (si tuviéramos ese campo) 
-             // o por nombre si coincide con el del perfil de Google
-             final googleName = session.user.userMetadata?['full_name'];
-             final googleEmail = session.user.email;
-             
-             final match = profesores.where((p) => 
-               p.nombre == googleName || 
-               p.nombre == googleEmail
-             ).toList();
-             if (match.isNotEmpty) {
-               _profesorActual = match.first;
-             } else {
-               // Si no existe, podríamos crearlo o dejarlo como invitado
-               // Por ahora, solo notificamos
-             }
+          final googleEmail = session.user.email?.toLowerCase().trim();
+          final googleName = session.user.userMetadata?['full_name']?.toString().toLowerCase().trim();
+          
+          if (googleEmail != null) {
+            final profesores = await _getProfesoresUseCase.execute();
+            
+            // Buscamos coincidencia
+            final match = profesores.where((p) {
+              final nombreProfe = p.nombre.toLowerCase().trim();
+              return nombreProfe == googleEmail || 
+                     nombreProfe == googleName ||
+                     (googleName != null && googleName.contains(nombreProfe)) ||
+                     (googleName != null && nombreProfe.contains(googleName)) ||
+                     googleEmail.split('@').first == nombreProfe.split('@').first;
+            }).toList();
+
+            if (match.isNotEmpty) {
+              _profesorActual = match.first;
+            } else {
+              // SI NO EXISTE, LO CREAMOS AUTOMÁTICAMENTE
+              debugPrint("Usuario nuevo de Google: $googleEmail. Creando perfil...");
+              final nuevoProfe = Profesor(
+                id: "google_${session.user.id.substring(0, 8)}",
+                nombre: session.user.email ?? googleName ?? "Usuario Google",
+                asignatura: "Pendiente",
+                curso: "General",
+                foto: session.user.userMetadata?['avatar_url'] ?? "https://i.pravatar.cc/150?u=$googleEmail",
+                departamento: "General",
+                estadoAusente: false,
+              );
+              await _registerUseCase.execute(nuevoProfe);
+              _profesorActual = nuevoProfe;
+            }
           }
         } catch (e) {
-          print("Error al sincronizar perfil tras login: $e");
+          debugPrint("Error al sincronizar perfil tras login: $e");
         }
         notifyListeners();
       }
@@ -145,31 +166,35 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      // Si es Web o Móvil, usamos el paquete google_sign_in
-      // Pero para Windows Desktop, google_sign_in no es compatible oficialmente.
-      // Usaremos Supabase OAuth directamente para mayor compatibilidad en PC.
-      
+      // Para Windows, usamos Supabase OAuth
       if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux)) {
+        // Primero cerramos sesión por si acaso para limpiar el estado
+        await _supabase.auth.signOut();
+        
         await _supabase.auth.signInWithOAuth(
           OAuthProvider.google,
           redirectTo: 'com.tuempresa.guardiasapp://login-callback',
-          queryParams: {'hd': 'g.educaand.es'},
+          queryParams: {
+            'hd': 'g.educaand.es',
+            'prompt': 'select_account',
+          },
         );
         return null; 
       }
 
+      // Para otras plataformas
+      await _googleSignIn.signOut(); // Limpiamos sesión previa
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
       
-      // Validación extra por seguridad
       if (account != null && !account.email.endsWith('@g.educaand.es')) {
         await _googleSignIn.signOut();
-        print('Acceso denegado: dominio no permitido');
+        debugPrint('Acceso denegado: dominio no permitido');
         return null;
       }
       
       return account;
     } catch (e) {
-      print('Error en Google Sign-In: $e');
+      debugPrint('Error en Google Sign-In: $e');
       return null;
     } finally {
       _isLoading = false;
