@@ -73,22 +73,24 @@ class GrupoSection extends StatelessWidget {
               return true;
             }).toList();
 
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 5,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio:
-                    1.5, // Más ancho que alto para nombres de grupos
-              ),
-              itemCount: grupos.length,
-              itemBuilder: (context, index) {
-                final grupo = grupos[index];
-                return _buildGrupoCard(context, grupo);
-              },
-            );
+            return LayoutBuilder(builder: (context, constraints) {
+              final cols = (constraints.maxWidth / 180).floor().clamp(2, 5);
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 1.0,
+                ),
+                itemCount: grupos.length,
+                itemBuilder: (context, index) {
+                  final grupo = grupos[index];
+                  return _buildGrupoCard(context, grupo);
+                },
+              );
+            });
           },
         ),
       ],

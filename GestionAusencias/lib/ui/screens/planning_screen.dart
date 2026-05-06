@@ -20,6 +20,7 @@ import '../widgets/planning/karma_sidebar.dart';
 import '../widgets/planning/timeline_view.dart';
 import '../widgets/planning/agenda_modal_content.dart';
 import '../../domain/usecases/eliminar_ausencia_usecase.dart';
+import '../../core/layout/app_breakpoints.dart';
 
 class DatosSlot {
   final TextEditingController controller;
@@ -132,6 +133,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
                           primaryColor: primaryColor,
                           cardColor: cardColor,
                           diasSemana: diasSemana,
+                          fechaSeleccionada: _fechaSeleccionada,
                         ),
                         Expanded(
                           child: TimelineView(
@@ -173,25 +175,26 @@ class _PlanningScreenState extends State<PlanningScreen> {
                   ),
                 ),
 
-                // Lado Derecho: Sidebar de Karma y Analíticas
-                Container(
-                  width: 320,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    border: Border(
-                      left: BorderSide(color: Colors.white.withOpacity(0.1)),
+                // Lado Derecho: Sidebar de Karma y Analíticas (solo en desktop)
+                if (context.isDesktop)
+                  Container(
+                    width: 300,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      border: Border(
+                        left: BorderSide(color: Colors.white.withOpacity(0.1)),
+                      ),
                     ),
-                  ),
-                  child: ClipRRect(
-                    child: BackdropFilter(
-                      filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: KarmaSidebar(
-                        profesores: _profesores,
-                        primaryColor: primaryColor,
+                    child: ClipRRect(
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: KarmaSidebar(
+                          profesores: _profesores,
+                          primaryColor: primaryColor,
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
       floatingActionButton: FloatingActionButton.extended(

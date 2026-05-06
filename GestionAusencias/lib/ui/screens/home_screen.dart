@@ -21,6 +21,7 @@ import 'dart:async';
 import '../widgets/home/home_sidebar_cards.dart';
 import '../widgets/planning/agenda_modal_content.dart';
 import 'planning_screen.dart' show DatosSlot;
+import '../../core/layout/app_breakpoints.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -260,14 +261,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final prof = context.watch<AuthProvider>().profesorActual;
-    final nombre = prof?.nombre.split(',').last.trim() ?? 'Profesor';
+    final rawNombre = prof?.nombre ?? 'Profesor';
+    // Quitamos la parte del correo y nos quedamos con el nombre limpio
+    final nombreSinEmail = rawNombre.split('@').first;
+    final nombre = nombreSinEmail.split(',').last.trim();
     final fechaStr = DateFormat('EEEE, d MMMM', 'es').format(DateTime.now());
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.symmetric(horizontal: context.horizontalPadding, vertical: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -291,79 +295,86 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 32),
-            
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Main Column
-                Expanded(
-                  child: Column(
-                    children: [
-                      if (_ausenciasSemana.any((a) => _esHoy(a.fecha)))
-                        HomeAbsenceAlert(ausencia: _ausenciasSemana.firstWhere((a) => _esHoy(a.fecha))),
-                      const SizedBox(height: 32),
-                      const Text(
-                        "Horario Semanal",
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
-                      ),
-                      const SizedBox(height: 16),
-                      HomeWeeklySchedule(
-                        horario: _horario,
-                        ausencias: _ausenciasSemana,
-                        onAction: (s, fecha) {
-                          showDialog(
-                            context: context,
-                            barrierColor: Colors.transparent,
-                            builder: (context) => Dialog(
-                              backgroundColor: Colors.transparent,
-                              child: AgendaModalContent(
-                                profesor: prof!,
-                                fecha: fecha,
-                                primaryColor: const Color(0xFF4F46E5),
-                                onDataChanged: _cargarDatos,
-                                registroFaltas: Map<String, DatosSlot>.from(
-                                  _ausenciasSemana.asMap().map((k, v) => MapEntry(
-                                    (v.id ?? k).toString(), 
-                                    DatosSlot(
-                                      tipo: v.tipo ?? "FALTA", 
-                                      controller: TextEditingController(text: v.observaciones ?? "")
-                                    )
-                                  ))
+            const SizedBox(height: 24),
+
+            Builder(builder: (ctx) {
+              final mainCol = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_ausenciasSemana.any((a) => _esHoy(a.fecha))) ...[
+                    HomeAbsenceAlert(ausencia: _ausenciasSemana.firstWhere((a) => _esHoy(a.fecha))),
+                    const SizedBox(height: 24),
+                  ],
+                  HomeWeeklySchedule(
+                    horario: _horario,
+                    ausencias: _ausenciasSemana,
+                    onAction: (s, fecha) {
+                      showDialog(
+                        context: context,
+                        barrierColor: Colors.transparent,
+                        builder: (context) => Dialog(
+                          backgroundColor: Colors.transparent,
+                          child: AgendaModalContent(
+                            profesor: prof!,
+                            fecha: fecha,
+                            primaryColor: const Color(0xFF4F46E5),
+                            onDataChanged: _cargarDatos,
+                            registroFaltas: Map<String, DatosSlot>.from(
+                              _ausenciasSemana.asMap().map((k, v) => MapEntry(
+                                (v.id ?? k).toString(),
+                                DatosSlot(
+                                  tipo: v.tipo ?? "FALTA",
+                                  controller: TextEditingController(text: v.observaciones ?? ""),
                                 ),
-                              ),
+                              )),
                             ),
-                          ).then((_) => _cargarDatos());
-                        },
-                      ),
-                      const SizedBox(height: 40),
-                      HomeActiveGuardMonitor(
-                        guardiasActivas: _getGuardiaActiva(),
-                        onCheckIn: (g) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => GuardSessionScreen(guardia: g),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 32),
-                      _buildLoungeBanner(),
-                    ],
+                          ),
+                        ),
+                      ).then((_) => _cargarDatos());
+                    },
                   ),
-                ),
-                const SizedBox(width: 32),
-                // Sidebar Column
-                Expanded(
-                  flex: 1,
-                  child: HomeSidebarCards(
-                    profesor: prof,
-                    sustituciones: _sustituciones,
+                  const SizedBox(height: 32),
+                  HomeActiveGuardMonitor(
+                    guardiasActivas: _getGuardiaActiva(),
+                    onCheckIn: (g) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GuardSessionScreen(guardia: g),
+                        ),
+                      );
+                    },
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 24),
+                  _buildLoungeBanner(),
+                ],
+              );
+
+              final sidebar = HomeSidebarCards(
+                profesor: prof,
+                sustituciones: _sustituciones,
+              );
+
+              if (ctx.isDesktop) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 3, child: mainCol),
+                    const SizedBox(width: 24),
+                    SizedBox(width: 300, child: sidebar),
+                  ],
+                );
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  mainCol,
+                  const SizedBox(height: 24),
+                  sidebar,
+                ],
+              );
+            }),
           ],
         ),
       ),

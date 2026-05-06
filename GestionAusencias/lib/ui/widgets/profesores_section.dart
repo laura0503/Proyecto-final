@@ -380,21 +380,24 @@ class _ProfesoresSectionState extends State<ProfesoresSection> {
             ),
           )
         else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1.1,
-            ),
-            itemCount: _filteredProfesores.length,
-            itemBuilder: (context, index) {
-              final p = _filteredProfesores[index];
-              return _buildModernTeacherCard(context, p, widget.isDark);
-            },
-          ),
+          LayoutBuilder(builder: (context, constraints) {
+            final cols = (constraints.maxWidth / 200).floor().clamp(2, 7);
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: cols,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 0.9,
+              ),
+              itemCount: _filteredProfesores.length,
+              itemBuilder: (context, index) {
+                final p = _filteredProfesores[index];
+                return _buildModernTeacherCard(context, p, widget.isDark);
+              },
+            );
+          }),
       ],
     );
   }

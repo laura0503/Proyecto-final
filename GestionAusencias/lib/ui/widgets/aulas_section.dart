@@ -147,21 +147,24 @@ class _AulasSectionState extends State<AulasSection> {
             ),
           )
         else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5, // Igual que asignaturas
-              crossAxisSpacing: 20,
-              mainAxisSpacing: 20,
-              childAspectRatio: 1.1,
-            ),
-            itemCount: _aulas.length,
-            itemBuilder: (context, index) {
-              final aula = _aulas[index];
-              return AulaCard(aula: aula, isDark: widget.isDark);
-            },
-          ),
+          LayoutBuilder(builder: (context, constraints) {
+            final cols = (constraints.maxWidth / 180).floor().clamp(2, 5);
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: cols,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                childAspectRatio: 0.85,
+              ),
+              itemCount: _aulas.length,
+              itemBuilder: (context, index) {
+                final aula = _aulas[index];
+                return AulaCard(aula: aula, isDark: widget.isDark);
+              },
+            );
+          }),
       ],
     );
   }

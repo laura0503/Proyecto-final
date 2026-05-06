@@ -188,8 +188,10 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          spacing: 16,
+          runSpacing: 12,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +213,9 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
                 ),
               ],
             ),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 ElevatedButton.icon(
                   onPressed: () {
@@ -229,13 +233,12 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
                         : Colors.orange.withOpacity(0.15),
                     foregroundColor: _mostrandoDuplicados ? Colors.white : Colors.orange[800],
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
                 ElevatedButton.icon(
                   onPressed: _importarCSV,
                   icon: const Icon(Icons.upload_file_rounded),
@@ -243,7 +246,7 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF007AFF),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

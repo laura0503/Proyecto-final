@@ -124,18 +124,18 @@ class CalendarioAulaWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 Expanded(
-                  child: Container(
-                    alignment: Alignment.topCenter,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
                     child: SingleChildScrollView(
-                      scrollDirection: Axis.vertical,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
+                      scrollDirection: Axis.horizontal,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 40), // Espacio extra al final
                         child: DataTable(
                           headingRowHeight: 56.0,
-                          dataRowMaxHeight: 96.0,
-                          dataRowMinHeight: 70.0,
+                          dataRowMaxHeight: 110.0, // Un poco más de aire para las celdas
+                          dataRowMinHeight: 80.0,
                           horizontalMargin: 16,
-                          columnSpacing: 40,
+                          columnSpacing: 20, // Ajustado para que no sea excesivo
                           dividerThickness: 0, 
                           headingRowColor: WidgetStateProperty.resolveWith<Color?>(
                             (Set<WidgetState> states) => Colors.transparent 
@@ -145,9 +145,9 @@ class CalendarioAulaWidget extends StatelessWidget {
                             verticalInside: BorderSide(color: Colors.black.withOpacity(0.03), width: 0.5),
                           ),
                           columns: [
-                            DataColumn(label: Expanded(child: Text('Tramo Horario', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)))),
+                            DataColumn(label: Text('Tramo Horario', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87))),
                             for (var dia in dias)
-                              DataColumn(label: Expanded(child: Text(dia, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)))),
+                              DataColumn(label: Text(dia, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87))),
                           ],
                           rows: tramosSorted.map((tramo) {
                             final isRecreo = tramo == '19:00:00';

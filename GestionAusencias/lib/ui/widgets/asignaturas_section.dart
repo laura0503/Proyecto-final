@@ -190,22 +190,25 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
             ),
           )
         else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.1,
-            ),
-            itemCount: _filteredAsignaturas.length,
-            itemBuilder: (context, i) => _AsignaturaCard(
-              asignatura: _filteredAsignaturas[i],
-              grupos: _gruposPorAsignatura[_filteredAsignaturas[i].id] ?? [],
-              isDark: widget.isDark,
-            ),
-          ),
+          LayoutBuilder(builder: (context, constraints) {
+            final cols = (constraints.maxWidth / 160).floor().clamp(2, 4);
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: cols,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.95,
+              ),
+              itemCount: _filteredAsignaturas.length,
+              itemBuilder: (context, i) => _AsignaturaCard(
+                asignatura: _filteredAsignaturas[i],
+                grupos: _gruposPorAsignatura[_filteredAsignaturas[i].id] ?? [],
+                isDark: widget.isDark,
+              ),
+            );
+          }),
       ],
     );
   }

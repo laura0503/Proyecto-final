@@ -25,11 +25,11 @@ class ProfesorModel extends Profesor {
       id: json['id']?.toString() ?? '',
       idProfesor: json['id_profesor'] as int?,
       nombre: json['nombre'] ?? '',
-      asignatura: json['asignatura'] ?? '',
-      curso: json['curso'] ?? '',
+      asignatura: json['asignatura'] ?? '', 
+      curso: json['curso'] ?? '',           
       foto: json['foto'] ?? '',
       departamento: json['departamento'] ?? 'General',
-      estadoAusente: json['estadoAusente'] ?? false,
+      estadoAusente: json['estado_ausente'] ?? false,
       tutoria: json['tutoria'],
       horarioEntrada: json['horario_entrada']?.toString(),
       horarioSalida: json['horario_salida']?.toString(),
@@ -64,21 +64,9 @@ class ProfesorModel extends Profesor {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      if (idProfesor != null) 'id_profesor': idProfesor,
       'nombre': nombre,
-      'asignatura': asignatura,
-      'curso': curso,
-      'foto': foto,
-      'departamento': departamento,
-      'estadoAusente': estadoAusente,
-      'tutoria': tutoria,
-      'horario_entrada': horarioEntrada,
-      'horario_salida': horarioSalida,
-      'ubicacion_actual': ubicacionActual,
-      'estado_actual': estadoActual,
-      'karma': karma,
-      'es_guardia': esGuardia,
-      'es_admin': esAdmin,
+      // Se ha eliminado 'id' porque no existe en la tabla profesores
     };
   }
 

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
@@ -14,31 +15,16 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _userController = TextEditingController();
-  final _cursoController = TextEditingController();
-  final _asigController = TextEditingController();
-  final _depController = TextEditingController();
-
   bool esModoRegistro = false;
-
-  final List<String> _departamentos = [
-    'General',
-    'Matemáticas',
-    'Historia',
-    'Tecnología',
-    'Lengua',
-    'Ciencias',
-    'Inglés',
-    'Educación Física',
-    'Arte',
-    'Música',
-    'Otro',
-  ];
 
   void _mensaje(String texto, {bool esError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(texto),
-        backgroundColor: esError ? Colors.red : Colors.green,
+        content: Text(texto, style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: esError ? Colors.redAccent : Colors.indigoAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        margin: const EdgeInsets.all(20),
       ),
     );
   }
@@ -50,9 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.login(
-      _userController.text,
-    );
+    final input = _userController.text.trim();
+    final nombreCompleto = input.contains('@') ? input : "$input@g.educaand.es";
+    final success = await authProvider.login(nombreCompleto);
 
     if (success) {
       widget.onLoginSuccess();
@@ -62,21 +48,21 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _registrar() async {
-    if (_userController.text.isEmpty ||
-        _cursoController.text.isEmpty ||
-        _asigController.text.isEmpty ||
-        _depController.text.isEmpty) {
-      _mensaje("Por favor, rellena todos los campos", esError: true);
+    if (_userController.text.isEmpty) {
+      _mensaje("Por favor, rellena el campo de usuario", esError: true);
       return;
     }
 
+    final input = _userController.text.trim();
+    final nombreConDominio = input.contains('@') ? input : "$input@g.educaand.es";
+
     final nuevoProfe = Profesor(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      nombre: _userController.text.trim(),
-      asignatura: _asigController.text.trim(),
-      curso: _cursoController.text.trim(),
-      foto: "https://i.pravatar.cc/150?u=${_userController.text}",
-      departamento: _depController.text.trim(),
+      id: "user_${DateTime.now().millisecondsSinceEpoch}",
+      nombre: nombreConDominio,
+      asignatura: "Pendiente",
+      curso: "General",
+      foto: "https://i.pravatar.cc/150?u=$nombreConDominio",
+      departamento: "General",
       estadoAusente: false,
     );
 
@@ -94,188 +80,245 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _userController.dispose();
-    _cursoController.dispose();
-    _asigController.dispose();
-    _depController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Container(
-            width: 380,
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 20,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.school_rounded, size: 64, color: Color(0xFF6C63FF)),
-                const SizedBox(height: 16),
-                Text(
-                  esModoRegistro ? "Crear Nueva Cuenta" : "Acceso Docente",
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                TextField(
-                  controller: _userController,
-                  decoration: InputDecoration(
-                    labelText: "Nombre Completo",
-                    prefixIcon: const Icon(
-                      Icons.person_outline,
-                      color: Color(0xFF6C63FF),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                if (esModoRegistro) ...[
-                  TextField(
-                    controller: _asigController,
-                    decoration: InputDecoration(
-                      labelText: "Especialidad / Asignatura",
-                      prefixIcon: const Icon(
-                        Icons.school_outlined,
-                        color: Color(0xFF6C63FF),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _cursoController,
-                    decoration: InputDecoration(
-                      labelText: "Curso (ej. 2º ESO)",
-                      prefixIcon: const Icon(
-                        Icons.book_outlined,
-                        color: Color(0xFF6C63FF),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _depController.text.isEmpty
-                        ? 'General'
-                        : _depController.text,
-                    decoration: InputDecoration(
-                      labelText: "Departamento",
-                      prefixIcon: const Icon(
-                        Icons.business_center_outlined,
-                        color: Color(0xFF6C63FF),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    items: _departamentos.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(
-                          value,
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() => _depController.text = newValue);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                const SizedBox(height: 24),
-
-                if (authProvider.isLoading)
-                  const CircularProgressIndicator()
-                else ...[
-                  if (!esModoRegistro) ...[
-                    ElevatedButton(
-                      onPressed: _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6C63FF),
-                        minimumSize: const Size(double.infinity, 54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        "INICIAR SESIÓN",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => setState(() => esModoRegistro = true),
-                      child: const Text(
-                        "¿No tienes cuenta? Regístrate aquí",
-                        style: TextStyle(color: Color(0xFF6C63FF)),
-                      ),
-                    ),
-                  ] else ...[
-                    ElevatedButton(
-                      onPressed: _registrar,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        minimumSize: const Size(double.infinity, 54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        "CONFIRMAR REGISTRO",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => setState(() => esModoRegistro = false),
-                      child: const Text(
-                        "Volver al inicio de sesión",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                  ],
-                ],
-              ],
+      body: Stack(
+        children: [
+          // 1. Imagen de Fondo Abstracta Premium
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/login_background.png'), // Asumiendo que se moverá a assets o se usa un placeholder
+                fit: BoxFit.cover,
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+              ),
             ),
           ),
+          
+          // 2. Filtro de Blur para el efecto cristal
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(color: Colors.black.withOpacity(0.3)),
+          ),
+
+          // 3. Contenido Central
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 500),
+                width: 450,
+                padding: const EdgeInsets.all(40),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(35),
+                  border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 40,
+                      offset: const Offset(0, 20),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(35),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Logo e Identidad
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.auto_awesome_mosaic_rounded, size: 50, color: Colors.white),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          "GuardiaMaster",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                        Text(
+                          esModoRegistro ? "Únete a la plataforma docente" : "Gestión de Ausencias Premium",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 48),
+
+                        // Campo de Entrada (User)
+                        _buildInputField(
+                          controller: _userController,
+                          label: esModoRegistro ? "Nuevo Usuario IDEA" : "Usuario IDEA",
+                          icon: Icons.person_outline_rounded,
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Botones de Acción
+                        if (authProvider.isLoading)
+                          const CircularProgressIndicator(color: Colors.white)
+                        else ...[
+                          _buildPrimaryButton(
+                            text: esModoRegistro ? "CONFIRMAR REGISTRO" : "ENTRAR AL PANEL",
+                            onPressed: esModoRegistro ? _registrar : _login,
+                            color: esModoRegistro ? Colors.emeraldAccent[400]! : const Color(0xFF4F46E5),
+                          ),
+                          const SizedBox(height: 20),
+                          
+                          if (!esModoRegistro) ...[
+                            _buildGoogleButton(authProvider),
+                            const SizedBox(height: 32),
+                            GestureDetector(
+                              onTap: () => setState(() => esModoRegistro = true),
+                              child: Text(
+                                "¿No tienes cuenta? Regístrate gratis",
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.8),
+                                  fontWeight: FontWeight.w600,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            TextButton(
+                              onPressed: () => setState(() => esModoRegistro = false),
+                              child: Text(
+                                "Volver al inicio de sesión",
+                                style: TextStyle(color: Colors.white.withOpacity(0.5)),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          // Marca de Agua / Footer
+          Positioned(
+            bottom: 30,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Text(
+                "Versión 2.0 • Diseñado para Centros Educativos",
+                style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 10, letterSpacing: 1),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputField({required TextEditingController controller, required String label, required IconData icon}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 8),
+          child: Text(
+            label.toUpperCase(),
+            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+          ),
         ),
+        TextField(
+          controller: controller,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.05),
+            prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.5)),
+            suffixText: "@g.educaand.es",
+            suffixStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 12),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrimaryButton({required String text, required VoidCallback onPressed, required Color color}) {
+    return Container(
+      width: double.infinity,
+      height: 60,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          elevation: 0,
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGoogleButton(AuthProvider authProvider) {
+    return OutlinedButton.icon(
+      onPressed: () async {
+        final account = await authProvider.signInWithGoogle();
+        if (account != null) {
+          _mensaje("Bienvenido, ${account.displayName}");
+          widget.onLoginSuccess();
+        }
+      },
+      icon: Image.network('https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_\"G\"_logo.svg', height: 20, errorBuilder: (c, e, s) => const Icon(Icons.g_mobiledata, color: Colors.white)),
+      label: const Text("CONTINUAR CON GOOGLE"),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(double.infinity, 60),
+        foregroundColor: Colors.white,
+        side: BorderSide(color: Colors.white.withOpacity(0.2)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
     );
   }

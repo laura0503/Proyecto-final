@@ -14,6 +14,7 @@ import '../providers/config_provider.dart';
 import 'wallpaper_selector_screen.dart';
 import '../widgets/profesores/profesor_card.dart';
 import '../adapters/profesor_ui_adapter.dart';
+import '../../core/layout/app_breakpoints.dart';
 
 class ProfesoresScreen extends StatefulWidget {
   const ProfesoresScreen({super.key});
@@ -107,8 +108,8 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                             ? _buildEstadoVacio()
                             : GridView.builder(
                                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 7,
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: context.responsive(mobile: 3, tablet: 5, desktop: 7),
                                   crossAxisSpacing: 12,
                                   mainAxisSpacing: 12,
                                   childAspectRatio: 0.82,

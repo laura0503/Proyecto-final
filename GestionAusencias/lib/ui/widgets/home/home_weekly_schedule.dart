@@ -35,56 +35,72 @@ class HomeWeeklySchedule extends StatelessWidget {
       children: [
         _buildAppleHeader(),
         const SizedBox(height: 28),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: List.generate(5, (index) {
-            final diaNombre = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"][index];
-            final sesiones = sortedHorario.where((h) => h.dia.toUpperCase() == diaNombre).toList();
-            final isToday = index == hoyIndex;
-            final fechaDia = fechasSemana[index];
-            
-            return Expanded(
-              child: Column(
-                children: [
-                  // Cabecera SwiftUI Style
-                  _buildDayHeader(diasCortos[index], isToday),
-                  const SizedBox(height: 16),
-                  // Lista de sesiones con animaciones fluidas
-                  ...sesiones.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final s = entry.value;
-                    
-                    // Buscar si hay una ausencia para esta sesión
-                    final ausencia = ausencias.firstWhere(
-                      (a) => a.idHorario == s.id && 
-                             a.fecha.day == fechaDia.day && 
-                             a.fecha.month == fechaDia.month,
-                      orElse: () => Ausencia(profesorId: "", fecha: fechaDia, idHorario: -1, tipo: null),
-                    );
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const double minColWidth = 130;
+            const int numDays = 5;
+            final double totalMin = minColWidth * numDays;
+            final double colWidth = constraints.maxWidth >= totalMin
+                ? constraints.maxWidth / numDays
+                : minColWidth;
 
-                    return TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.0, end: 1.0),
-                      duration: Duration(milliseconds: 500 + (i * 100)),
-                      curve: Curves.easeOutQuart,
-                      builder: (context, value, child) {
-                        return Transform.translate(
-                          offset: Offset(0, 20 * (1 - value)),
-                          child: Opacity(
-                            opacity: value,
-                            child: GestureDetector(
-                              onTap: () => onAction(s, fechaDia),
-                              child: _buildSwiftUICard(s, isToday, context, ausencia),
-                            ),
-                          ),
+            final row = Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: List.generate(numDays, (index) {
+                final diaNombre = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"][index];
+                final sesiones = sortedHorario.where((h) => h.dia.toUpperCase() == diaNombre).toList();
+                final isToday = index == hoyIndex;
+                final fechaDia = fechasSemana[index];
+
+                return SizedBox(
+                  width: colWidth,
+                  child: Column(
+                    children: [
+                      _buildDayHeader(diasCortos[index], isToday),
+                      const SizedBox(height: 16),
+                      ...sesiones.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final s = entry.value;
+                        final ausencia = ausencias.firstWhere(
+                          (a) =>
+                              a.idHorario == s.id &&
+                              a.fecha.day == fechaDia.day &&
+                              a.fecha.month == fechaDia.month,
+                          orElse: () => Ausencia(profesorId: "", fecha: fechaDia, idHorario: -1, tipo: null),
                         );
-                      },
-                    );
-                  }).toList(),
-                  if (sesiones.isEmpty) _buildEmptySlot(),
-                ],
-              ),
+                        return TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          duration: Duration(milliseconds: 500 + (i * 100)),
+                          curve: Curves.easeOutQuart,
+                          builder: (context, value, child) {
+                            return Transform.translate(
+                              offset: Offset(0, 20 * (1 - value)),
+                              child: Opacity(
+                                opacity: value,
+                                child: GestureDetector(
+                                  onTap: () => onAction(s, fechaDia),
+                                  child: _buildSwiftUICard(s, isToday, context, ausencia),
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      }),
+                      if (sesiones.isEmpty) _buildEmptySlot(),
+                    ],
+                  ),
+                );
+              }),
             );
-          }),
+
+            if (constraints.maxWidth < totalMin) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: row,
+              );
+            }
+            return row;
+          },
         ),
       ],
     );

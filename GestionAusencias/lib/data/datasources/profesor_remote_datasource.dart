@@ -115,7 +115,15 @@ class ProfesorRemoteDataSource {
 
   Future<void> guardarProfesor(Profesor profesor) async {
     final model = ProfesorModel.fromEntity(profesor);
-    await _supabase.from('profesores').upsert(model.toJson());
+    final data = model.toJson();
+    
+    // Si no tenemos id_profesor, es un registro nuevo, usamos insert
+    if (model.idProfesor == null) {
+      await _supabase.from('profesores').insert(data);
+    } else {
+      // Si ya tiene id_profesor, actualizamos ese registro
+      await _supabase.from('profesores').upsert(data);
+    }
   }
 
   Future<void> eliminarProfesor(String id) async {
@@ -147,11 +155,21 @@ class ProfesorRemoteDataSource {
   }
 
   Future<void> actualizarEstadoAusencia(String id, bool estado) async {
-    await _supabase.from('profesores').update({'estado_ausente': estado}).eq('id', id);
+    final int? idInt = int.tryParse(id);
+    if (idInt != null) {
+      await _supabase.from('profesores').update({'estado_ausente': estado}).eq('id_profesor', idInt);
+    }
   }
 
   Future<ProfesorModel?> obtenerSesionActual(String id) async {
-    final response = await _supabase.from('profesores').select().eq('id', id).maybeSingle();
+    final int? idInt = int.tryParse(id);
+    if (idInt == null) return null;
+    
+    final response = await _supabase.from('profesores')
+        .select()
+        .eq('id_profesor', idInt)
+        .maybeSingle();
+        
     if (response == null) return null;
     return ProfesorModel.fromJson(response);
   }

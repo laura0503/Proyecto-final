@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
+import '../../../core/layout/app_breakpoints.dart';
 
 class PlanningHeader extends StatelessWidget {
   final String mesAno;
@@ -10,6 +11,7 @@ class PlanningHeader extends StatelessWidget {
   final Color primaryColor;
   final Color cardColor;
   final List<DateTime> diasSemana;
+  final DateTime fechaSeleccionada; // Nueva propiedad
 
   const PlanningHeader({
     super.key,
@@ -19,6 +21,7 @@ class PlanningHeader extends StatelessWidget {
     required this.primaryColor,
     required this.cardColor,
     required this.diasSemana,
+    required this.fechaSeleccionada,
   });
 
   @override
@@ -67,36 +70,42 @@ class PlanningHeader extends StatelessWidget {
           // Breadcrumbs
           Row(
             children: [
-              Text("GUARDIAMASTER", style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2)),
+              Flexible(child: Text("GUARDIAMASTER", style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2), overflow: TextOverflow.ellipsis)),
               Icon(Icons.chevron_right, size: 12, color: Colors.grey[400]),
-              Text("MONITOR DE GUARDIAS", style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2)),
+              Flexible(child: Text("MONITOR DE GUARDIAS", style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2), overflow: TextOverflow.ellipsis)),
             ],
           ),
           const SizedBox(height: 8),
 
           // Title Row
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Línea de Tiempo",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 28,
-                      color: Color(0xFF0F172A),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Línea de Tiempo",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 28,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
-                  ),
-                  Text(
-                    DateFormat('EEEE, d \'de\' MMMM', 'es').format(diasSemana[0]),
-                    style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w500, fontSize: 14),
-                  ),
-                ],
+                    Text(
+                      DateFormat('EEEE, d \'de\' MMMM', 'es').format(fechaSeleccionada),
+                      style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w500, fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-              const Spacer(),
-              _exportButton(),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              if (!context.isMobile) ...[
+                _exportButton(),
+                const SizedBox(width: 12),
+              ],
               _weekSelector(),
             ],
           ),

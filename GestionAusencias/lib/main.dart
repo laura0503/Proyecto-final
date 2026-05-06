@@ -5,6 +5,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart';
 // ─── Data Sources ───
 import 'package:gestion_ausencias/data/datasources/profesor_remote_datasource.dart';
 import 'package:gestion_ausencias/data/datasources/horario_remote_datasource.dart';
@@ -84,6 +86,20 @@ void main() async {
     anonKey: dotenv.env['KEY']!,
   );
 
+  // --- CONFIGURACIÓN DE DEEP LINKING PARA WINDOWS ---
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+    final appLinks = AppLinks();
+    // Capturar el enlace inicial si la app se abre por un link
+    final initialUri = await appLinks.getInitialLink();
+    if (initialUri != null) {
+      Supabase.instance.client.auth.getSessionFromUrl(initialUri);
+    }
+    // Escuchar enlaces mientras la app está abierta
+    appLinks.uriLinkStream.listen((uri) {
+      Supabase.instance.client.auth.getSessionFromUrl(uri);
+    });
+  }
+
   // 3. Inicializar capa de datos
   final supabase = Supabase.instance.client;
 
@@ -148,6 +164,7 @@ void main() async {
         Provider<GuardiaRepository>.value(value: guardiaRepository),
         Provider<IHorarioImporter>.value(value: horarioImporter),
         Provider<SupabaseService>.value(value: supabaseService),
+        Provider<SupabaseClient>.value(value: supabase),
         Provider<KarmaService>.value(value: karmaService),
 
         // ── Casos de uso ──
@@ -241,6 +258,7 @@ void main() async {
             getSesionActualUseCase: context.read<GetSesionActualUseCase>(),
             cerrarSesionUseCase: context.read<CerrarSesionUseCase>(),
             getProfesoresUseCase: context.read<GetProfesoresUseCase>(),
+            supabase: context.read<SupabaseClient>(),
           )..checkSession(),
         ),
         ChangeNotifierProvider<ConfigProvider>(create: (_) => ConfigProvider()),
@@ -287,7 +305,11 @@ class GestionAusencias extends StatelessWidget {
       ],
       supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
       locale: configProvider.appLocale,
-      home: MainLayout(onLogout: () => authProvider.logout()),
+      home: authProvider.isLoggedIn 
+          ? MainLayout(onLogout: () => authProvider.logout())
+          : LoginScreen(onLoginSuccess: () {
+              // No hace falta hacer nada aquí, el provider notificará el cambio
+            }),
     );
   }
 }
