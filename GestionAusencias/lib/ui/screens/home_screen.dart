@@ -295,11 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     HomeAbsenceAlert(ausencia: _ausenciasSemana.firstWhere((a) => _esHoy(a.fecha))),
                     const SizedBox(height: 24),
                   ],
-                  const Text(
-                    "Mi Horario Semanal",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
-                  ),
-                  const SizedBox(height: 16),
+                  _buildGuardiasHoyCard(),
                   HomeWeeklySchedule(
                     horario: _horario,
                     ausencias: _ausenciasSemana,
@@ -372,6 +368,200 @@ class _HomeScreenState extends State<HomeScreen> {
             }),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildGuardiasHoyCard() {
+    final hoy = DateTime.now();
+    final dias = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
+    final guardiasHoy = _sustituciones.where((s) {
+      if (s.fecha != null) return _esHoy(s.fecha!);
+      return s.dia.toUpperCase() == dias[hoy.weekday];
+    }).toList()
+      ..sort((a, b) => a.inicio.compareTo(b.inicio));
+
+    if (guardiasHoy.isEmpty) return const SizedBox.shrink();
+
+    final horaActual = DateFormat('HH:mm').format(hoy);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, 8)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 16, 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(9),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4F46E5).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.shield_rounded, color: Color(0xFF4F46E5), size: 18),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Mis Guardias de Hoy",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
+                    ),
+                    Text(
+                      "${guardiasHoy.length} guardia${guardiasHoy.length > 1 ? 's' : ''} asignada${guardiasHoy.length > 1 ? 's' : ''}",
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500], fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Divisor
+          Divider(height: 1, color: Colors.grey[100]),
+
+          // Filas de guardias
+          ...guardiasHoy.asMap().entries.map((entry) {
+            final i = entry.key;
+            final g = entry.value;
+            final isLast = i == guardiasHoy.length - 1;
+            final bool esActual = horaActual.compareTo(g.inicio) >= 0 && horaActual.compareTo(g.fin) < 0;
+            final bool yaPaso = horaActual.compareTo(g.fin) >= 0;
+            final ausente = g.profesorAusente.isNotEmpty ? g.profesorAusente : g.nota.replaceFirst('Cubriendo a ', '');
+
+            return Container(
+              decoration: BoxDecoration(
+                color: esActual ? const Color(0xFF4F46E5).withOpacity(0.04) : Colors.transparent,
+                border: Border(
+                  bottom: isLast ? BorderSide.none : BorderSide(color: Colors.grey[100]!),
+                  left: esActual ? const BorderSide(color: Color(0xFF4F46E5), width: 3) : BorderSide.none,
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: Row(
+                children: [
+                  // Hora
+                  SizedBox(
+                    width: 80,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${g.inicio} - ${g.fin}",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                            color: esActual
+                                ? const Color(0xFF4F46E5)
+                                : yaPaso
+                                    ? Colors.grey[400]
+                                    : const Color(0xFF1E293B),
+                          ),
+                        ),
+                        if (esActual)
+                          Container(
+                            margin: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4F46E5).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text("AHORA", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Color(0xFF4F46E5))),
+                          )
+                        else if (yaPaso)
+                          Text("Finalizada", style: TextStyle(fontSize: 9, color: Colors.grey[400], fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Profesor ausente
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.person_off_rounded, size: 16, color: Colors.redAccent),
+                  ),
+                  const SizedBox(width: 10),
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Cubre a: $ausente",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: yaPaso ? Colors.grey[400] : const Color(0xFF1E293B),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.meeting_room_outlined, size: 11, color: Colors.grey[400]),
+                            const SizedBox(width: 3),
+                            Text(g.aula, style: TextStyle(fontSize: 11, color: Colors.grey[500], fontWeight: FontWeight.w600)),
+                            const SizedBox(width: 8),
+                            Icon(Icons.auto_stories_outlined, size: 11, color: Colors.grey[400]),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                g.asignatura.replaceFirst('GUARDIA: ', '').replaceFirst('SUSTITUCIÓN: ', ''),
+                                style: TextStyle(fontSize: 11, color: Colors.grey[500], fontWeight: FontWeight.w600),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Badge estado
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: esActual
+                          ? const Color(0xFF4F46E5).withOpacity(0.1)
+                          : yaPaso
+                              ? Colors.grey[100]
+                              : Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      esActual ? "EN CURSO" : yaPaso ? "HECHA" : "PRÓXIMA",
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        color: esActual
+                            ? const Color(0xFF4F46E5)
+                            : yaPaso
+                                ? Colors.grey[400]
+                                : Colors.orange[700],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+
+          const SizedBox(height: 4),
+        ],
       ),
     );
   }

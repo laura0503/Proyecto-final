@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:gestion_ausencias/ui/utils/app_strings.dart';
 
 import '../providers/config_provider.dart';
 import '../widgets/profesores_section.dart';
@@ -20,7 +21,7 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  String _selectedSection = 'Profesores';
+  String _selectedSection = 'GestionProf';
 
   @override
   Widget build(BuildContext context) {
@@ -89,76 +90,36 @@ class _AdminScreenState extends State<AdminScreen> {
                             children: [
 
                               _buildSidebarSectionHeader("GESTIÓN", isDark),
-                                _buildSidebarItem(
-                                  icon: Icons.people_alt_rounded,
-                                  text: "Profesores",
-                                  isSelected: _selectedSection == 'Profesores',
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedSection = 'Profesores';
-                                    });
-                                  },
-                                ),
-                                _buildSidebarItem(
-                                  icon: Icons.calendar_today_rounded,
-                                  text: "Horarios",
-                                  isSelected: _selectedSection == 'Horarios',
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedSection = 'Horarios';
-                                    });
-                                  },
-                                ),
-                                _buildSidebarItem(
-                                  icon: Icons.meeting_room,
-                                  text: 'Aulas',
-                                  isSelected: _selectedSection == 'Aulas',
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedSection = 'Aulas';
-                                    });
-                                  },
-                                ),
-                                _buildSidebarItem(
-                                  icon: Icons.groups_rounded,
-                                  text: 'Grupos',
-                                  isSelected: _selectedSection == 'Grupos',
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedSection = 'Grupos';
-                                    });
-                                  },
-                                ),
-                                _buildSidebarItem(
-                                  icon: Icons.auto_stories_rounded,
-                                  text: 'Asignaturas',
-                                  isSelected: _selectedSection == 'Asignaturas',
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedSection = 'Asignaturas';
-                                    });
-                                  },
-                                ),
-                                _buildSidebarItem(
-                                  icon: Icons.manage_accounts_rounded,
-                                  text: "Gestión Prof.",
-                                  isSelected: _selectedSection == 'GestionProf',
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedSection = 'GestionProf';
-                                    });
-                                  },
-                                ),
-                                _buildSidebarItem(
-                                  icon: Icons.upload_file_rounded,
-                                  text: 'Importar CSV',
-                                  isSelected: _selectedSection == 'Importar',
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedSection = 'Importar';
-                                    });
-                                  },
-                                ),
+                                  _buildSidebarItem(
+                                    icon: Icons.calendar_today_rounded,
+                                    text: AppStrings.get(context, 'horarios'),
+                                    isSelected: _selectedSection == 'Horarios',
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedSection = 'Horarios';
+                                      });
+                                    },
+                                  ),
+                                  _buildSidebarItem(
+                                    icon: Icons.manage_accounts_rounded,
+                                    text: AppStrings.get(context, 'gestion_prof'),
+                                    isSelected: _selectedSection == 'GestionProf',
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedSection = 'GestionProf';
+                                      });
+                                    },
+                                  ),
+                                  _buildSidebarItem(
+                                    icon: Icons.upload_file_rounded,
+                                    text: AppStrings.get(context, 'importar_csv'),
+                                    isSelected: _selectedSection == 'Importar',
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedSection = 'Importar';
+                                      });
+                                    },
+                                  ),
                             ],
                           ),
                         ),
@@ -215,12 +176,9 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget _buildSelectedSection(bool isDark) {
     return switch (_selectedSection) {
       'GestionProf'  => AdminProfesoradoSection(isDark: isDark),
-      'Profesores'   => ProfesoresSection(isDark: isDark),
       'Horarios'     => HorariosSection(isDark: isDark),
-      'Aulas'        => AulasSection(isDark: isDark),
-      'Grupos'       => GrupoSection(isDark: isDark),
       'Importar'     => ImportarHorariosSection(isDark: isDark),
-      _              => AsignaturasSection(isDark: isDark),
+      _              => AdminProfesoradoSection(isDark: isDark),
     };
   }
 

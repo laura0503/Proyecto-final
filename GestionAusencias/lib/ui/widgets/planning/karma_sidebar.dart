@@ -47,11 +47,6 @@ class KarmaSidebar extends StatelessWidget {
           _buildSectionHeader("Tendencia de Puntos", Icons.trending_up_rounded),
           const SizedBox(height: 16),
           _buildSparklineMock(),
-          const SizedBox(height: 8),
-          const Text(
-            "+12% vs semana anterior",
-            style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold),
-          ),
           const Spacer(),
           _buildActionCard(),
         ],

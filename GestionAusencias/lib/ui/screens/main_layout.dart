@@ -18,6 +18,11 @@ import 'package:gestion_ausencias/ui/screens/home_screen.dart';
 import 'package:gestion_ausencias/ui/screens/monitor_screen.dart';
 import 'package:gestion_ausencias/ui/screens/karma_screen.dart';
 import '../widgets/home/home_header.dart';
+import '../widgets/profesores_section.dart';
+import '../widgets/grupo_section.dart';
+import '../widgets/asignaturas_section.dart';
+import '../widgets/aulas_section.dart';
+import '../widgets/horarios_section.dart';
 
 class MainLayout extends StatefulWidget {
   final VoidCallback onLogout;
@@ -30,11 +35,18 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
-  final PageController _pageController = PageController();
 
   @override
   void initState() {
     super.initState();
+    // Redirección inicial para Administradores
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      final isAdmin = auth.profesorActual?.isAdmin ?? false;
+      if (isAdmin && _selectedIndex == 0) {
+        setState(() => _selectedIndex = 6); // Índice del Monitor
+      }
+    });
   }
 
   // Colores: Verde Musgo y Crema
@@ -44,11 +56,6 @@ class _MainLayoutState extends State<MainLayout> {
 
   void _irAPagina(int index) {
     setState(() => _selectedIndex = index);
-    _pageController.animateToPage(
-      index, 
-      duration: const Duration(milliseconds: 600), 
-      curve: Curves.easeInOutQuart,
-    );
   }
 
   @override
@@ -65,11 +72,14 @@ class _MainLayoutState extends State<MainLayout> {
     final isAdmin = prof?.isAdmin ?? false;
 
     final List<Widget> screens = [
-      const HomeScreen(),
-      const PlanningScreen(),
-      const ProfesoresScreen(),
-      if (isAdmin) const MonitorScreen(),
-      if (isAdmin) const KarmaScreen(),
+      const HomeScreen(), // 0
+      const PlanningScreen(), // 1
+      const ProfesoresScreen(), // 2
+      GrupoSection(isDark: isDark), // 3
+      AsignaturasSection(isDark: isDark), // 4
+      AulasSection(isDark: isDark), // 5
+      if (isAdmin) const MonitorScreen(), // 6
+      if (isAdmin) const KarmaScreen(), // 7
     ];
 
     return Scaffold(
@@ -81,9 +91,17 @@ class _MainLayoutState extends State<MainLayout> {
             decoration: BoxDecoration(
               color: bgProvider == null
                   ? Theme.of(context).scaffoldBackgroundColor
-                  : null,
+                  : Colors.black,
               image: bgProvider != null
-                  ? DecorationImage(image: bgProvider, fit: BoxFit.cover)
+                  ? DecorationImage(
+                      image: bgProvider,
+                      fit: BoxFit.cover,
+                      opacity: 0.8,
+                      colorFilter: ColorFilter.mode(
+                        Colors.black.withOpacity(isDark ? 0.6 : 0.4),
+                        BlendMode.darken,
+                      ),
+                    )
                   : null,
             ),
           ),
@@ -99,6 +117,7 @@ class _MainLayoutState extends State<MainLayout> {
                     width: 90,
                     color: glassColor,
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const SizedBox(height: 60),
                         // BLOQUE SUPERIOR: DIRECCIÓN / ADMINISTRACIÓN
@@ -106,34 +125,30 @@ class _MainLayoutState extends State<MainLayout> {
                           _sidebarItem(
                             Icons.radar_rounded,
                             'Monitor',
-                            3,
+                            6,
                           ),
                           _sidebarItem(
                             Icons.auto_awesome_rounded,
                             'Karma',
-                            4,
+                            7,
                           ),
                           _sidebarItem(
                             Icons.admin_panel_settings_rounded,
                             AppStrings.get(context, 'admin'),
-                            5,
+                            8,
                           ),
-                        ] else ...[
-                          _sidebarItem(
-                            Icons.admin_panel_settings_rounded,
-                            AppStrings.get(context, 'admin'),
-                            3,
-                          ),
+                          const SizedBox(height: 20),
+                          Container(width: 40, height: 1, color: Colors.grey.withOpacity(0.2)),
+                          const SizedBox(height: 20),
                         ],
 
-                        const Spacer(),
-
                         // BLOQUE CENTRAL: PROFESORES / DÍA A DÍA
-                        _sidebarItem(
-                          Icons.dashboard_rounded,
-                          AppStrings.get(context, 'inicio'),
-                          0,
-                        ),
+                        if (!isAdmin)
+                          _sidebarItem(
+                            Icons.dashboard_rounded,
+                            AppStrings.get(context, 'inicio'),
+                            0,
+                          ),
                         _sidebarItem(
                           Icons.calendar_month_rounded,
                           AppStrings.get(context, 'planning'),
@@ -144,14 +159,31 @@ class _MainLayoutState extends State<MainLayout> {
                           AppStrings.get(context, 'profesores'),
                           2,
                         ),
+                        _sidebarItem(
+                          Icons.groups_rounded,
+                          AppStrings.get(context, 'grupos'),
+                          3,
+                        ),
+                        _sidebarItem(
+                          Icons.auto_stories_rounded,
+                          AppStrings.get(context, 'asignaturas'),
+                          4,
+                        ),
+                        _sidebarItem(
+                          Icons.meeting_room_rounded,
+                          AppStrings.get(context, 'aulas'),
+                          5,
+                        ),
 
-                        const Spacer(),
+                        const SizedBox(height: 20),
+                        Container(width: 40, height: 1, color: Colors.grey.withOpacity(0.2)),
+                        const SizedBox(height: 20),
 
                         // BLOQUE INFERIOR: AJUSTES Y SALIDA
                         _sidebarItem(
                           Icons.settings_rounded,
                           AppStrings.get(context, 'ajustes'),
-                          isAdmin ? 6 : 4,
+                          isAdmin ? 9 : 6,
                         ),
                         const SizedBox(height: 10),
                         _sidebarItem(
@@ -160,6 +192,7 @@ class _MainLayoutState extends State<MainLayout> {
                           -1,
                           isLogout: true,
                         ),
+                        const Spacer(), // Solo uno al final para empujar el resto arriba
                         const SizedBox(height: 30),
                       ],
                     ),
@@ -168,12 +201,26 @@ class _MainLayoutState extends State<MainLayout> {
               ),
 
               Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  onPageChanged: (index) =>
-                      setState(() => _selectedIndex = index),
-                  children: screens,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.01, 0),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Container(
+                    key: ValueKey<int>(_selectedIndex),
+                    child: screens[_selectedIndex],
+                  ),
                 ),
               ),
             ],
@@ -266,7 +313,6 @@ class _MainLayoutState extends State<MainLayout> {
 
   @override
   void dispose() {
-    _pageController.dispose();
     super.dispose();
   }
 
@@ -320,14 +366,14 @@ class _MainLayoutState extends State<MainLayout> {
                   );
                   if (confirmed == true) widget.onLogout();
                 }
-              : (index == 5 || (index == 3 && _selectedIndex != index && label == 'Administrador')
+              : (index == 8 || (index == 3 && _selectedIndex != index && label == 'Administrador')
                     ? () => Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const AdminScreen(),
                         ),
                       )
-                    : (index == 6 || (index == 4 && label == 'Ajustes')
+                    : (index == 9 || (index == 6 && label == 'Ajustes')
                           ? () => Navigator.push(
                               context,
                               MaterialPageRoute(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:collection/collection.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../domain/entities/profesor.dart';
 import '../../../domain/entities/horario_clase.dart';
 import '../../../domain/entities/horario.dart';
@@ -37,6 +38,7 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
   bool _isLoading = true;
   List<HorarioClase> _sesionesHoy = [];
   List<Ausencia> _ausenciasHoy = [];
+  Map<int, String> _guardiasPorTramo = {};
 
   @override
   void initState() {
@@ -67,6 +69,24 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
       
       final idProf = widget.profesor.idProfesor?.toString() ?? widget.profesor.id;
       _ausenciasHoy = (results[1] as List<Ausencia>).where((a) => a.profesorId == idProf).toList();
+
+      // Cargar qué profesor tiene guardia en cada tramo de hoy
+      try {
+        final guardResp = await Supabase.instance.client
+            .from('horario')
+            .select('id_tramo, profesores:id_profesor(nombre)')
+            .eq('dia_semana', widget.fecha.weekday)
+            .eq('es_guardia', true);
+
+        final mapa = <int, String>{};
+        for (final g in guardResp as List) {
+          final tramoId = g['id_tramo'] as int?;
+          if (tramoId != null) {
+            mapa[tramoId] = g['profesores']?['nombre'] as String? ?? 'Prof. de guardia';
+          }
+        }
+        if (mounted) setState(() => _guardiasPorTramo = mapa);
+      } catch (_) {}
 
       if (mounted) setState(() => _isLoading = false);
     } catch (e) {

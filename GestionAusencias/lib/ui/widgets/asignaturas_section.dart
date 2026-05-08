@@ -109,107 +109,120 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
   Widget build(BuildContext context) {
     final textColor = widget.isDark ? Colors.white : const Color(0xFF1E293B);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Asignaturas',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: textColor),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                '${_filteredAsignaturas.length}',
-                style: const TextStyle(color: Colors.orange, fontSize: 13, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Cargadas automáticamente desde el horario de Supabase.',
-          style: TextStyle(fontSize: 13, color: textColor.withValues(alpha: 0.5)),
-        ),
-        const SizedBox(height: 20),
-
-        // Buscador
-        Container(
-          height: 44,
-          decoration: BoxDecoration(
-            color: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: widget.isDark ? Colors.white10 : const Color(0xFFE5E0D8),
-            ),
-          ),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Buscar asignatura...',
-              prefixIcon: Icon(Icons.search_rounded, color: textColor.withValues(alpha: 0.4), size: 20),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              hintStyle: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 14),
-            ),
-            style: TextStyle(color: textColor, fontSize: 14),
-          ),
-        ),
-        const SizedBox(height: 28),
-
-        if (_isLoading)
-          const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
-        else if (_errorMessage != null)
-          Center(
-            child: Column(children: [
-              const Icon(Icons.cloud_off_rounded, size: 48, color: Colors.redAccent),
-              const SizedBox(height: 12),
-              Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
-              const SizedBox(height: 12),
-              ElevatedButton(onPressed: _load, child: const Text('Reintentar')),
-            ]),
-          )
-        else if (_filteredAsignaturas.isEmpty)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(40),
-              child: Column(children: [
-                Icon(Icons.auto_stories_rounded, size: 56, color: textColor.withValues(alpha: 0.2)),
-                const SizedBox(height: 16),
-                Text(
-                  _searchController.text.isEmpty ? 'Sin asignaturas' : 'Sin resultados',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Asignaturas',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black26,
+                      offset: Offset(0, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
-              ]),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${_filteredAsignaturas.length}',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Buscador
+          Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          )
-        else
-          LayoutBuilder(builder: (context, constraints) {
-            final cols = (constraints.maxWidth / 160).floor().clamp(2, 4);
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.95,
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Buscar asignatura...',
+                prefixIcon: const Icon(Icons.search_rounded, color: Colors.black45, size: 20),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                hintStyle: const TextStyle(color: Colors.black38, fontSize: 14),
               ),
-              itemCount: _filteredAsignaturas.length,
-              itemBuilder: (context, i) => _AsignaturaCard(
-                asignatura: _filteredAsignaturas[i],
-                grupos: _gruposPorAsignatura[_filteredAsignaturas[i].id] ?? [],
-                isDark: widget.isDark,
+              style: const TextStyle(color: Colors.black87, fontSize: 14),
+            ),
+          ),
+          const SizedBox(height: 28),
+
+          if (_isLoading)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (_errorMessage != null)
+            Center(
+              child: Column(children: [
+                const Icon(Icons.cloud_off_rounded, size: 48, color: Colors.redAccent),
+                const SizedBox(height: 12),
+                Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+                const SizedBox(height: 12),
+                ElevatedButton(onPressed: _load, child: const Text('Reintentar')),
+              ]),
+            )
+          else if (_filteredAsignaturas.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(children: [
+                  Icon(Icons.auto_stories_rounded, size: 56, color: Colors.white.withOpacity(0.2)),
+                  const SizedBox(height: 16),
+                  Text(
+                    _searchController.text.isEmpty ? 'Sin asignaturas' : 'Sin resultados',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white70),
+                  ),
+                ]),
               ),
-            );
-          }),
-      ],
+            )
+          else
+            LayoutBuilder(builder: (context, constraints) {
+              final cols = (constraints.maxWidth / 110).floor().clamp(2, 10);
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.85,
+                ),
+                itemCount: _filteredAsignaturas.length,
+                itemBuilder: (context, i) => _AsignaturaCard(
+                  asignatura: _filteredAsignaturas[i],
+                  grupos: _gruposPorAsignatura[_filteredAsignaturas[i].id] ?? [],
+                  isDark: widget.isDark,
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 }
@@ -234,64 +247,55 @@ class _AsignaturaCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
         ),
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.1),
+              color: Colors.orange.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_stories_rounded, color: Colors.orange, size: 20),
+            child: const Icon(Icons.auto_stories_rounded, color: Colors.orange, size: 16),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             asignatura.nombre,
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textColor),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: textColor),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 6),
-          // Grupos / cursos
-          if (grupos.isNotEmpty)
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              alignment: WrapAlignment.center,
-              children: grupos.take(3).map((g) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF354231).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  g,
-                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF354231)),
-                ),
-              )).toList(),
-            )
-          else
-            Text('Sin grupo asignado', style: TextStyle(fontSize: 10, color: subColor)),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
+          // Grupos en una sola línea discreta
           Text(
-            asignatura.departamento,
-            style: TextStyle(fontSize: 10, color: subColor),
+            grupos.isNotEmpty ? grupos.join(", ") : 'Sin grupo',
+            style: TextStyle(
+              fontSize: 8, 
+              fontWeight: FontWeight.w700, 
+              color: textColor.withOpacity(0.5),
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            asignatura.departamento.length > 15 ? "${asignatura.departamento.substring(0, 15)}..." : asignatura.departamento,
+            style: TextStyle(fontSize: 7, color: subColor, fontWeight: FontWeight.w500),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

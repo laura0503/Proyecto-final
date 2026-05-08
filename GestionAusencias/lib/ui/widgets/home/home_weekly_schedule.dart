@@ -111,7 +111,7 @@ class HomeWeeklySchedule extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         const Text(
-          "Horario Semanal",
+          "Mi Horario",
           style: TextStyle(
             fontSize: 26, 
             fontWeight: FontWeight.w800, 

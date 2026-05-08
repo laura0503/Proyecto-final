@@ -11,13 +11,15 @@ class PlanningHeader extends StatelessWidget {
   final Color primaryColor;
   final Color cardColor;
   final List<DateTime> diasSemana;
-  final DateTime fechaSeleccionada; // Nueva propiedad
+  final DateTime fechaSeleccionada;
+  final VoidCallback onSeleccionarFecha; // Nuevo callback
 
   const PlanningHeader({
     super.key,
     required this.mesAno,
     required this.nSemana,
     required this.onCambiarSemana,
+    required this.onSeleccionarFecha, // Requerido
     required this.primaryColor,
     required this.cardColor,
     required this.diasSemana,
@@ -101,12 +103,22 @@ class PlanningHeader extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
+              // Botón de calendario
+              IconButton(
+                onPressed: onSeleccionarFecha,
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.calendar_month_rounded, color: primaryColor, size: 22),
+                ),
+                tooltip: "Seleccionar fecha",
+              ),
               const SizedBox(width: 8),
-              if (!context.isMobile) ...[
-                _exportButton(),
-                const SizedBox(width: 12),
-              ],
-              _weekSelector(),
+              // Botones de exportación y semana eliminados
             ],
           ),
           const SizedBox(height: 20),

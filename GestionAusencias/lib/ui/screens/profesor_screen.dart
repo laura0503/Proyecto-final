@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
@@ -27,8 +28,9 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
   bool _cargando = true;
   List<Profesor> _listaProfesores = [];
   String _query = "";
-  String _filtroEstado = "Todos"; // Todos, Disponibles, Ausentes
+  String _filtroEstado = "Todos"; // Todos, Disponibles, Ausentes, Huecos
   List<int> _idsOcupados = [];
+  Map<int, List<String>> _horariosHoy = {}; // id_profesor -> lista de horas de inicio de sus clases hoy
 
   @override
   void initState() {
@@ -47,19 +49,45 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
       final hora = DateFormat('HH:mm:ss').format(ahora);
       final dia = ahora.weekday;
 
-      final data = await Future.wait([
+      // Cargamos lo esencial primero para que no se quede la pantalla en blanco
+      final mainData = await Future.wait([
         getProfesoresUseCase.execute(),
         getOcupadosUseCase.execute(dia, hora),
       ]);
-
+      
       if (mounted) {
         setState(() {
-          _listaProfesores = data[0] as List<Profesor>;
-          _idsOcupados = data[1] as List<int>;
+          _listaProfesores = mainData[0] as List<Profesor>;
+          _idsOcupados = mainData[1] as List<int>;
           _cargando = false;
         });
       }
+
+      // Intentamos cargar los huecos por separado para que no bloquee nada
+      try {
+        final res = await Supabase.instance.client
+            .from('horario')
+            .select('id_profesor, horario_tramo!id_tramo(horario_inicio)')
+            .eq('dia', ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"][dia])
+            .neq('es_guardia', true);
+            
+        final horariosRaw = res as List;
+        final Map<int, List<String>> horariosMap = {};
+        for (var h in horariosRaw) {
+          final id = h['id_profesor'] as int?;
+          final hInicio = h['horario_tramo']?['horario_inicio'] as String?;
+          if (id != null && hInicio != null) {
+            horariosMap.putIfAbsent(id, () => []).add(hInicio.substring(0, 5));
+          }
+        }
+        if (mounted) {
+          setState(() => _horariosHoy = horariosMap);
+        }
+      } catch (e) {
+        debugPrint("Error cargando huecos: $e");
+      }
     } catch (e) {
+      debugPrint("Error general: $e");
       if (mounted) setState(() => _cargando = false);
     }
   }
@@ -74,6 +102,15 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
         return !p.estadoAusente && !esOcupado;
       } else if (_filtroEstado == "Ausentes") {
         return p.estadoAusente;
+      } else if (_filtroEstado == "Huecos") {
+        if (p.estadoAusente || esOcupado) return false;
+        final id = int.tryParse(p.id) ?? -1;
+        final horas = _horariosHoy[id] ?? [];
+        if (horas.isEmpty) return false;
+        
+        // Tiene hueco si está libre ahora pero tiene clases hoy (antes o después)
+        // En este contexto, si está en la lista de horarios de hoy pero no está ocupado ahora, es que tiene un hueco/hora libre.
+        return true; 
       }
       return true;
     }).toList();
@@ -82,19 +119,12 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       body: Consumer<ConfigProvider>(
         builder: (context, config, child) {
           return Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F9FA),
-              image: config.backgroundImageProvider != null
-                  ? DecorationImage(
-                      image: config.backgroundImageProvider!,
-                      fit: BoxFit.cover,
-                      opacity: 0.15,
-                    )
-                  : null,
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
             ),
             child: SafeArea(
               child: Column(
@@ -109,10 +139,10 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                             : GridView.builder(
                                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
                                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: context.responsive(mobile: 3, tablet: 5, desktop: 7),
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 0.82,
+                                  crossAxisCount: context.responsive(mobile: 4, tablet: 6, desktop: 10),
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                  childAspectRatio: 0.8,
                                 ),
                                 itemCount: _profesoresFiltrados.length,
                                 itemBuilder: (context, index) {
@@ -149,7 +179,14 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF1E293B),
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black26,
+                          offset: Offset(0, 2),
+                          blurRadius: 4,
+                        ),
+                      ],
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -157,19 +194,13 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                     "Gestión y Disponibilidad",
                     style: TextStyle(
                       fontSize: 14,
-                      color: const Color(0xFF1E293B).withOpacity(0.5),
-                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withOpacity(0.7),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
-              Row(
-                children: [
-                  _buildCircleAction(Icons.copy_all, const Color(0xFF6366F1), _copiarDatos),
-                  const SizedBox(width: 10),
-                  _buildCircleAction(Icons.paste, const Color(0xFFF59E0B), _pegarDatos),
-                ],
-              ),
+              const SizedBox.shrink(),
             ],
           ),
           const SizedBox(height: 25),
@@ -224,7 +255,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
       child: Row(
-        children: ["Todos", "Disponibles", "Ausentes"].map((f) {
+        children: ["Todos", "Disponibles", "Ausentes", "Huecos"].map((f) {
           final isSelected = _filtroEstado == f;
           return Expanded(
             child: GestureDetector(

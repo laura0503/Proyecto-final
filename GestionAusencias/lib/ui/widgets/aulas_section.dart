@@ -52,120 +52,130 @@ class _AulasSectionState extends State<AulasSection> {
   Widget build(BuildContext context) {
     final textColor = widget.isDark ? Colors.white : Colors.black;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              "Listado de Aulas",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: textColor,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                "${_aulas.length} Registradas",
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                "Listado de Aulas",
                 style: TextStyle(
-                  color: textColor.withOpacity(0.8),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black26,
+                      offset: Offset(0, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 30),
+              const SizedBox(width: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "${_aulas.length} Registradas",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 30),
 
-        if (_isLoading)
-          const Center(child: CircularProgressIndicator())
-        else if (_errorMessage != null)
-          Center(
-            child: Column(
-              children: [
-                const Icon(Icons.cloud_off_rounded, size: 64, color: Colors.redAccent),
-                const SizedBox(height: 16),
-                Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
-                const SizedBox(height: 16),
-                ElevatedButton(onPressed: _loadAulas, child: const Text("Reintentar")),
-              ],
-            ),
-          )
-        else if (_aulas.isEmpty)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(40),
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (_errorMessage != null)
+            Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.meeting_room_rounded,
-                      size: 64,
-                      color: widget.isDark ? Colors.white24 : Colors.black26,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    "No hay aulas registradas",
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    "Parece que la base de datos de aulas está vacía. El sistema intentará cargar los datos automáticamente al inicio si no encuentra nada.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: textColor.withOpacity(0.6),
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: _loadAulas,
-                    icon: const Icon(Icons.refresh_rounded),
-                    label: const Text("Reintentar carga"),
-                  ),
+                  const Icon(Icons.cloud_off_rounded, size: 64, color: Colors.redAccent),
+                  const SizedBox(height: 16),
+                  Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: _loadAulas, child: const Text("Reintentar")),
                 ],
               ),
-            ),
-          )
-        else
-          LayoutBuilder(builder: (context, constraints) {
-            final cols = (constraints.maxWidth / 180).floor().clamp(2, 5);
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                crossAxisSpacing: 20,
-                mainAxisSpacing: 20,
-                childAspectRatio: 0.85,
+            )
+          else if (_aulas.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.meeting_room_rounded,
+                        size: 64,
+                        color: widget.isDark ? Colors.white24 : Colors.black26,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      "No hay aulas registradas",
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Parece que la base de datos de aulas está vacía.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: textColor.withOpacity(0.6),
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _loadAulas,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text("Reintentar carga"),
+                    ),
+                  ],
+                ),
               ),
-              itemCount: _aulas.length,
-              itemBuilder: (context, index) {
-                final aula = _aulas[index];
-                return AulaCard(aula: aula, isDark: widget.isDark);
-              },
-            );
-          }),
-      ],
+            )
+          else
+            LayoutBuilder(builder: (context, constraints) {
+              final cols = (constraints.maxWidth / 110).floor().clamp(2, 10);
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.85,
+                ),
+                itemCount: _aulas.length,
+                itemBuilder: (context, index) {
+                  final aula = _aulas[index];
+                  return AulaCard(aula: aula, isDark: widget.isDark);
+                },
+              );
+            }),
+        ],
+      ),
     );
   }
 }

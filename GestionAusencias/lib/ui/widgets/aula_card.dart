@@ -44,27 +44,27 @@ class AulaCard extends StatelessWidget {
               MaterialPageRoute(builder: (_) => AulaHorarioScreen(aula: aula)),
             );
           },
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(10.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Icono circular premium
+                // Icono circular premium más pequeño
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: iconColor.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.meeting_room_rounded, color: iconColor, size: 24),
+                  child: Icon(Icons.meeting_room_rounded, color: iconColor, size: 18),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
                 Text(
                   "Aula ${aula.nombre}",
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
                     color: textColor,
                   ),
                   textAlign: TextAlign.center,
@@ -82,26 +82,25 @@ class AulaCard extends StatelessWidget {
                     final statusText = isOccupied ? "Ocupada" : "Libre";
 
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: statusColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: statusColor.withOpacity(0.2)),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 6,
-                            height: 6,
+                            width: 4,
+                            height: 4,
                             decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 4),
                           Text(
                             statusText,
                             style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w800,
                               color: statusColor,
                             ),
                           ),
@@ -110,52 +109,17 @@ class AulaCard extends StatelessWidget {
                     );
                   },
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
 
-                // Departamento del aula
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
+                // Departamento reducido
+                Text(
+                  aula.departamento.length > 15 ? "${aula.departamento.substring(0, 15)}..." : aula.departamento,
+                  style: TextStyle(
+                    fontSize: 8,
+                    color: textColor.withOpacity(0.4),
+                    fontWeight: FontWeight.w600,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.business_rounded,
-                        size: 10,
-                        color: Colors.purple[700],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        aula.departamento,
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: Colors.purple[800],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                
-                // Capacidad
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.groups_rounded, size: 14, color: textColor.withOpacity(0.4)),
-                    const SizedBox(width: 6),
-                    Text(
-                      "${aula.capacidad > 0 ? aula.capacidad : 30} personas",
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: textColor.withOpacity(0.6),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),

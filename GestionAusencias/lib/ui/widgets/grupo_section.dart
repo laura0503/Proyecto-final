@@ -11,11 +11,11 @@ class GrupoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Definir estilos base
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
         _buildSectionTitle(context, "LISTADO DE GRUPOS"),
         const SizedBox(height: 20),
         FutureBuilder<List<Grupo>>(
@@ -74,15 +74,15 @@ class GrupoSection extends StatelessWidget {
             }).toList();
 
             return LayoutBuilder(builder: (context, constraints) {
-              final cols = (constraints.maxWidth / 180).floor().clamp(2, 5);
+              final cols = (constraints.maxWidth / 140).floor().clamp(2, 8);
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 1.0,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.85,
                 ),
                 itemCount: grupos.length,
                 itemBuilder: (context, index) {
@@ -94,7 +94,8 @@ class GrupoSection extends StatelessWidget {
           },
         ),
       ],
-    );
+    ),
+   );
   }
 
   Widget _buildSectionTitle(BuildContext context, String title) {
@@ -102,11 +103,18 @@ class GrupoSection extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8, left: 4),
       child: Text(
         title,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white54 : const Color(0xFF6D6D72),
-          letterSpacing: 0.5,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+          color: Colors.white,
+          letterSpacing: 1.2,
+          shadows: [
+            Shadow(
+              color: Colors.black26,
+              offset: Offset(0, 2),
+              blurRadius: 4,
+            ),
+          ],
         ),
       ),
     );
@@ -152,18 +160,18 @@ class GrupoSection extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: iconColor.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.groups_rounded, color: iconColor, size: 28),
+                  child: Icon(Icons.groups_rounded, color: iconColor, size: 22),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Text(
                   grupo.nombre,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: textColor,
                   ),
@@ -171,11 +179,11 @@ class GrupoSection extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   "Grupo Académico",
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 9,
                     color: textColor.withOpacity(0.4),
                     fontWeight: FontWeight.w500,
                   ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
-import 'package:intl/intl.dart';
 import 'package:gestion_ausencias/domain/entities/ausencia.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/domain/entities/horario_clase.dart';
@@ -15,7 +14,7 @@ class TimelineView extends StatelessWidget {
   final List<Sustitucion> sustituciones;
   final List<HorarioClase> horarios;
   final List<Horario> tramos;
-  final Function(Profesor, DateTime) onAction;
+  final Function(Profesor, DateTime, Ausencia) onAction;
   final Function(Horario, DateTime) onEmptySlotClick;
   final Function(Ausencia) onClear;
 
@@ -70,18 +69,18 @@ class TimelineView extends StatelessWidget {
         children: [
           // Hora
           Container(
-            width: 80,
-            padding: const EdgeInsets.symmetric(vertical: 20),
+            width: 65,
+            padding: const EdgeInsets.symmetric(vertical: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   tramoStr.split(' - ')[0],
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1E293B)),
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF1E293B)),
                 ),
                 Text(
                   tramoStr.split(' - ')[1],
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.grey[400]),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 9, color: Colors.grey[400]),
                 ),
               ],
             ),
@@ -195,12 +194,17 @@ class TimelineView extends StatelessWidget {
         ?? HorarioClase(profesor: "", aula: "N/A", grupo: "", asignatura: prof.asignatura, dia: "", inicio: "", fin: "");
 
     final sustitucion = sustituciones.firstWhereOrNull((s) => s.idAusencia == ausencia.id);
-    final profSustituto = sustitucion != null 
-        ? (profesores.firstWhereOrNull((p) => p.id == sustitucion.profesorSustitutoId) ?? prof)
-        : null;
+    // Usar el nombre del join (siempre fiable) o buscar en la lista local como fallback
+    final sustId = sustitucion?.profesorSustitutoId ?? '';
+    final nombreSustituto = sustitucion?.profesorNombre ??
+        (sustId.isNotEmpty
+            ? profesores.firstWhereOrNull((p) =>
+                    p.id == sustId || p.idProfesor?.toString() == sustId)
+                ?.nombre
+            : null);
 
-    final bool isCritical = ausencia.tipo == 'FALTA' && sustitucion == null;
-    final bool isAssigned = sustitucion != null;
+    final bool isAssigned = nombreSustituto != null && nombreSustituto.isNotEmpty;
+    final bool isCritical = ausencia.tipo == 'FALTA' && !isAssigned;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
@@ -208,10 +212,10 @@ class TimelineView extends StatelessWidget {
         filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
         child: Container(
           margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isAssigned 
                 ? Colors.green.withOpacity(0.3) 
@@ -223,14 +227,14 @@ class TimelineView extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    width: 4,
-                    height: 40,
+                    width: 3,
+                    height: 30,
                     decoration: BoxDecoration(
                       color: isAssigned ? Colors.green : (isCritical ? Colors.redAccent : Colors.orangeAccent),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,7 +263,7 @@ class TimelineView extends StatelessWidget {
                       const Icon(Icons.check_circle_rounded, size: 14, color: Colors.green),
                       const SizedBox(width: 8),
                       Text(
-                        "Sustituto: ${profSustituto!.nombre}",
+                        "Sustituto: $nombreSustituto",
                         style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.w800),
                       ),
                     ],
@@ -271,7 +275,7 @@ class TimelineView extends StatelessWidget {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: isAssigned ? null : () => onAction(prof, fecha),
+                      onPressed: isAssigned ? null : () => onAction(prof, fecha, ausencia),
                       icon: Icon(isAssigned ? Icons.verified_user_rounded : Icons.flash_on_rounded, size: 16),
                       label: Text(isAssigned ? "ASIGNADA" : "ASIGNAR AHORA"),
                       style: ElevatedButton.styleFrom(
@@ -288,7 +292,7 @@ class TimelineView extends StatelessWidget {
                   PopupMenuButton<String>(
                     onSelected: (value) {
                       if (value == 'edit') {
-                        onAction(prof, fecha);
+                        onAction(prof, fecha, ausencia);
                       } else if (value == 'clear') {
                         onClear(ausencia);
                       }
@@ -327,7 +331,7 @@ class TimelineView extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(bool isCritical, bool isAssigned) {
-    final Color color = isAssigned ? Colors.green : (isCritical ? Colors.redAccent : Colors.orangeAccent);
+    final Color color = isAssigned ? const Color(0xFF4F46E5) : (isCritical ? Colors.redAccent : Colors.orangeAccent);
     final String label = isAssigned ? "ASIGNADA" : (isCritical ? "CRÍTICA" : "PENDIENTE");
 
     return Container(
