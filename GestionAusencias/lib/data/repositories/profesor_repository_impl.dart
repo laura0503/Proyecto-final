@@ -71,4 +71,17 @@ class ProfesorRepositoryImpl implements ProfesorRepository {
     final list = await obtenerProfesores();
     return list.map((e) => ProfesorModel.fromEntity(e).toJson()).toString();
   }
+
+  @override
+  Future<void> actualizarEstadoGuardia(
+    String id, {
+    required bool esGuardia,
+    double? karmaExtra,
+  }) async {
+    await remoteDataSource.actualizarEstadoGuardia(
+      id,
+      esGuardia: esGuardia,
+      karmaExtra: karmaExtra,
+    );
+  }
 }

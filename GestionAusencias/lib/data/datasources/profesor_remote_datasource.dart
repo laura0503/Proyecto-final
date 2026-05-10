@@ -161,6 +161,29 @@ class ProfesorRemoteDataSource {
     }
   }
 
+  Future<void> actualizarEstadoGuardia(
+    String id, {
+    required bool esGuardia,
+    double? karmaExtra,
+  }) async {
+    final int? idInt = int.tryParse(id);
+    if (idInt == null) return;
+
+    final updates = <String, dynamic>{'es_guardia': esGuardia};
+
+    if (karmaExtra != null && karmaExtra > 0) {
+      final row = await _supabase
+          .from('profesores')
+          .select('karma')
+          .eq('id_profesor', idInt)
+          .maybeSingle();
+      final double currentKarma = ((row?['karma']) ?? 0.0).toDouble();
+      updates['karma'] = currentKarma + karmaExtra;
+    }
+
+    await _supabase.from('profesores').update(updates).eq('id_profesor', idInt);
+  }
+
   Future<ProfesorModel?> obtenerSesionActual(String id) async {
     final int? idInt = int.tryParse(id);
     if (idInt == null) return null;

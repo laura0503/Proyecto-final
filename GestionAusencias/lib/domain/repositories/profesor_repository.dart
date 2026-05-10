@@ -11,4 +11,9 @@ abstract class ProfesorRepository {
   Future<bool> verificarLogin(String nombre);
   Future<void> sobrescribirDesdeJson(String jsonInput);
   Future<String> obtenerTodosComoJson();
+  Future<void> actualizarEstadoGuardia(
+    String id, {
+    required bool esGuardia,
+    double? karmaExtra,
+  });
 }

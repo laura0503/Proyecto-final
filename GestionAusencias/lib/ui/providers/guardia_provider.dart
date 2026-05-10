@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gestion_ausencias/core/services/karma_service.dart';
+import 'package:gestion_ausencias/domain/usecases/actualizar_estado_guardia_usecase.dart';
 
 class GuardiaProvider extends ChangeNotifier {
   final KarmaService _karmaService;
+  final ActualizarEstadoGuardiaUseCase _actualizarEstadoGuardia;
+
   bool _isOnGuard = false;
   Duration _elapsedTime = Duration.zero;
   DateTime? _startTime;
@@ -19,7 +21,11 @@ class GuardiaProvider extends ChangeNotifier {
   String? get currentProfessorName => _currentProfessorName;
   String? get currentProfessorId => _currentProfessorId;
 
-  GuardiaProvider({required KarmaService karmaService}) : _karmaService = karmaService {
+  GuardiaProvider({
+    required KarmaService karmaService,
+    required ActualizarEstadoGuardiaUseCase actualizarEstadoGuardia,
+  })  : _karmaService = karmaService,
+        _actualizarEstadoGuardia = actualizarEstadoGuardia {
     _loadFromPrefs();
   }
 
@@ -66,14 +72,10 @@ class GuardiaProvider extends ChangeNotifier {
     await prefs.setString('guard_prof_name', professorName);
     await prefs.setString('guard_prof_id', professorId);
 
-    // Update Supabase
     try {
-      await Supabase.instance.client
-          .from('profesores')
-          .update({'es_guardia': true})
-          .eq('id', professorId);
+      await _actualizarEstadoGuardia.execute(professorId, esGuardia: true);
     } catch (e) {
-      debugPrint("Error updating Supabase: $e");
+      debugPrint("Error al iniciar guardia: $e");
     }
 
     _startTimer();
@@ -85,35 +87,14 @@ class GuardiaProvider extends ChangeNotifier {
 
     final double pointsEarned = _karmaService.calculatePoints(_elapsedTime);
 
-    // Update Supabase
     try {
-      final supabase = Supabase.instance.client;
-      
-      // 1. Obtener karma actual del profesor
-      final profData = await supabase
-          .from('profesores')
-          .select('karma')
-          .eq('id', _currentProfessorId!)
-          .single();
-      
-      final double currentKarma = (profData['karma'] ?? 0).toDouble();
-      final double newKarma = currentKarma + pointsEarned;
-
-      // 2. Actualizar profesor (karma y estado guardia)
-      await supabase
-          .from('profesores')
-          .update({
-            'es_guardia': false,
-            'karma': newKarma,
-          })
-          .eq('id', _currentProfessorId!);
-      
-      // 3. (Opcional) Registrar en tabla sustitucion si hay una pendiente
-      // Buscamos una sustitución sin profesor asignado para este profesor o para este tramo
-      // Por ahora, simplemente registramos el fin de la sesión.
-      
+      await _actualizarEstadoGuardia.execute(
+        _currentProfessorId!,
+        esGuardia: false,
+        karmaExtra: pointsEarned,
+      );
     } catch (e) {
-      debugPrint("Error updating karma/guard status: $e");
+      debugPrint("Error al finalizar guardia: $e");
     }
 
     _timer?.cancel();
