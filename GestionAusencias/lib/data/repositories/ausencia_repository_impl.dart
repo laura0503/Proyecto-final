@@ -43,7 +43,16 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
   @override
   Future<void> reportarAusenciaConSustitucion(Ausencia ausencia) async {
     try {
-      final model = AusenciaModel.fromEntity(ausencia);
+      // Aseguramos que si es una falta puntual, la fecha de fin sea el mismo día
+      // para que no salga en semanas siguientes (reseteo semanal)
+      final DateTime fechaFinEfectiva = ausencia.esDiaCompleto 
+          ? (ausencia.fechaFin ?? ausencia.fechaInicio)
+          : ausencia.fechaInicio;
+
+      final model = AusenciaModel.fromEntity(ausencia.copyWith(
+        fechaFin: fechaFinEfectiva
+      ));
+      
       final res = await _supabase.from('ausencia').insert(model.toJson()).select().single();
       final ausenciaId = res['id_ausencia'];
 

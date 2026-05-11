@@ -126,7 +126,6 @@ class HomeBodyContent extends StatelessWidget {
               MaterialPageRoute(builder: (_) => GuardSessionScreen(guardia: g))),
         ),
         const SizedBox(height: 24),
-        const HomeLoungeBanner(),
       ],
     );
 

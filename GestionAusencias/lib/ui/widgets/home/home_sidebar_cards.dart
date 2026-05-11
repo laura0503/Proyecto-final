@@ -21,13 +21,6 @@ class HomeSidebarCards extends StatelessWidget {
         const SizedBox(height: 20),
         _buildAnimatedCard(_buildGuardsCard(), 1),
         const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(child: _buildAnimatedCard(_statCard("CLASES", "24", "+2 esta sem."), 2)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildAnimatedCard(_statCard("REPORTES", "102", "En Octubre"), 3)),
-          ],
-        ),
       ],
     );
   }

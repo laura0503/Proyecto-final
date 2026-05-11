@@ -78,24 +78,34 @@ class WeeklyGridView extends StatelessWidget {
   }
 
   Widget _buildDayHeader(DateTime dia) {
-    final isToday = dia.day == DateTime.now().day && dia.month == DateTime.now().month;
+    final isSelected = dia.day == fecha.day && dia.month == fecha.month && dia.year == fecha.year;
+    final isToday = dia.day == DateTime.now().day && dia.month == DateTime.now().month && dia.year == DateTime.now().year;
+
     return Container(
       width: 260,
       margin: const EdgeInsets.only(right: 16),
       padding: const EdgeInsets.symmetric(vertical: 24),
       decoration: BoxDecoration(
-        color: isToday ? const Color(0xFF1E293B) : Colors.white,
+        color: isSelected ? const Color(0xFF4F46E5) : (isToday ? const Color(0xFF1E293B) : Colors.white),
         borderRadius: BorderRadius.circular(20),
+        border: isToday && !isSelected ? Border.all(color: const Color(0xFF4F46E5).withOpacity(0.5), width: 2) : null,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: isSelected ? const Color(0xFF4F46E5).withOpacity(0.3) : Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
         children: [
           Text(
-            DateFormat('EEEE', 'es').format(dia).replaceFirst(DateFormat('EEEE', 'es').format(dia)[0], DateFormat('EEEE', 'es').format(dia)[0].toUpperCase()),
+            DateFormat('EEEE', 'es').format(dia).replaceFirst(
+              DateFormat('EEEE', 'es').format(dia)[0],
+              DateFormat('EEEE', 'es').format(dia)[0].toUpperCase(),
+            ),
             style: TextStyle(
-              color: isToday ? Colors.white : const Color(0xFF1E293B),
+              color: (isSelected || isToday) ? Colors.white : const Color(0xFF1E293B),
               fontWeight: FontWeight.w900,
               fontSize: 18,
             ),
@@ -104,7 +114,7 @@ class WeeklyGridView extends StatelessWidget {
           Text(
             DateFormat('d MMMM', 'es').format(dia).toUpperCase(),
             style: TextStyle(
-              color: isToday ? Colors.white.withOpacity(0.6) : Colors.grey[400],
+              color: (isSelected || isToday) ? Colors.white.withOpacity(0.7) : Colors.grey[400],
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),
