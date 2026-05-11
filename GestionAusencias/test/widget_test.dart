@@ -7,24 +7,34 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:gestion_ausencias/app.dart';
+import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
+import 'package:gestion_ausencias/ui/providers/config_provider.dart';
+import 'package:gestion_ausencias/ui/providers/notification_provider.dart';
 
-import 'package:gestion_ausencias/main.dart';
+// Mock simple para evitar dependencias de Supabase en el test de widgets
+class MockAuthProvider extends ChangeNotifier implements AuthProvider {
+  @override bool get isLoggedIn => false;
+  @override bool get isLoading => false;
+  @override String? get error => null;
+  @override dynamic noSuchMethod(Invocation invocation) => null;
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const GestionAusencias());
+  testWidgets('Smoke test: Verifica que la app carga sin errores', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ConfigProvider()),
+          ChangeNotifierProvider(create: (_) => NotificationProvider()),
+          ChangeNotifierProvider<AuthProvider>(create: (_) => MockAuthProvider() as AuthProvider),
+        ],
+        child: const GestionAusencias(),
+      ),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verifica que la clase principal se ha instanciado correctamente
+    expect(find.byType(GestionAusencias), findsOneWidget);
   });
 }

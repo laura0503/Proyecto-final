@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:gestion_ausencias/domain/entities/ausencia.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
@@ -38,7 +38,9 @@ class TimelineAbsenceCard extends StatelessWidget {
     final sustId = sustitucion?.profesorSustitutoId ?? '';
     final nombreSustituto = sustitucion?.profesorNombre ??
         (sustId.isNotEmpty
-            ? profesores.firstWhereOrNull((p) => p.id == sustId || p.idProfesor?.toString() == sustId)?.nombre
+            ? profesores.firstWhereOrNull((p) =>
+                    p.id == sustId || p.idProfesor?.toString() == sustId)
+                ?.nombre
             : null);
 
     final bool isAssigned = nombreSustituto != null && nombreSustituto.isNotEmpty;
@@ -52,12 +54,12 @@ class TimelineAbsenceCard extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: Colors.white.withOpacity(0.05),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isAssigned
-                  ? Colors.green.withValues(alpha: 0.3)
-                  : (isCritical ? Colors.red.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.1)),
+                  ? Colors.green.withOpacity(0.3)
+                  : (isCritical ? Colors.red.withOpacity(0.3) : Colors.white.withOpacity(0.1)),
             ),
           ),
           child: Column(
@@ -96,7 +98,7 @@ class TimelineAbsenceCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
+                    color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -120,7 +122,7 @@ class TimelineAbsenceCard extends StatelessWidget {
                       icon: Icon(isAssigned ? Icons.verified_user_rounded : Icons.flash_on_rounded, size: 16),
                       label: Text(isAssigned ? "ASIGNADA" : "ASIGNAR AHORA"),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isAssigned ? Colors.white.withValues(alpha: 0.1) : const Color(0xFF4F46E5),
+                        backgroundColor: isAssigned ? Colors.white.withOpacity(0.1) : const Color(0xFF4F46E5),
                         foregroundColor: isAssigned ? Colors.grey[400] : Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -132,25 +134,32 @@ class TimelineAbsenceCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   PopupMenuButton<String>(
                     onSelected: (value) {
-                      if (value == 'edit') onAction(prof, fecha, ausencia);
-                      else if (value == 'clear') onClear(ausencia);
+                      if (value == 'edit') {
+                        onAction(prof, fecha, ausencia);
+                      } else if (value == 'clear') {
+                        onClear(ausencia);
+                      }
                     },
                     itemBuilder: (context) => [
                       const PopupMenuItem(
                         value: 'edit',
-                        child: Row(children: [
-                          Icon(Icons.edit_rounded, size: 16, color: Colors.blue),
-                          SizedBox(width: 8),
-                          Text("Editar Detalle"),
-                        ]),
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit_rounded, size: 16, color: Colors.blue),
+                            SizedBox(width: 8),
+                            Text("Editar Detalle"),
+                          ],
+                        ),
                       ),
                       const PopupMenuItem(
                         value: 'clear',
-                        child: Row(children: [
-                          Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text("Limpiar Estado", style: TextStyle(color: Colors.red)),
-                        ]),
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline_rounded, size: 16, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text("Limpiar Estado", style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
                       ),
                     ],
                     icon: const Icon(Icons.more_horiz_rounded, color: Colors.grey),
@@ -165,7 +174,9 @@ class TimelineAbsenceCard extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(bool isCritical, bool isAssigned) {
-    final Color color = isAssigned ? const Color(0xFF4F46E5) : (isCritical ? Colors.redAccent : Colors.orangeAccent);
+    final Color color = isAssigned
+        ? const Color(0xFF4F46E5)
+        : (isCritical ? Colors.redAccent : Colors.orangeAccent);
     final String label = isAssigned ? "ASIGNADA" : (isCritical ? "CRÍTICA" : "PENDIENTE");
 
     return Container(

@@ -113,28 +113,21 @@ class TorreControlGestionCard extends StatelessWidget {
     );
   }
 
-  Widget _headerCell(String text, {int flex = 1}) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          color: Colors.grey[400],
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
+  Widget _headerCell(String text, {int flex = 1}) => Expanded(
+        flex: flex,
+        child: Text(text,
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                color: Colors.grey[400],
+                letterSpacing: 0.5)),
+      );
 
   Widget _buildBody() {
     if (isLoading) {
       return const Padding(
         padding: EdgeInsets.all(32),
-        child: Center(
-          child: CircularProgressIndicator(color: Color(0xFF4F46E5)),
-        ),
+        child: Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5))),
       );
     }
     if (slots.isEmpty) {
@@ -143,34 +136,30 @@ class TorreControlGestionCard extends StatelessWidget {
         child: Center(
           child: Column(
             children: [
-              Icon(
-                Icons.check_circle_outline_rounded,
-                size: 48,
-                color: Colors.grey[300],
-              ),
+              Icon(Icons.check_circle_outline_rounded,
+                  size: 48, color: Colors.grey[300]),
               const SizedBox(height: 12),
               Text(
-                "No hay ausencias registradas hoy",
+                'No hay ausencias registradas hoy',
                 style: TextStyle(
-                  color: Colors.grey[500],
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15),
               ),
             ],
           ),
         ),
       );
     }
-
     return Column(
-      children: List.generate(slots.length, (i) {
-        return GestionRow(
+      children: List.generate(
+        slots.length,
+        (i) => GestionRow(
           slot: slots[i],
           isLast: i == slots.length - 1,
           onAsignar: onAsignar,
-        );
-      }),
+        ),
+      ),
     );
   }
 
