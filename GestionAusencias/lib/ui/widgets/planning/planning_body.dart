@@ -1,6 +1,4 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:gestion_ausencias/core/layout/app_breakpoints.dart';
 import 'package:gestion_ausencias/domain/entities/ausencia.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/domain/entities/horario_clase.dart';
@@ -8,12 +6,11 @@ import 'package:gestion_ausencias/domain/entities/horario.dart';
 import 'package:gestion_ausencias/domain/entities/sustitucion.dart';
 import 'package:intl/intl.dart';
 import 'planning_header.dart';
-import 'karma_sidebar.dart';
-import 'timeline_view.dart';
+import 'weekly_grid_view.dart';
 
 class PlanningBody extends StatelessWidget {
   final DateTime fechaSeleccionada;
-  final List<Ausencia> ausenciasDia;
+  final List<Ausencia> ausenciasSemana;
   final List<Profesor> profesores;
   final List<HorarioClase> horarios;
   final List<Horario> tramos;
@@ -23,13 +20,14 @@ class PlanningBody extends StatelessWidget {
   final Future<void> Function(Ausencia) onClear;
   final void Function(int) onCambiarSemana;
   final VoidCallback onSeleccionarFecha;
+  final VoidCallback onGestionarAusencias;
   final Color primaryColor;
   final Color cardColor;
 
   const PlanningBody({
     super.key,
     required this.fechaSeleccionada,
-    required this.ausenciasDia,
+    required this.ausenciasSemana,
     required this.profesores,
     required this.horarios,
     required this.tramos,
@@ -39,6 +37,7 @@ class PlanningBody extends StatelessWidget {
     required this.onClear,
     required this.onCambiarSemana,
     required this.onSeleccionarFecha,
+    required this.onGestionarAusencias,
     required this.primaryColor,
     required this.cardColor,
   });
@@ -50,58 +49,32 @@ class PlanningBody extends StatelessWidget {
     final lunes = fechaSeleccionada.subtract(Duration(days: fechaSeleccionada.weekday - 1));
     final diasSemana = List.generate(5, (i) => lunes.add(Duration(days: i)));
 
-    return Row(
+    return Column(
       children: [
+        PlanningHeader(
+          mesAno: mesAno,
+          nSemana: nSemana,
+          onCambiarSemana: onCambiarSemana,
+          onSeleccionarFecha: onSeleccionarFecha,
+          onGestionarAusencias: onGestionarAusencias,
+          primaryColor: primaryColor,
+          cardColor: cardColor,
+          diasSemana: diasSemana,
+          fechaSeleccionada: fechaSeleccionada,
+        ),
         Expanded(
-          flex: 3,
-          child: TweenAnimationBuilder(
-            duration: const Duration(milliseconds: 800),
-            tween: Tween<double>(begin: 0, end: 1),
-            curve: Curves.easeInOutQuart,
-            builder: (_, double value, child) => Opacity(opacity: value, child: child),
-            child: Column(
-              children: [
-                PlanningHeader(
-                  mesAno: mesAno,
-                  nSemana: nSemana,
-                  onCambiarSemana: onCambiarSemana,
-                  onSeleccionarFecha: onSeleccionarFecha,
-                  primaryColor: primaryColor,
-                  cardColor: cardColor,
-                  diasSemana: diasSemana,
-                  fechaSeleccionada: fechaSeleccionada,
-                ),
-                Expanded(
-                  child: TimelineView(
-                    fecha: fechaSeleccionada,
-                    ausencias: ausenciasDia,
-                    profesores: profesores,
-                    horarios: horarios,
-                    tramos: tramos,
-                    sustituciones: sustituciones,
-                    onAction: onAction,
-                    onEmptySlotClick: onEmptySlotClick,
-                    onClear: onClear,
-                  ),
-                ),
-              ],
-            ),
+          child: WeeklyGridView(
+            fecha: fechaSeleccionada,
+            ausencias: ausenciasSemana,
+            profesores: profesores,
+            horarios: horarios,
+            tramos: tramos,
+            sustituciones: sustituciones,
+            onAction: onAction,
+            onEmptySlotClick: onEmptySlotClick,
+            onClear: onClear,
           ),
         ),
-        if (context.isDesktop)
-          Container(
-            width: 300,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              border: Border(left: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
-            ),
-            child: ClipRRect(
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: KarmaSidebar(profesores: profesores, primaryColor: primaryColor),
-              ),
-            ),
-          ),
       ],
     );
   }

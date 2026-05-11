@@ -397,6 +397,7 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
           id: ausenciaActual?.id,
           profesorId: widget.profesor.idProfesor?.toString() ?? widget.profesor.id,
           fecha: widget.fecha,
+          fechaInicio: widget.fecha,
           idHorario: sesion.id,
           tipo: tipo,
           observaciones: obs ?? (ausenciaActual?.observaciones ?? "Reportado desde Mis Guardias"),

@@ -1,8 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
-import '../../../core/layout/app_breakpoints.dart';
 
 class PlanningHeader extends StatelessWidget {
   final String mesAno;
@@ -12,14 +10,16 @@ class PlanningHeader extends StatelessWidget {
   final Color cardColor;
   final List<DateTime> diasSemana;
   final DateTime fechaSeleccionada;
-  final VoidCallback onSeleccionarFecha; // Nuevo callback
+  final VoidCallback onSeleccionarFecha;
+  final VoidCallback onGestionarAusencias;
 
   const PlanningHeader({
     super.key,
     required this.mesAno,
     required this.nSemana,
     required this.onCambiarSemana,
-    required this.onSeleccionarFecha, // Requerido
+    required this.onSeleccionarFecha,
+    required this.onGestionarAusencias,
     required this.primaryColor,
     required this.cardColor,
     required this.diasSemana,
@@ -32,154 +32,81 @@ class PlanningHeader extends StatelessWidget {
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
           ),
           child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Top Row: Search and Nav
-          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Container(
-                  height: 45,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Row(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.search, color: Colors.grey[400], size: 20),
-                      const SizedBox(width: 10),
-                      Text("Search planning data...", style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                      Row(
+                        children: [
+                          const Text(
+                            "Gestión Semanal de Ausencias",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 28,
+                              color: Color(0xFF1E293B),
+                              letterSpacing: -0.8,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          GestureDetector(
+                            onTap: onSeleccionarFecha,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4F46E5).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.calendar_today_rounded,
+                                color: Color(0xFF4F46E5),
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: onGestionarAusencias,
+                            icon: const Icon(Icons.add_moderator_rounded, size: 18),
+                            label: const Text("GESTIONAR AUSENCIAS"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E293B),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "Semana del ${DateFormat('d').format(diasSemana.first)} al ${DateFormat('d \'de\' MMMM', 'es').format(diasSemana.last)}",
+                        style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w600, fontSize: 14),
+                      ),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(width: 15),
-              _iconButton(Icons.notifications_none_rounded),
-              const SizedBox(width: 10),
-              _iconButton(Icons.help_outline_rounded),
-            ],
-          ),
-          const SizedBox(height: 30),
-          
-          // Breadcrumbs
-          Row(
-            children: [
-              Flexible(child: Text("GUARDIAMASTER", style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2), overflow: TextOverflow.ellipsis)),
-              Icon(Icons.chevron_right, size: 12, color: Colors.grey[400]),
-              Flexible(child: Text("MONITOR DE GUARDIAS", style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1.2), overflow: TextOverflow.ellipsis)),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Title Row
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Línea de Tiempo",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 28,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                    Text(
-                      DateFormat('EEEE, d \'de\' MMMM', 'es').format(fechaSeleccionada),
-                      style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w500, fontSize: 14),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Botón de calendario
-              IconButton(
-                onPressed: onSeleccionarFecha,
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                  Row(
+                    children: [
+                      _legendItem(const Color(0xFFBE123C), "Absencia Crítica"),
+                      const SizedBox(width: 20),
+                      _legendItem(const Color(0xFF7C3AED), "Sustitución Pendiente"),
+                    ],
                   ),
-                  child: Icon(Icons.calendar_month_rounded, color: primaryColor, size: 22),
-                ),
-                tooltip: "Seleccionar fecha",
+                ],
               ),
-              const SizedBox(width: 8),
-              // Botones de exportación y semana eliminados
             ],
           ),
-          const SizedBox(height: 20),
-
-          // Legend (Simplified)
-          Row(
-            children: [
-              _legendItem(Colors.redAccent, "Absencia Crítica"),
-              const SizedBox(width: 20),
-              _legendItem(Colors.orangeAccent, "Sustitución Pendiente"),
-            ],
-          ),
-        ],
-      ),
-    ),
-  ),
-);
-}
-
-  Widget _iconButton(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Icon(icon, color: Colors.grey[600], size: 20),
-    );
-  }
-
-  Widget _weekSelector() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          IconButton(onPressed: () => onCambiarSemana(-1), icon: const Icon(Icons.chevron_left_rounded, size: 20), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
-          const SizedBox(width: 8),
-          Text("Semana $nSemana", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF0F172A))),
-          const SizedBox(width: 8),
-          IconButton(onPressed: () => onCambiarSemana(1), icon: const Icon(Icons.chevron_right_rounded, size: 20), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
-        ],
-      ),
-    );
-  }
-
-  Widget _exportButton() {
-    return ElevatedButton.icon(
-      onPressed: () {},
-      icon: const Icon(Icons.ios_share_rounded, size: 16),
-      label: const Text("Exportar"),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF4F46E5),
-        foregroundColor: Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
       ),
     );
   }
@@ -191,24 +118,6 @@ class PlanningHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
       ],
-    );
-  }
-
-  Widget _dayColumnHeader(DateTime d) {
-    bool isToday = d.day == DateTime.now().day && d.month == DateTime.now().month;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: isToday ? BoxDecoration(
-        color: primaryColor.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(10),
-      ) : null,
-      child: Column(
-        children: [
-          Text(DateFormat('EEE', 'es').format(d).toUpperCase(), style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold, fontSize: 10)),
-          const SizedBox(height: 4),
-          Text(d.day.toString(), style: TextStyle(color: isToday ? primaryColor : const Color(0xFF1E293B), fontWeight: FontWeight.bold, fontSize: 16)),
-        ],
-      ),
     );
   }
 }

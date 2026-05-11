@@ -22,16 +22,22 @@ Future<void> planningReportarEstadoEnTramo(
     const nombresDias = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
     final diaNombre = nombresDias[f.weekday];
 
-    final sesionReal = horarios.firstWhereOrNull((h) =>
-        h.profesor == p.nombre &&
-        h.dia.toUpperCase() == diaNombre &&
-        h.inicio == tramo.horarioInicio);
+    final sesionReal = horarios.firstWhereOrNull((h) {
+      final idHorario = h.id;
+      if (idHorario != null && idHorario > 0) {
+        return h.profesor == p.nombre &&
+            h.dia.toUpperCase() == diaNombre &&
+            h.inicio == tramo.horarioInicio;
+      }
+      return false;
+    });
 
     final profesorIdStr = p.idProfesor?.toString() ?? p.id;
     final ausencia = Ausencia(
       profesorId: profesorIdStr,
       fecha: f,
-      idHorario: sesionReal?.id ?? 0,
+      fechaInicio: f,
+      idHorario: sesionReal?.id,
       tipo: 'FALTA',
       observaciones: tareas.isNotEmpty
           ? tareas
@@ -79,8 +85,8 @@ Future<void> planningReportarEstado(
       final ausencia = Ausencia(
         profesorId: p.id,
         fecha: f,
-        idHorario: 0,
-        idTramo: 0,
+        fechaInicio: f,
+        idHorario: null,
         tipo: tipo,
         observaciones: "Reportado desde Planning (Sin horario específico)",
       );
@@ -97,8 +103,8 @@ Future<void> planningReportarEstado(
           id: existing?.id,
           profesorId: p.id,
           fecha: f,
+          fechaInicio: f,
           idHorario: sesion.id,
-          idTramo: sesion.idTramo,
           tipo: tipo,
           observaciones: "Reportado desde Planning (${sesion.asignatura})",
         );

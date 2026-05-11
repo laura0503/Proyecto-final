@@ -8,16 +8,7 @@ class SustitucionRepositoryImpl implements SustitucionRepository {
 
   SustitucionRepositoryImpl(this._supabase);
 
-  static const _dias = [
-    "",
-    "LUNES",
-    "MARTES",
-    "MIÉRCOLES",
-    "JUEVES",
-    "VIERNES",
-    "SÁBADO",
-    "DOMINGO",
-  ];
+  static const _dias = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"];
 
   @override
   Future<List<HorarioClase>> getSustitucionesSemana({
@@ -28,6 +19,9 @@ class SustitucionRepositoryImpl implements SustitucionRepository {
     required bool isAdmin,
   }) async {
     try {
+      final dateIni = inicio.toIso8601String().substring(0, 10);
+      final dateFin = fin.toIso8601String().substring(0, 10);
+
       var guardiasQuery = _supabase.from('guardias').select();
       var sustitucionesQuery = _supabase.from('sustitucion').select('''
         *,
@@ -45,32 +39,21 @@ class SustitucionRepositoryImpl implements SustitucionRepository {
       ''');
 
       if (!isAdmin) {
-        guardiasQuery = guardiasQuery.or(
-          'profesorGuardia.eq."$profesorNombre",profesor_guardia.eq.$profesorId',
-        );
-        sustitucionesQuery = sustitucionesQuery.eq(
-          'id_profesor_sustituto',
-          profesorId,
-        );
+        guardiasQuery = guardiasQuery.or('profesorGuardia.eq."$profesorNombre",profesor_guardia.eq.$profesorId');
+        sustitucionesQuery = sustitucionesQuery.eq('id_profesor_sustituto', profesorId);
       }
 
+      // Filtro inteligente: Buscamos por la nueva columna fecha_sustitucion 
+      // O caemos en la fecha de la ausencia para registros viejos
       final results = await Future.wait([
-        guardiasQuery
-            .gte('fecha', inicio.toIso8601String())
-            .lte('fecha', fin.toIso8601String()),
-        sustitucionesQuery
-            .gte('ausencia.fecha', inicio.toIso8601String())
-            .lte('ausencia.fecha', fin.toIso8601String()),
+        guardiasQuery.gte('fecha', dateIni).lte('fecha', dateFin),
+        sustitucionesQuery.or('fecha_sustitucion.gte.$dateIni, ausencia.fecha.gte.$dateIni')
+                          .or('fecha_sustitucion.lte.$dateFin, ausencia.fecha.lte.$dateFin'),
       ]);
 
-      final guardiasAntiguas = _mapGuardias(
-        results[0] as List,
-        profesorNombre,
-      );
-      final sustitucionesNuevas = _mapSustituciones(
-        results[1] as List,
-        profesorNombre,
-      );
+      final guardiasAntiguas = _mapGuardias(results[0] as List, profesorNombre);
+      final sustitucionesNuevas = _mapSustituciones(results[1] as List, profesorNombre);
+
       return [...guardiasAntiguas, ...sustitucionesNuevas];
     } catch (e) {
       debugPrint("Error fetching sustituciones: $e");
@@ -81,32 +64,18 @@ class SustitucionRepositoryImpl implements SustitucionRepository {
   List<HorarioClase> _mapGuardias(List data, String profesorNombre) {
     return data.map((json) {
       final fechaG = DateTime.parse(json['fecha'] as String);
-      final hInicio =
-          (json['horaInicio'] ?? json['hora_inicio'] ?? '00:00') as String;
-      final hFin =
-          (json['horaFin'] ?? json['hora_fin'] ?? '00:00') as String;
-      final pAusente =
-          (json['profesorAusente'] ?? json['profesor_ausente'] ?? 'Compañero')
-              as String;
-      final asign =
-          (json['asignaturaAusente'] ??
-              json['asignatura_ausente'] ??
-              'Guardia') as String;
-
       return HorarioClase(
         id: -1,
         profesor: profesorNombre,
         aula: (json['aula'] ?? 'N/A') as String,
         grupo: (json['grupo'] ?? 'N/A') as String,
-        asignatura: "SUSTITUCIÓN: $asign",
+        asignatura: "SUSTITUCIÓN: ${json['asignaturaAusente'] ?? 'Guardia'}",
         dia: _dias[fechaG.weekday],
-        inicio: hInicio.length >= 5 ? hInicio.substring(0, 5) : hInicio,
-        fin: hFin.length >= 5 ? hFin.substring(0, 5) : hFin,
+        inicio: (json['horaInicio']?.toString() ?? '00:00').substring(0, 5),
+        fin: (json['horaFin']?.toString() ?? '00:00').substring(0, 5),
         esGuardia: true,
-        nota: "Cubriendo a $pAusente",
-        profesorAusente: pAusente,
-        instrucciones:
-            (json['observaciones'] ?? json['instrucciones'] ?? '') as String,
+        profesorAusente: (json['profesorAusente'] ?? 'Compañero') as String,
+        instrucciones: (json['observaciones'] ?? '') as String,
         fecha: fechaG,
       );
     }).toList();
@@ -116,9 +85,13 @@ class SustitucionRepositoryImpl implements SustitucionRepository {
     return data.map((json) {
       final ausenciaJson = json['ausencia'];
       if (ausenciaJson == null || ausenciaJson['horario'] == null) return null;
+      
       final h = ausenciaJson['horario'];
       final t = h['horario_tramo'] ?? {};
-      final fechaG = DateTime.parse(ausenciaJson['fecha'] as String);
+      
+      // PRIORIDAD: fecha_sustitucion (nueva) > ausencia.fecha (vieja)
+      final fechaStr = json['fecha_sustitucion'] ?? ausenciaJson['fecha'];
+      final fechaG = DateTime.parse(fechaStr as String);
 
       return HorarioClase(
         id: -2,
@@ -127,13 +100,10 @@ class SustitucionRepositoryImpl implements SustitucionRepository {
         grupo: (h['grupo']?['nombre'] ?? 'N/A') as String,
         asignatura: "GUARDIA: ${h['Asignaturas']?['nombre'] ?? 'Clase'}",
         dia: _dias[fechaG.weekday],
-        inicio:
-            t['horario_inicio']?.toString().substring(0, 5) ?? '00:00',
+        inicio: t['horario_inicio']?.toString().substring(0, 5) ?? '00:00',
         fin: t['horario_fin']?.toString().substring(0, 5) ?? '00:00',
         esGuardia: true,
-        nota: "Cubriendo a ${h['profesores']?['nombre'] ?? 'Compañero'}",
-        profesorAusente:
-            (h['profesores']?['nombre'] ?? 'Compañero') as String,
+        profesorAusente: (h['profesores']?['nombre'] ?? 'Compañero') as String,
         instrucciones: (ausenciaJson['observaciones'] ?? '') as String,
         fecha: fechaG,
       );

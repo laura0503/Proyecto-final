@@ -10,6 +10,7 @@ import '../../domain/entities/sustitucion.dart';
 import '../../domain/usecases/get_profesores_usecase.dart';
 import '../../domain/usecases/get_ausencias_usecase.dart';
 import '../../domain/usecases/get_all_horarios_usecase.dart';
+import '../../domain/usecases/reportar_ausencia_usecase.dart';
 import '../../domain/usecases/eliminar_ausencia_usecase.dart';
 import '../../data/models/sustitucion_model.dart';
 import '../widgets/planning/planning_body.dart';
@@ -18,6 +19,7 @@ import '../widgets/planning/planning_professor_dialog.dart';
 import '../widgets/planning/planning_task_dialog.dart';
 import '../widgets/planning/planning_guard_ops.dart';
 import '../widgets/planning/planning_report_ops.dart';
+import '../widgets/planning/advanced_absence_form.dart';
 
 class DatosSlot {
   final TextEditingController controller;
@@ -124,6 +126,39 @@ class _PlanningScreenState extends State<PlanningScreen> {
     }
   }
 
+  void _abrirGestionAvanzada() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AdvancedAbsenceForm(
+        profesores: _profesores,
+        primaryColor: primaryColor,
+        onSave: (ausencia) async {
+          setState(() => _isLoading = true);
+          try {
+            await context.read<ReportarAusenciaUseCase>().executeConSustitucion(ausencia);
+            await _cargarDatos();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text("Ausencia de larga duración registrada correctamente"),
+                backgroundColor: Colors.green,
+              ));
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text("Error: $e"),
+                backgroundColor: Colors.red,
+              ));
+            }
+            setState(() => _isLoading = false);
+          }
+        },
+      ),
+    );
+  }
+
   void _cambiarSemana(int semanas) {
     setState(() => _fechaSeleccionada =
         _fechaSeleccionada.add(Duration(days: semanas * 7)));
@@ -166,18 +201,13 @@ class _PlanningScreenState extends State<PlanningScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ausenciasDia = _ausencias.where((a) =>
-        a.fecha.year == _fechaSeleccionada.year &&
-        a.fecha.month == _fechaSeleccionada.month &&
-        a.fecha.day == _fechaSeleccionada.day).toList();
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: primaryColor))
           : PlanningBody(
               fechaSeleccionada: _fechaSeleccionada,
-              ausenciasDia: ausenciasDia,
+              ausenciasSemana: _ausencias,
               profesores: _profesores,
               horarios: _horarios,
               tramos: _tramos,
@@ -187,16 +217,10 @@ class _PlanningScreenState extends State<PlanningScreen> {
               onClear: _onClearAusencia,
               onCambiarSemana: _cambiarSemana,
               onSeleccionarFecha: _seleccionarFecha,
+              onGestionarAusencias: _abrirGestionAvanzada,
               primaryColor: primaryColor,
               cardColor: cardColor,
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        backgroundColor: primaryColor,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("Nueva Ausencia",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
     );
   }
 }

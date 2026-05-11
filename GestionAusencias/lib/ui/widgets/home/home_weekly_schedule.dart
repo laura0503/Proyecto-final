@@ -1,6 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
+import 'package:intl/intl.dart';
 import '../../../domain/entities/horario_clase.dart';
 import '../../../domain/entities/ausencia.dart';
 
@@ -18,91 +18,162 @@ class HomeWeeklySchedule extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final diasCortos = ["LUN", "MAR", "MIÉ", "JUE", "VIE"];
     final hoy = DateTime.now();
     final hoyIndex = hoy.weekday - 1;
-    
-    // Calcular fechas de la semana actual
     final lunes = hoy.subtract(Duration(days: hoy.weekday - 1));
     final fechasSemana = List.generate(5, (i) => lunes.add(Duration(days: i)));
 
-    // Ordenar horario por hora de inicio
-    final sortedHorario = List<HorarioClase>.from(horario)
-      ..sort((a, b) => a.inicio.compareTo(b.inicio));
+    // Obtener todos los tramos únicos presentes en el horario
+    final tramosSet = <String>{};
+    for (var s in horario) {
+      tramosSet.add("${s.inicio} — ${s.fin}");
+    }
+    final sortedTramos = tramosSet.toList()..sort();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildAppleHeader(),
         const SizedBox(height: 28),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            const double minColWidth = 130;
-            const int numDays = 5;
-            final double totalMin = minColWidth * numDays;
-            final double colWidth = constraints.maxWidth >= totalMin
-                ? constraints.maxWidth / numDays
-                : minColWidth;
-
-            final row = Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: List.generate(numDays, (index) {
-                final diaNombre = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"][index];
-                final sesiones = sortedHorario.where((h) => h.dia.toUpperCase() == diaNombre).toList();
-                final isToday = index == hoyIndex;
-                final fechaDia = fechasSemana[index];
-
-                return SizedBox(
-                  width: colWidth,
-                  child: Column(
-                    children: [
-                      _buildDayHeader(diasCortos[index], isToday),
-                      const SizedBox(height: 16),
-                      ...sesiones.asMap().entries.map((entry) {
-                        final i = entry.key;
-                        final s = entry.value;
-                        final ausencia = ausencias.firstWhere(
-                          (a) =>
-                              a.idHorario == s.id &&
-                              a.fecha.day == fechaDia.day &&
-                              a.fecha.month == fechaDia.month,
-                          orElse: () => Ausencia(profesorId: "", fecha: fechaDia, idHorario: -1, tipo: null),
-                        );
-                        return TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          duration: Duration(milliseconds: 500 + (i * 100)),
-                          curve: Curves.easeOutQuart,
-                          builder: (context, value, child) {
-                            return Transform.translate(
-                              offset: Offset(0, 20 * (1 - value)),
-                              child: Opacity(
-                                opacity: value,
-                                child: GestureDetector(
-                                  onTap: () => onAction(s, fechaDia),
-                                  child: _buildSwiftUICard(s, isToday, context, ausencia),
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      }),
-                      if (sesiones.isEmpty) _buildEmptySlot(),
-                    ],
-                  ),
-                );
-              }),
-            );
-
-            if (constraints.maxWidth < totalMin) {
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: row,
-              );
-            }
-            return row;
-          },
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(5, (index) {
+              final diaNombre = ["LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES"][index];
+              final fechaDia = fechasSemana[index];
+              return _buildDayColumn(context, diaNombre, fechaDia, index == hoyIndex, sortedTramos);
+            }),
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDayColumn(BuildContext context, String diaNombre, DateTime fecha, bool isToday, List<String> allTramos) {
+    return Container(
+      width: 260,
+      margin: const EdgeInsets.only(right: 16),
+      child: Column(
+        children: [
+          _buildDayHeader(diaNombre.substring(0, 3), isToday, fecha),
+          const SizedBox(height: 20),
+          ...allTramos.map((tramoStr) {
+            final sesionesEnTramo = horario.where((h) {
+              // Si tiene fecha específica (es una sustitución), debe coincidir con la fecha de la columna
+              if (h.fecha != null) {
+                return h.fecha!.day == fecha.day && h.fecha!.month == fecha.month && "${h.inicio} — ${h.fin}" == tramoStr;
+              }
+              // Si es horario normal, solo por día de la semana
+              return h.dia.toUpperCase() == diaNombre && "${h.inicio} — ${h.fin}" == tramoStr;
+            }).toList();
+
+            return _buildTramoSlot(context, tramoStr, sesionesEnTramo, fecha, isToday);
+          }).toList(),
+          const SizedBox(height: 12),
+          _buildEmptySlot(() => onAction(HorarioClase(profesor: "", aula: "", grupo: "", asignatura: "", dia: diaNombre, inicio: "", fin: ""), fecha)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDayHeader(String label, bool isToday, DateTime fecha) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: isToday ? const Color(0xFF4F46E5).withOpacity(0.05) : Colors.white.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(16),
+        border: isToday ? Border.all(color: const Color(0xFF4F46E5).withOpacity(0.2)) : null,
+      ),
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: isToday ? const Color(0xFF4F46E5) : Colors.grey[600],
+              fontWeight: FontWeight.w900,
+              fontSize: 13,
+              letterSpacing: 1.5,
+            ),
+          ),
+          Text(
+            DateFormat('d MMM', 'es').format(fecha).toUpperCase(),
+            style: TextStyle(
+              color: isToday ? const Color(0xFF4F46E5).withOpacity(0.6) : Colors.grey[400],
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTramoSlot(BuildContext context, String tramoStr, List<HorarioClase> sesiones, DateTime fecha, bool isToday) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 8, top: 16),
+          child: Text(
+            tramoStr,
+            style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold, fontSize: 11),
+          ),
+        ),
+        if (sesiones.isEmpty)
+          _buildMiniEmptySlot()
+        else
+          ...sesiones.map((s) {
+            final ausencia = ausencias.firstWhere(
+              (a) => a.idHorario == s.id && a.fecha.day == fecha.day && a.fecha.month == fecha.month,
+              orElse: () => Ausencia(profesorId: "", fecha: fecha, fechaInicio: fecha, idHorario: -1, tipo: null),
+            );
+            return GestureDetector(
+              onTap: () => onAction(s, fecha),
+              child: _buildSwiftUICard(s, isToday, context, ausencia),
+            );
+          }).toList(),
+      ],
+    );
+  }
+
+  Widget _buildMiniEmptySlot() {
+    return Container(
+      height: 60,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Center(child: Icon(Icons.add_rounded, color: Colors.grey[300], size: 20)),
+    );
+  }
+
+  Widget _buildEmptySlot(VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 80,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.5)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_circle_outline_rounded, color: const Color(0xFF4F46E5).withOpacity(0.4), size: 24),
+            const SizedBox(height: 6),
+            const Text(
+              "Reportar incidencia",
+              style: TextStyle(color: Color(0xFF4F46E5), fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -119,58 +190,30 @@ class HomeWeeklySchedule extends StatelessWidget {
             letterSpacing: -1.2,
           ),
         ),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: BackdropFilter(
-            filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.3)),
-              ),
-              child: const Text(
-                "Octubre 2026",
-                style: TextStyle(color: Color(0xFF4F46E5), fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.3)),
+          ),
+          child: const Text(
+            "Semana Actual",
+            style: TextStyle(color: Color(0xFF4F46E5), fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDayHeader(String label, bool isToday) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-      decoration: BoxDecoration(
-        color: isToday ? const Color(0xFF4F46E5) : Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: isToday ? [
-          BoxShadow(color: const Color(0xFF4F46E5).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))
-        ] : null,
-      ),
-      child: Center(
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isToday ? Colors.white : Colors.grey[400],
-            fontWeight: FontWeight.w900,
-            fontSize: 13,
-            letterSpacing: 1.5,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildSwiftUICard(HorarioClase s, bool isToday, BuildContext context, Ausencia ausencia) {
-    final bool isSubstitution = s.id == -1;
+    final bool isSubstitution = s.profesorAusente.isNotEmpty;
     final bool hasAusencia = ausencia.tipo != null;
     
-    Color accentColor = isSubstitution ? Colors.orange[600]! : _getAccentColor(s.asignatura, isToday);
+    // Si es guardia, usamos Índigo/Morado. Si no, color normal.
+    Color accentColor = isSubstitution ? const Color(0xFF4F46E5) : _getAccentColor(s.asignatura, isToday);
+    
+    // Si yo falto, color rojo/ambar
     if (hasAusencia) {
       accentColor = ausencia.tipo == 'FALTA' ? const Color(0xFFBE123C) : const Color(0xFFD97706);
     }
@@ -184,11 +227,13 @@ class HomeWeeklySchedule extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: hasAusencia ? accentColor.withOpacity(0.1) : Colors.white.withOpacity(0.75),
+              color: isSubstitution 
+                ? accentColor.withOpacity(0.15) 
+                : (hasAusencia ? accentColor.withOpacity(0.1) : Colors.white.withOpacity(0.75)),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: hasAusencia ? accentColor.withOpacity(0.5) : (isToday ? accentColor.withOpacity(0.4) : Colors.white.withOpacity(0.5)),
-                width: (isToday || hasAusencia) ? 2 : 1,
+                color: isSubstitution || hasAusencia || isToday ? accentColor.withOpacity(0.4) : Colors.white.withOpacity(0.5),
+                width: (isToday || hasAusencia || isSubstitution) ? 2 : 1,
               ),
             ),
             child: Column(
@@ -202,49 +247,33 @@ class HomeWeeklySchedule extends StatelessWidget {
                       style: TextStyle(color: accentColor, fontSize: 10, fontWeight: FontWeight.w900),
                     ),
                     if (isSubstitution)
-                      const Icon(Icons.swap_calls_rounded, size: 12, color: Colors.orange)
+                      _buildBadge("GUARDIA", accentColor)
                     else if (hasAusencia)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: accentColor, borderRadius: BorderRadius.circular(6)),
-                        child: Text(
-                          ausencia.tipo!,
-                          style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold),
-                        ),
-                      ),
+                      _buildBadge(ausencia.tipo!, accentColor),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  s.asignatura,
+                  isSubstitution ? "Sustituyes a ${s.profesorAusente}" : s.asignatura,
                   style: TextStyle(
                     fontWeight: FontWeight.w800, 
-                    fontSize: 14, 
-                    color: hasAusencia ? accentColor : const Color(0xFF1E293B),
+                    fontSize: 13, 
+                    color: (hasAusencia || isSubstitution) ? accentColor : const Color(0xFF1E293B),
                     height: 1.1,
                     decoration: ausencia.tipo == 'FALTA' ? TextDecoration.lineThrough : null,
                   ),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (s.nota.isNotEmpty || hasAusencia) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    hasAusencia ? (ausencia.observaciones ?? "Estado: ${ausencia.tipo}") : s.nota,
-                    style: TextStyle(color: accentColor.withOpacity(0.8), fontSize: 9, fontWeight: FontWeight.bold),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.location_on_rounded, size: 10, color: hasAusencia ? accentColor.withOpacity(0.5) : Colors.grey[400]),
+                    Icon(Icons.location_on_rounded, size: 10, color: accentColor.withOpacity(0.5)),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        s.aula,
-                        style: TextStyle(color: hasAusencia ? accentColor.withOpacity(0.7) : Colors.grey[500], fontSize: 10, fontWeight: FontWeight.w600),
+                        "${s.aula} • ${s.grupo}",
+                        style: TextStyle(color: accentColor.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.w600),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -258,16 +287,14 @@ class HomeWeeklySchedule extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptySlot() {
+  Widget _buildBadge(String label, Color color) {
     return Container(
-      height: 40,
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.1), style: BorderStyle.none),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white, fontSize: 7, fontWeight: FontWeight.bold),
       ),
-      child: Center(child: Icon(Icons.add_rounded, color: Colors.white.withOpacity(0.2), size: 16)),
     );
   }
 
@@ -277,7 +304,6 @@ class HomeWeeklySchedule extends StatelessWidget {
     if (name.contains("MAT")) return const Color(0xFFFF3B30); // iOS Red
     if (name.contains("ENG") || name.contains("ING")) return const Color(0xFF007AFF); // iOS Blue
     if (name.contains("GUARDIA")) return const Color(0xFF34C759); // iOS Green
-    if (name.contains("FIS")) return const Color(0xFFFF9500); // iOS Orange
     return const Color(0xFF5856D6); // iOS Indigo
   }
 }

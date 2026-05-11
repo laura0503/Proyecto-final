@@ -131,7 +131,7 @@ class HomeSidebarCards extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Mis Guardias", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF334155))),
+              const Text("Próximas Guardias", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF334155))),
               Text("${sustituciones.length} total", style: TextStyle(color: const Color(0xFF4F46E5), fontWeight: FontWeight.w800, fontSize: 11)),
             ],
           ),
@@ -148,10 +148,10 @@ class HomeSidebarCards extends StatelessWidget {
             )
           else
             ...sustituciones.take(3).map((s) => _guardItem(
-              Icons.security_rounded, 
-              s.asignatura.replaceAll("GUARDIA: ", ""), 
-              "${s.dia.substring(0,3)}, ${s.inicio}", 
-              "ACTIVO", 
+              Icons.shield_rounded, 
+              s.asignatura, 
+              "Sustituyes a ${s.profesorAusente} • ${s.inicio}", 
+              "PENDIENTE", 
               const Color(0xFF4F46E5),
             )).toList(),
         ],

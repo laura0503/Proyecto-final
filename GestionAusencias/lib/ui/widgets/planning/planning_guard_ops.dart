@@ -7,13 +7,14 @@ Future<List<Map<String, dynamic>>> fetchGuardiasParaTramo(
   DateTime fecha,
 ) async {
   final supabase = Supabase.instance.client;
-  if (ausencia.idHorario <= 0) return [];
+  final idHorario = ausencia.idHorario;
+  if (idHorario == null || idHorario <= 0) return [];
 
   try {
     final horData = await supabase
         .from('horario')
         .select('id_tramo, dia_semana')
-        .eq('id', ausencia.idHorario)
+        .eq('id', idHorario)
         .maybeSingle();
 
     if (horData == null) return [];
