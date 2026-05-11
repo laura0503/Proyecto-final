@@ -24,20 +24,20 @@ class TorreControlKpiRow extends StatelessWidget {
         _KpiCard(
           title: "PROFESORES AUSENTES",
           value: "$totalAusentes",
-          sub: "+5% vs ayer",
-          icon: Icons.people_outline,
+          sub: "Hoy",
+          icon: Icons.person_off_rounded,
           color: const Color(0xFF4F46E5),
         ),
         const SizedBox(width: 20),
-        _KpiCard(
-          title: "GUARDIAS CUBIERTAS",
-          value: "$cubiertas",
-          sub: "$eficiencia% eficiencia",
-          icon: Icons.verified_user_outlined,
-          color: const Color(0xFF64748B),
-        ),
-        const SizedBox(width: 20),
         _CriticalCard(desiertas: desiertas),
+        const SizedBox(width: 20),
+        _KpiCard(
+          title: "EFICIENCIA DIARIA",
+          value: "$eficiencia%",
+          sub: "$cubiertas cubiertas",
+          icon: Icons.verified_user_outlined,
+          color: const Color(0xFF10B981), // Verde para eficiencia
+        ),
       ],
     );
   }

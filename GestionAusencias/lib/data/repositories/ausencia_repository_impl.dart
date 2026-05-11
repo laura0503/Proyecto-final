@@ -43,18 +43,41 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
   @override
   Future<void> reportarAusenciaConSustitucion(Ausencia ausencia) async {
     try {
-      // Aseguramos que si es una falta puntual, la fecha de fin sea el mismo día
-      // para que no salga en semanas siguientes (reseteo semanal)
       final DateTime fechaFinEfectiva = ausencia.esDiaCompleto 
           ? (ausencia.fechaFin ?? ausencia.fechaInicio)
           : ausencia.fechaInicio;
 
-      final model = AusenciaModel.fromEntity(ausencia.copyWith(
-        fechaFin: fechaFinEfectiva
-      ));
+      final profId = ausencia.profesorId;
+      final dateStr = ausencia.fecha.toIso8601String().substring(0, 10);
+
+      // 1. BUSCAR DUPLICADOS: ¿Ya existe una ausencia para este prof/día/sesión?
+      var query = _supabase.from('ausencia').select('id_ausencia').eq('id_profesor_ausente', profId);
       
-      final res = await _supabase.from('ausencia').insert(model.toJson()).select().single();
-      final ausenciaId = res['id_ausencia'];
+      if (ausencia.esDiaCompleto) {
+        query = query.eq('fecha', dateStr).eq('es_dia_completo', true);
+      } else {
+        query = query.eq('fecha', dateStr);
+        if (ausencia.idHorario != null) {
+          query = query.eq('id_horario_sesion', ausencia.idHorario!);
+        } else {
+          query = query.isFilter('id_horario_sesion', null);
+        }
+      }
+
+      final existing = await query.maybeSingle();
+
+      int ausenciaId;
+      final model = AusenciaModel.fromEntity(ausencia.copyWith(fechaFin: fechaFinEfectiva));
+
+      if (existing != null) {
+        // ACTUALIZAR SI YA EXISTE
+        ausenciaId = existing['id_ausencia'];
+        await _supabase.from('ausencia').update(model.toJson()).eq('id_ausencia', ausenciaId);
+      } else {
+        // INSERTAR NUEVA
+        final res = await _supabase.from('ausencia').insert(model.toJson()).select().single();
+        ausenciaId = res['id_ausencia'];
+      }
 
       // MOTOR AUTOMÁTICO
       if (ausencia.esDiaCompleto) {

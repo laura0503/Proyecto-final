@@ -132,19 +132,24 @@ class WeeklyGridView extends StatelessWidget {
       h.inicio == tramo.horarioInicio
     ).toList();
 
-    // 2. Para cada sesión, ver si el profesor tiene una ausencia activa (puntual o por rango)
+    // 2. Para cada sesión, ver si el profesor tiene una ausencia activa
     final List<Widget> cards = [];
+    final Set<String> profesoresProcesados = {}; // Evitar duplicados por error de datos
+
     for (final sesion in sesionesEnTramo) {
+      // Resolvemos el ID del profesor de la sesión
+      final profSesion = profesores.firstWhereOrNull((p) => p.nombre == sesion.profesor);
+      final idSesionProf = profSesion?.idProfesor?.toString() ?? profSesion?.id ?? "";
+
+      // Si ya hemos mostrado una tarjeta para este profesor en este tramo, saltamos
+      if (profesoresProcesados.contains(idSesionProf)) continue;
+
       final ausencia = ausencias.firstWhereOrNull((a) {
-        // Resolvemos el ID del profesor de la sesión para compararlo con el ID de la ausencia
-        final profSesion = profesores.firstWhereOrNull((p) => p.nombre == sesion.profesor);
-        final idSesionProf = profSesion?.idProfesor?.toString() ?? profSesion?.id ?? "";
-        
         final idProfAusente = a.profesorId;
         
         if (idProfAusente != idSesionProf && idProfAusente != sesion.profesor) return false;
 
-        // Está activa en este día (por rango o fecha puntual)
+        // Está activa en este día
         if (!a.estaActivaEn(dia)) return false;
 
         // Si es puntual, debe coincidir el horario. Si es día completo, vale cualquiera.
@@ -152,6 +157,7 @@ class WeeklyGridView extends StatelessWidget {
       });
 
       if (ausencia != null) {
+        profesoresProcesados.add(idSesionProf);
         cards.add(ModernAbsenceCard(
           ausencia: ausencia,
           profesores: profesores,

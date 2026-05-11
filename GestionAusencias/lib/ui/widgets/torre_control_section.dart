@@ -47,11 +47,10 @@ class _TorreControlSectionState extends State<TorreControlSection> {
     final diaNombre = nombresDias[hoy.weekday];
 
     try {
-      // 1. Obtener Ausencias Activas Hoy (incluyendo rangos de fechas)
       final ausenciasRes = await supabase
           .from('ausencia')
           .select('''
-            id_ausencia, id_profesor_ausente, es_dia_completo,
+            id_ausencia, id_profesor_ausente, es_dia_completo, tipo,
             profesor_ausente:id_profesor_ausente (nombre),
             horario:id_horario_sesion (
               id, id_tramo,
@@ -64,7 +63,6 @@ class _TorreControlSectionState extends State<TorreControlSection> {
           .lte('fecha_inicio', dateStr)
           .or('fecha_fin.is.null, fecha_fin.gte.$dateStr');
 
-      // 2. Obtener Sustituciones para hoy
       final sustitucionesRes = await supabase
           .from('sustitucion')
           .select('''
@@ -74,7 +72,6 @@ class _TorreControlSectionState extends State<TorreControlSection> {
           ''')
           .eq('fecha_sustitucion', dateStr);
 
-      // 3. Obtener Equipo de Guardia de hoy
       final guardiasRes = await supabase
           .from('horario')
           .select('''
@@ -89,7 +86,6 @@ class _TorreControlSectionState extends State<TorreControlSection> {
       final List sustitucionesRaw = sustitucionesRes as List;
       final List guardiasRaw = guardiasRes as List;
 
-      // Mapeo de sustitutos
       final Map<int, String> cobertura = {};
       for (final s in sustitucionesRaw) {
         final idAus = s['id_ausencia'] as int?;
@@ -103,9 +99,9 @@ class _TorreControlSectionState extends State<TorreControlSection> {
 
       for (final a in ausenciasRaw) {
         final bool esDiaCompleto = a['es_dia_completo'] ?? false;
+        final String tipo = a['tipo'] ?? 'AUSENCIA';
         
         if (esDiaCompleto) {
-          // Si es día completo, buscamos las clases que este profesor tenía hoy
           final profId = a['id_profesor_ausente'];
           final clasesProfesor = await supabase
               .from('horario')
@@ -134,12 +130,13 @@ class _TorreControlSectionState extends State<TorreControlSection> {
               aula: c['aula']?['nombre']?.toString() ?? 'N/A',
               asignatura: c['asignatura']?['nombre']?.toString() ?? 'N/A',
               profesorAusente: a['profesor_ausente']?['nombre']?.toString() ?? 'Desconocido',
+              tipo: tipo,
               sustitutoNombre: cobertura[a['id_ausencia']],
               esActual: nowStr.compareTo(inicio) >= 0 && nowStr.compareTo(fin) < 0,
+              esPasado: nowStr.compareTo(fin) >= 0,
             ));
           }
         } else {
-          // Ausencia puntual
           final horario = a['horario'];
           if (horario != null) {
             final tramo = horario['tramo'] ?? {};
@@ -155,12 +152,16 @@ class _TorreControlSectionState extends State<TorreControlSection> {
               aula: horario['aula']?['nombre']?.toString() ?? 'N/A',
               asignatura: horario['asignatura']?['nombre']?.toString() ?? 'N/A',
               profesorAusente: a['profesor_ausente']?['nombre']?.toString() ?? 'Desconocido',
+              tipo: tipo,
               sustitutoNombre: cobertura[a['id_ausencia']],
               esActual: nowStr.compareTo(inicio) >= 0 && nowStr.compareTo(fin) < 0,
+              esPasado: nowStr.compareTo(fin) >= 0,
             ));
           }
         }
       }
+
+      allSlots.sort((a, b) => a.inicio.compareTo(b.inicio));
 
       final guardias = guardiasRaw.map((g) {
         final tramo = g['tramo'] ?? {};
@@ -173,6 +174,7 @@ class _TorreControlSectionState extends State<TorreControlSection> {
           fin: fin,
           idTramo: g['id_tramo'] as int?,
           esActual: nowStr.compareTo(inicio) >= 0 && nowStr.compareTo(fin) < 0,
+          esPasado: nowStr.compareTo(fin) >= 0,
         );
       }).toList();
 
@@ -184,7 +186,6 @@ class _TorreControlSectionState extends State<TorreControlSection> {
         });
       }
     } catch (e) {
-      debugPrint("Error Monitor: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }

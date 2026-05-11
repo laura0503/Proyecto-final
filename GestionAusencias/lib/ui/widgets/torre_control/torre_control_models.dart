@@ -7,8 +7,10 @@ class SlotMonitor {
   final String aula;
   final String asignatura;
   final String profesorAusente;
+  final String tipo;
   final String? sustitutoNombre;
   final bool esActual;
+  final bool esPasado;
   final String planta;
 
   SlotMonitor({
@@ -20,8 +22,10 @@ class SlotMonitor {
     required this.aula,
     required this.asignatura,
     required this.profesorAusente,
+    required this.tipo,
     this.sustitutoNombre,
-    required this.esActual,
+    this.esActual = false,
+    this.esPasado = false,
     this.planta = "PLANTA 1",
   });
 
@@ -35,6 +39,7 @@ class GuardiaMonitor {
   final String fin;
   final int? idTramo;
   final bool esActual;
+  final bool esPasado;
 
   GuardiaMonitor({
     required this.profId,
@@ -42,6 +47,7 @@ class GuardiaMonitor {
     required this.inicio,
     required this.fin,
     this.idTramo,
-    required this.esActual,
+    this.esActual = false,
+    this.esPasado = false,
   });
 }

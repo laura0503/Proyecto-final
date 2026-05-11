@@ -17,19 +17,37 @@ class TorreControlGuardTeam extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               "Equipo de Guardia para Hoy",
               style: TextStyle(
                 fontSize: 20,
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w900,
                 color: Color(0xFF1E293B),
+                letterSpacing: -0.5,
               ),
             ),
-            const Spacer(),
-            _LegendDot(
-              label: "Disponible ahora",
-              color: const Color(0xFF6366F1),
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF4F46E5),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "Disponible ahora",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -37,155 +55,104 @@ class TorreControlGuardTeam extends StatelessWidget {
         if (isLoading)
           const Center(child: CircularProgressIndicator())
         else if (guardias.isEmpty)
-          _EmptyState(msg: "No hay profesores asignados de guardia hoy")
+          _buildEmptyState()
         else
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children:
-                guardias.map((g) => _GuardCard(guardia: g)).toList(),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3, // Cuadrícula de 3 columnas
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 2.2,
+            ),
+            itemCount: guardias.length,
+            itemBuilder: (context, index) {
+              final g = guardias[index];
+              return _buildGuardCard(g);
+            },
           ),
-        const SizedBox(height: 60),
       ],
     );
   }
-}
 
-class _GuardCard extends StatelessWidget {
-  final GuardiaMonitor guardia;
-  const _GuardCard({required this.guardia});
-
-  @override
-  Widget build(BuildContext context) {
-    final isNow = guardia.esActual;
-    final color = isNow ? const Color(0xFF6366F1) : Colors.grey.shade400;
-
+  Widget _buildEmptyState() {
     return Container(
-      width: 220,
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 48),
       decoration: BoxDecoration(
-        color:
-            isNow ? Colors.white : Colors.white.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isNow ? color : Colors.transparent,
-          width: 2,
-        ),
-        boxShadow:
-            isNow
-                ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-                : [],
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(Icons.shield_rounded, color: color, size: 20),
-              if (isNow)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    "AHORA",
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
+          Icon(Icons.check_circle_outline_rounded, size: 48, color: Colors.white.withOpacity(0.2)),
+          const SizedBox(height: 16),
           Text(
-            guardia.nombre,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color:
-                  isNow ? const Color(0xFF1E293B) : Colors.grey.shade600,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "${guardia.inicio} - ${guardia.fin}",
-            style: TextStyle(
-              fontSize: 11,
-              color: isNow ? color : Colors.grey.shade400,
-              fontWeight: FontWeight.w600,
-            ),
+            "No hay profesores asignados de guardia hoy",
+            style: TextStyle(color: Colors.white.withOpacity(0.4), fontWeight: FontWeight.w600),
           ),
         ],
       ),
     );
   }
-}
 
-class _LegendDot extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _LegendDot({required this.label, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.grey.shade600,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+  Widget _buildGuardCard(GuardiaMonitor g) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: g.esActual ? const Color(0xFF4F46E5).withOpacity(0.9) : Colors.white.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: g.esActual ? const Color(0xFF4F46E5) : Colors.white.withOpacity(0.8)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final String msg;
-  const _EmptyState({required this.msg});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
+        ],
+      ),
+      child: Row(
         children: [
-          Icon(
-            Icons.check_circle_outline_rounded,
-            size: 64,
-            color: Colors.grey.shade300,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: g.esActual ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.person_search_rounded,
+              color: g.esActual ? Colors.white : const Color(0xFF475569),
+              size: 20,
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            msg,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Colors.grey,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  g.nombre,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: g.esActual ? Colors.white : const Color(0xFF1E293B),
+                    fontWeight: FontWeight.w900, // Nombre en negrita
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "${g.inicio} — ${g.fin}",
+                  style: TextStyle(
+                    color: g.esActual ? Colors.white.withOpacity(0.8) : const Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
