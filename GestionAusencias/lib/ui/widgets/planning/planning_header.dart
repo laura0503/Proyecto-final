@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:intl/intl.dart';
-import '../../screens/settings_screen.dart';
 
 class PlanningHeader extends StatelessWidget {
   final String mesAno;
@@ -9,82 +9,107 @@ class PlanningHeader extends StatelessWidget {
   final Color primaryColor;
   final Color cardColor;
   final List<DateTime> diasSemana;
+  final DateTime fechaSeleccionada;
+  final VoidCallback onSeleccionarFecha;
+  final VoidCallback onGestionarAusencias;
 
   const PlanningHeader({
     super.key,
     required this.mesAno,
     required this.nSemana,
     required this.onCambiarSemana,
+    required this.onSeleccionarFecha,
+    required this.onGestionarAusencias,
     required this.primaryColor,
     required this.cardColor,
     required this.diasSemana,
+    required this.fechaSeleccionada,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildHeaderModerno(context),
-        _buildLeyendaEstilizada(),
-        _buildCabeceraDias(),
-      ],
-    );
-  }
-
-  Widget _buildHeaderModerno(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.9),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
           ),
-        ],
-      ),
-      child: Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                mesAno.toUpperCase(),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22,
-                  color: Color(0xFF2D3250),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            "Gestión Semanal",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 28,
+                              color: Color(0xFF1E293B),
+                              letterSpacing: -0.8,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          GestureDetector(
+                            onTap: onSeleccionarFecha,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4F46E5).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.calendar_today_rounded,
+                                color: Color(0xFF4F46E5),
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: onGestionarAusencias,
+                            icon: const Icon(Icons.add_moderator_rounded, size: 18),
+                            label: const Text("GESTIONAR"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E293B),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "Semana del ${DateFormat('d').format(diasSemana.first)} al ${DateFormat('d \'de\' MMMM', 'es').format(diasSemana.last)}",
+                        style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w600, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      _legendItem(const Color(0xFFBE123C), "Crítica"),
+                      const SizedBox(width: 20),
+                      _legendItem(const Color(0xFF7C3AED), "Pendiente"),
+                    ],
+                  ),
+                ],
               ),
-              const Text(
-                "Planificación Semanal",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ],
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.settings),
-                color: const Color(0xFF6C63FF),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                ),
-              ),
-              const SizedBox(width: 4),
+              const SizedBox(height: 20),
               _selectorSemana(nSemana),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -97,13 +122,14 @@ class PlanningHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
             icon: Icon(Icons.chevron_left, color: primaryColor),
             onPressed: () => onCambiarSemana(-1),
           ),
           Text(
-            "S$nSemana",
+            "Semana $nSemana",
             style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
           ),
           IconButton(
@@ -115,107 +141,13 @@ class PlanningHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildLeyendaEstilizada() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          _badgeLeyenda(Colors.redAccent, "Falta"),
-          _badgeLeyenda(Colors.orangeAccent, "Retraso"),
-          _badgeLeyenda(Colors.lightBlueAccent, "Justificado"),
-        ],
-      ),
-    );
-  }
-
-  Widget _badgeLeyenda(Color color, String texto) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(radius: 4, backgroundColor: color),
-          const SizedBox(width: 6),
-          Text(
-            texto,
-            style: TextStyle(
-              fontSize: 11,
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCabeceraDias() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 10),
-      height: 70,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              alignment: Alignment.center,
-              child: const Icon(Icons.school_outlined, color: Colors.grey),
-            ),
-            ...diasSemana.map((d) {
-              bool esHoy = d.day == DateTime.now().day && d.month == DateTime.now().month;
-              return Container(
-                width: 50,
-                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-                decoration: esHoy
-                    ? BoxDecoration(
-                        color: primaryColor,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: primaryColor.withOpacity(0.3),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      )
-                    : null,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      DateFormat('E', 'es').format(d).toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: esHoy ? Colors.white70 : Colors.grey,
-                      ),
-                    ),
-                    Text(
-                      d.day.toString(),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: esHoy ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
+  Widget _legendItem(Color color, String label) {
+    return Row(
+      children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 8),
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)),
+      ],
     );
   }
 }

@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/guardia.dart';
-import '../../domain/entities/profesor.dart'; // Import Profesor entity
-import '../../domain/usecases/get_profesores_usecase.dart'; // Import UseCase
+import '../../domain/entities/profesor.dart';
+import '../../domain/usecases/get_profesores_usecase.dart';
+import '../../domain/usecases/get_guardias_usecase.dart';
+import '../../domain/usecases/guardar_guardia_usecase.dart';
+import '../../domain/usecases/eliminar_guardia_usecase.dart';
 import 'detalle_guardia_screen.dart';
-import '../providers/config_provider.dart';
-import '../widgets/guardias/guardias_header.dart';
-import '../widgets/guardias/guardias_search_bar.dart';
-import '../widgets/guardias/guardias_date_selector.dart';
-import '../widgets/guardias/guardia_card.dart';
-import '../adapters/guardia_ui_adapter.dart';
+import '../widgets/guardias/guardias_body.dart';
 
 class GuardiasScreen extends StatefulWidget {
   const GuardiasScreen({super.key});
@@ -21,95 +19,58 @@ class GuardiasScreen extends StatefulWidget {
 
 class _GuardiasScreenState extends State<GuardiasScreen> {
   DateTime _fechaSeleccionada = DateTime.now();
-  String _filtroBusqueda = "";
-  final TextEditingController _searchController = TextEditingController();
   List<Guardia> _guardias = [];
-  List<Profesor> _profesores = []; // Change to Profesor
+  List<Profesor> _profesores = [];
+  List<Map<String, dynamic>> _tramos = [
+    {'horario_inicio': '08:00:00', 'horario_fin': '09:00:00', 'texto': '1ª HORA', 'recreo': false},
+    {'horario_inicio': '09:00:00', 'horario_fin': '10:00:00', 'texto': '2ª HORA', 'recreo': false},
+    {'horario_inicio': '10:00:00', 'horario_fin': '11:00:00', 'texto': '3ª HORA', 'recreo': false},
+    {'horario_inicio': '11:00:00', 'horario_fin': '11:15:00', 'texto': 'RECREO', 'recreo': true},
+    {'horario_inicio': '11:15:00', 'horario_fin': '12:15:00', 'texto': '4ª HORA', 'recreo': false},
+    {'horario_inicio': '12:15:00', 'horario_fin': '13:15:00', 'texto': '5ª HORA', 'recreo': false},
+    {'horario_inicio': '13:15:00', 'horario_fin': '14:15:00', 'texto': '6ª HORA', 'recreo': false},
+  ];
   bool _cargando = true;
 
-  // Colores para mantener la armonía con PlanningScreen
-  final Color primaryColor = const Color(0xFF6C63FF);
-  final Color backgroundColor = const Color(0xFFF0F2F5);
-  final Color cardColor = Colors.white;
-
-  final String urlFotoLaura = 'https://i.pravatar.cc/150?u=laura';
-
-  final List<String> _horarios = [
-    '8:00 - 9:00',
-    '9:00 - 10:00',
-    '10:00 - 11:00',
-    '11:00 - 12:00',
-    '12:00 - 13:00',
-    '13:00 - 14:00',
-    '15:00 - 16:00',
-    '16:00 - 17:00',
-    '17:00 - 18:00',
-    '18:00 - 19:00',
-    '19:00 - 20:00',
-    '20:00 - 21:00',
-    '21:00 - 22:00',
-  ];
+  final Color primaryColor = const Color(0xFF6366F1);
+  final Color backgroundColor = const Color(0xFFF8FAFC);
+  final _supabase = Supabase.instance.client;
 
   @override
   void initState() {
     super.initState();
     _cargarDatos();
-    _searchController.addListener(() {
-      setState(() {
-        _filtroBusqueda = _searchController.text;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   Future<void> _cargarDatos() async {
     setState(() => _cargando = true);
     try {
-      final getProfesoresUseCase = context.read<GetProfesoresUseCase>();
-      final profesores = await getProfesoresUseCase.execute();
+      final results = await Future.wait([
+        context.read<GetProfesoresUseCase>().execute(),
+        context.read<GetGuardiasUseCase>().execute(),
+        _supabase.from('horario_tramo').select().order('horario_inicio'),
+      ]);
       setState(() {
-        _profesores = profesores;
-        _cargarGuardiasDePrueba();
+        _profesores = results[0] as List<Profesor>;
+        _guardias = results[1] as List<Guardia>;
+        _tramos = List<Map<String, dynamic>>.from(results[2] as List);
         _cargando = false;
       });
     } catch (e) {
-      _cargarGuardiasDePrueba();
       setState(() => _cargando = false);
     }
   }
 
-  void _cargarGuardiasDePrueba() {
-    setState(() {
-      _guardias = [];
-    });
-  }
-
   List<Guardia> _obtenerGuardiasDelDia() {
-    final guardiasDelDia = _guardias
-        .where(
-          (g) =>
-              g.fecha.day == _fechaSeleccionada.day &&
-              g.fecha.month == _fechaSeleccionada.month &&
-              g.fecha.year == _fechaSeleccionada.year,
-        )
-        .where((g) {
-          if (_filtroBusqueda.isEmpty) return true;
-          final query = _filtroBusqueda.toLowerCase();
-          return g.profesorAusente.toLowerCase().contains(query) ||
-              g.grupo.toLowerCase().contains(query) ||
-              g.aula.toLowerCase().contains(query) ||
-              (g.profesorGuardia?.toLowerCase().contains(query) ?? false);
-        })
-        .toList();
-    return guardiasDelDia;
+    return _guardias.where((g) =>
+        g.fecha.day == _fechaSeleccionada.day &&
+        g.fecha.month == _fechaSeleccionada.month &&
+        g.fecha.year == _fechaSeleccionada.year).toList();
   }
 
-  void _navegarADetalleGuardia([Guardia? guardia]) async {
+  Future<void> _navegarADetalleGuardia([Guardia? guardia]) async {
+    final eliminarUseCase = context.read<EliminarGuardiaUseCase>();
+    final guardarUseCase = context.read<GuardarGuardiaUseCase>();
     final resultado = await Navigator.push(
       context,
       MaterialPageRoute(
@@ -122,168 +83,71 @@ class _GuardiasScreenState extends State<GuardiasScreen> {
     );
 
     if (resultado != null) {
-      setState(() {
-        if (resultado == 'eliminar') {
-          if (guardia != null) {
-            _guardias.removeWhere((g) => g.id == guardia.id);
-          }
-        } else if (resultado is Guardia) {
+      if (resultado == 'eliminar') {
+        if (guardia != null) {
+          try { await eliminarUseCase.execute(guardia.id); } catch (_) {}
+          setState(() => _guardias.removeWhere((g) => g.id == guardia.id));
+        }
+      } else if (resultado is Guardia) {
+        try { await guardarUseCase.execute(resultado); } catch (_) {}
+        setState(() {
           if (guardia == null || guardia.id.isEmpty) {
             _guardias.add(resultado);
           } else {
-            int index = _guardias.indexWhere((g) => g.id == guardia.id);
-            if (index != -1) {
-              _guardias[index] = resultado;
-            } else {
-              _guardias.add(resultado);
-            }
+            final index = _guardias.indexWhere((g) => g.id == guardia.id);
+            if (index != -1) _guardias[index] = resultado;
           }
-        }
-      });
+        });
+      }
     }
+  }
+
+  Future<void> _navegarNuevaGuardia(String? horario) async {
+    String hIni = '08:00';
+    String hFin = '09:00';
+    if (horario != null) {
+      hIni = horario.split(' - ')[0];
+      hFin = horario.split(' - ')[1];
+    }
+    await _navegarADetalleGuardia(Guardia(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      fecha: _fechaSeleccionada,
+      horaInicio: hIni, horaFin: hFin,
+      grupo: '', aula: '', profesorAusente: '', asignaturaAusente: '', tarea: '',
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final guardiasDelDia = _obtenerGuardiasDelDia();
-
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: Consumer<ConfigProvider>(
-        builder: (context, config, child) {
-          return Container(
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              image: config.backgroundImageProvider != null
-                  ? DecorationImage(
-                      image: config.backgroundImageProvider!,
-                      fit: BoxFit.cover,
-                      opacity: 0.8,
-                    )
-                  : null,
-            ),
-            child: _cargando
-                ? Center(child: CircularProgressIndicator(color: primaryColor))
-                : Column(
-                    children: [
-                      GuardiasHeader(
-                        primaryColor: primaryColor,
-                        cardColor: cardColor,
-                      ),
-                      GuardiasSearchBar(
-                        controller: _searchController,
-                        filtroBusqueda: _filtroBusqueda,
-                        onClear: () {
-                          _searchController.clear();
-                          setState(() {
-                            _filtroBusqueda = '';
-                          });
-                        },
-                        primaryColor: primaryColor,
-                        cardColor: cardColor,
-                      ),
-                      GuardiasDateSelector(
-                        fechaSeleccionada: _fechaSeleccionada,
-                        onDateChanged: (date) {
-                          setState(() => _fechaSeleccionada = date);
-                        },
-                        primaryColor: primaryColor,
-                      ),
-                      Expanded(
-                        child:
-                            guardiasDelDia.isEmpty && _filtroBusqueda.isNotEmpty
-                            ? _buildSinResultados()
-                            : ListView.builder(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                itemCount: _horarios.length,
-                                itemBuilder: (context, index) {
-                                  final horario = _horarios[index];
-                                  final guardiasDelSlot = guardiasDelDia
-                                      .where(
-                                        (g) =>
-                                            '${g.horaInicio} - ${g.horaFin}' ==
-                                            horario,
-                                      )
-                                      .toList();
-
-                                  return GuardiaCard(
-                                    horario: horario,
-                                    guardias: GuardiaUIAdapter.toUIModelList(guardiasDelSlot),
-                                    primaryColor: primaryColor,
-                                    cardColor: cardColor,
-                                    urlFotoLaura: urlFotoLaura,
-                                    onNavigateNuevaGuardia: (horario) {
-                                      _navegarNuevaGuardia(horario);
-                                    },
-                                    onNavigateDetalleGuardia: _navegarADetalleGuardia,
-                                  );
-                                },
-                              ),
-                      ),
-                    ],
-                  ),
-          );
-        },
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navegarNuevaGuardia(null),
         backgroundColor: primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-    );
-  }
-
-
-
-  Widget _buildSinResultados() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
         children: [
-          Icon(Icons.search_off, size: 80, color: Colors.grey.withOpacity(0.5)),
-          const SizedBox(height: 20),
-          Text(
-            'No se encontraron guardias para su búsqueda.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey.withOpacity(0.7),
-              fontWeight: FontWeight.bold,
+          Container(decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter, end: Alignment.bottomCenter,
+              colors: [primaryColor.withValues(alpha: 0.05), backgroundColor],
             ),
+          )),
+          SafeArea(
+            child: _cargando
+                ? Center(child: CircularProgressIndicator(color: primaryColor))
+                : GuardiasBody(
+                    fechaSeleccionada: _fechaSeleccionada,
+                    tramos: _tramos,
+                    guardiasDelDia: _obtenerGuardiasDelDia(),
+                    primaryColor: primaryColor,
+                    onDateChanged: (date) => setState(() => _fechaSeleccionada = date),
+                    onNuevaGuardia: _navegarNuevaGuardia,
+                    onTapGuardia: _navegarADetalleGuardia,
+                  ),
           ),
         ],
-      ),
-    );
-  }
-
-
-
-//IntrinsicHeight--> a tarjeta crece hacia abajo si el nombre del profesor o la asignatura son extensos, manteniendo todo alineado.
-//Container--> crea un contenedor con un color de fondo y bordes redondeados.
-//Expanded--> permite que el widget ocupe todo el espacio disponible.
-//VerticalDivider--> crea una línea vertical que divide los widgets.
-
-  // Helper para navegar a nueva guardia
-  void _navegarNuevaGuardia(String? horario) {
-    String hIni = '8:00';
-    String hFin = '9:00';
-    if (horario != null) {
-      hIni = horario.split(' - ')[0];
-      hFin = horario.split(' - ')[1];
-    }
-    _navegarADetalleGuardia(
-      Guardia(
-        id: '',
-        fecha: _fechaSeleccionada,
-        horaInicio: hIni,
-        horaFin: hFin,
-        grupo: '',
-        aula: '',
-        profesorAusente: '',
-        asignaturaAusente: '',
-        tarea: '',
       ),
     );
   }

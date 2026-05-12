@@ -1,6 +1,6 @@
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/asignatura.dart';
 import '../../domain/usecases/get_asignaturas_usecase.dart';
 
@@ -17,16 +17,17 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
   final TextEditingController _searchController = TextEditingController();
   List<Asignatura> _allAsignaturas = [];
   List<Asignatura> _filteredAsignaturas = [];
-  List<String> _availableSubjects = ["Todas"];
-  String _selectedSubjectFilter = "Todas";
-  String? _errorMessage;
   bool _isLoading = true;
+  String? _errorMessage;
+
+  // asignatura_id → lista de grupos únicos
+  Map<int, List<String>> _gruposPorAsignatura = {};
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_applyFilters);
-    _loadAsignaturas();
+    _load();
   }
 
   @override
@@ -36,383 +37,267 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
     super.dispose();
   }
 
-  String _normalize(String text) {
-    return text
-        .toLowerCase()
-        .trim()
-        .replaceAll('á', 'a')
-        .replaceAll('é', 'e')
-        .replaceAll('í', 'i')
-        .replaceAll('ó', 'o')
-        .replaceAll('ú', 'u');
-  }
+  String _norm(String t) => t
+      .toLowerCase()
+      .trim()
+      .replaceAll('á', 'a')
+      .replaceAll('é', 'e')
+      .replaceAll('í', 'i')
+      .replaceAll('ó', 'o')
+      .replaceAll('ú', 'u');
 
   void _applyFilters() {
     if (!mounted) return;
+    final q = _norm(_searchController.text);
     setState(() {
-      _filteredAsignaturas = _allAsignaturas.where((a) {
-        final query = _normalize(_searchController.text);
-        final matchesSearch =
-            query.isEmpty || _normalize(a.nombre).contains(query);
-        final matchesChip =
-            _selectedSubjectFilter == "Todas" ||
-            _normalize(a.nombre) == _normalize(_selectedSubjectFilter);
-        return matchesSearch && matchesChip;
-      }).toList();
-
-      _filteredAsignaturas.sort((a, b) => _normalize(a.nombre).compareTo(_normalize(b.nombre)));
+      _filteredAsignaturas = _allAsignaturas
+          .where((a) => q.isEmpty || _norm(a.nombre).contains(q))
+          .toList()
+        ..sort((a, b) => _norm(a.nombre).compareTo(_norm(b.nombre)));
     });
   }
 
-  void _selectSubject(String subject) {
-    if (_selectedSubjectFilter == subject) return;
-    setState(() {
-      _selectedSubjectFilter = subject;
-      _applyFilters();
-    });
-  }
+  Future<void> _load() async {
+    setState(() { _isLoading = true; _errorMessage = null; });
 
-  Future<void> _loadAsignaturas() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-    final getAsignaturasUseCase = context.read<GetAsignaturasUseCase>();
     try {
-      final list = await getAsignaturasUseCase.call();
-      final listValida = list.where((a) {
+      final useCase = context.read<GetAsignaturasUseCase>();
+      final list = await useCase.call();
+
+      // Filtrar basura
+      final validas = list.where((a) {
         final n = a.nombre.trim().toUpperCase();
         if (n.isEmpty) return false;
         if (n.contains('RECREO') || n.contains('GUARDIA') || n.contains('LECTIVAS') || n == 'VARIOS') return false;
         if (RegExp(r'^\d+$').hasMatch(n)) return false;
-        if (n.replaceAll(RegExp(r'[\-\_\.]'), '').trim().isEmpty) return false;
         if (n.contains(';')) return false;
         if (RegExp(r'^\d{1,2}:\d{2}').hasMatch(n)) return false;
         return true;
       }).toList();
 
-      final uniqueNames = listValida.map((a) => a.nombre).toSet().toList();
-      uniqueNames.sort((a, b) => _normalize(a).compareTo(_normalize(b)));
+      // Obtener grupos desde horario
+      final horarioRows = await Supabase.instance.client
+          .from('horario')
+          .select('id_asignatura, grupo!id_grupo(nombre)')
+          .not('id_asignatura', 'is', null)
+          .not('id_grupo', 'is', null)
+          .neq('es_guardia', true);
 
-      final List<String> subjects = ["Todas", ...uniqueNames];
+      final Map<int, Set<String>> gruposMap = {};
+      for (final row in horarioRows as List) {
+        final asigId = row['id_asignatura'] as int?;
+        final grupoNombre = row['grupo']?['nombre'] as String?;
+        if (asigId == null || grupoNombre == null || grupoNombre.isEmpty) continue;
+        gruposMap.putIfAbsent(asigId, () => {}).add(grupoNombre);
+      }
+      final grupos = gruposMap.map((k, v) => MapEntry(k, v.toList()..sort()));
 
       if (mounted) {
         setState(() {
-          _allAsignaturas = listValida;
-          _availableSubjects = subjects;
+          _allAsignaturas = validas;
+          _gruposPorAsignatura = grupos;
           _isLoading = false;
           _applyFilters();
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = "Error de conexión: $e";
-        });
-      }
+      if (mounted) setState(() { _isLoading = false; _errorMessage = 'Error: $e'; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final textColor = widget.isDark ? Colors.white : Colors.black;
+    final textColor = widget.isDark ? Colors.white : const Color(0xFF1E293B);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              "Listado de Asignaturas",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: textColor,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                "${_filteredAsignaturas.length} Entradas",
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Asignaturas',
                 style: TextStyle(
-                  color: textColor.withOpacity(0.8),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black26,
+                      offset: Offset(0, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 30),
-
-        Row(
-          children: [
-            Expanded(
-              flex: 1,
-              child: Container(
-                height: 48,
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
-                  color: widget.isDark ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: widget.isDark
-                        ? Colors.white10
-                        : const Color(0xFFE5E0D8),
-                  ),
+                  color: Colors.orange.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: "Buscar asignatura...",
-                    prefixIcon: Icon(
-                      Icons.search_rounded,
-                      color: textColor.withOpacity(0.5),
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    hintStyle: TextStyle(color: textColor.withOpacity(0.3)),
-                  ),
-                  style: TextStyle(color: textColor),
+                child: Text(
+                  '${_filteredAsignaturas.length}',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 3,
-              child: SizedBox(
-                height: 48,
-                child: ScrollConfiguration(
-                  behavior: ScrollConfiguration.of(context).copyWith(
-                    dragDevices: {
-                      ui.PointerDeviceKind.touch,
-                      ui.PointerDeviceKind.mouse,
-                      ui.PointerDeviceKind.trackpad,
-                    },
-                  ),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Row(
-                      children: _availableSubjects.map((subject) {
-                        return _buildFilterChip(
-                          subject,
-                          _selectedSubjectFilter == subject,
-                          widget.isDark,
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 40),
+            ],
+          ),
+          const SizedBox(height: 10),
 
-        if (_isLoading)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: CircularProgressIndicator(),
-            ),
-          )
-        else if (_errorMessage != null)
-          Center(
-            child: Column(
-              children: [
-                const Icon(Icons.cloud_off_rounded, size: 64, color: Colors.redAccent),
-                const SizedBox(height: 16),
-                Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
-                const SizedBox(height: 16),
-                ElevatedButton(onPressed: _loadAsignaturas, child: const Text("Reintentar")),
+          // Buscador
+          Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
-          )
-        else if (_filteredAsignaturas.isEmpty)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(40),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.auto_stories_rounded,
-                      size: 64,
-                      color: widget.isDark ? Colors.white24 : Colors.black26,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    _searchController.text.isEmpty 
-                      ? "Aún no hay asignaturas" 
-                      : "No hay resultados para tu búsqueda",
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _searchController.text.isEmpty
-                      ? "El listado de asignaturas está vacío. Asegúrate de haber importado los datos correctamente desde la gestión de horarios."
-                      : "Prueba a buscar con otros términos o limpia los filtros.",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: textColor.withOpacity(0.6),
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Buscar asignatura...',
+                prefixIcon: const Icon(Icons.search_rounded, color: Colors.black45, size: 20),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                hintStyle: const TextStyle(color: Colors.black38, fontSize: 14),
               ),
+              style: const TextStyle(color: Colors.black87, fontSize: 14),
             ),
-          )
-        else
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              crossAxisSpacing: 20,
-              mainAxisSpacing: 20,
-              childAspectRatio: 1.2, // Reducido de 1.5 a 1.2 para dar más altura y evitar el desbordamiento
-            ),
-            itemCount: _filteredAsignaturas.length,
-            itemBuilder: (context, index) {
-              final a = _filteredAsignaturas[index];
-              return _buildModernAsignaturaCard(context, a, widget.isDark);
-            },
           ),
-      ],
-    );
-  }
+          const SizedBox(height: 28),
 
-  Widget _buildFilterChip(String label, bool isSelected, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (val) => _selectSubject(label),
-        backgroundColor: isDark
-            ? Colors.white.withOpacity(0.05)
-            : const Color(0xFFEBE6DF),
-        selectedColor: const Color(0xFF007AFF),
-        labelStyle: TextStyle(
-          color: isSelected
-              ? Colors.white
-              : (isDark ? Colors.white70 : const Color(0xFF4A443C)),
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide.none,
-        ),
-        showCheckmark: false,
+          if (_isLoading)
+            const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+          else if (_errorMessage != null)
+            Center(
+              child: Column(children: [
+                const Icon(Icons.cloud_off_rounded, size: 48, color: Colors.redAccent),
+                const SizedBox(height: 12),
+                Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+                const SizedBox(height: 12),
+                ElevatedButton(onPressed: _load, child: const Text('Reintentar')),
+              ]),
+            )
+          else if (_filteredAsignaturas.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(children: [
+                  Icon(Icons.auto_stories_rounded, size: 56, color: Colors.white.withOpacity(0.2)),
+                  const SizedBox(height: 16),
+                  Text(
+                    _searchController.text.isEmpty ? 'Sin asignaturas' : 'Sin resultados',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white70),
+                  ),
+                ]),
+              ),
+            )
+          else
+            LayoutBuilder(builder: (context, constraints) {
+              final cols = (constraints.maxWidth / 110).floor().clamp(2, 10);
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.85,
+                ),
+                itemCount: _filteredAsignaturas.length,
+                itemBuilder: (context, i) => _AsignaturaCard(
+                  asignatura: _filteredAsignaturas[i],
+                  grupos: _gruposPorAsignatura[_filteredAsignaturas[i].id] ?? [],
+                  isDark: widget.isDark,
+                ),
+              );
+            }),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildModernAsignaturaCard(
-    BuildContext context,
-    Asignatura a,
-    bool isDark,
-  ) {
-    final cardBgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF4A443C);
-    final iconColor = isDark ? Colors.orangeAccent : Colors.orange;
+class _AsignaturaCard extends StatelessWidget {
+  final Asignatura asignatura;
+  final List<String> grupos;
+  final bool isDark;
+
+  const _AsignaturaCard({
+    required this.asignatura,
+    required this.grupos,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF1E293B);
+    final subColor = isDark ? Colors.white54 : Colors.grey[600];
 
     return Container(
       decoration: BoxDecoration(
-        color: cardBgColor,
-        borderRadius: BorderRadius.circular(24),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
+          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
         ),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // REDISEÑO RESTAURADO: Icono circular naranja un poco más pequeño para evitar overflow
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: Colors.orange.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.auto_stories_rounded, color: iconColor, size: 20),
+            child: const Icon(Icons.auto_stories_rounded, color: Colors.orange, size: 16),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
-            a.nombre,
+            asignatura.nombre,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: textColor),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          // Grupos en una sola línea discreta
+          Text(
+            grupos.isNotEmpty ? grupos.join(", ") : 'Sin grupo',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: textColor,
+              fontSize: 8, 
+              fontWeight: FontWeight.w700, 
+              color: textColor.withOpacity(0.5),
             ),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 8),
-          // Chip de Departamento
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.purple.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.business_rounded,
-                  size: 10,
-                  color: Colors.purple[700],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  a.departamento,
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: Colors.purple[800],
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 2),
           Text(
-            "ID: ${a.id}",
-            style: TextStyle(
-              fontSize: 11,
-              color: textColor.withOpacity(0.4),
-              fontWeight: FontWeight.w500,
-            ),
+            asignatura.departamento.length > 15 ? "${asignatura.departamento.substring(0, 15)}..." : asignatura.departamento,
+            style: TextStyle(fontSize: 7, color: subColor, fontWeight: FontWeight.w500),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

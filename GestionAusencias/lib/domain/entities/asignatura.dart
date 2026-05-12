@@ -6,6 +6,7 @@ class Asignatura {
   final int idAulas;
   final int idProfesor;
   final String departamento;
+  final List<String> grupos;
 
   Asignatura({
     required this.id,
@@ -15,5 +16,6 @@ class Asignatura {
     required this.idAulas,
     required this.idProfesor,
     this.departamento = 'General',
+    this.grupos = const [],
   });
 }

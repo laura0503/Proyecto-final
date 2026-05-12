@@ -18,8 +18,10 @@ class ProfesorRemoteDataSource {
 
       List<Profesor> listaProfesores = profsJson.map((json) {
         final Map<String, dynamic> data = Map<String, dynamic>.from(json);
-        if (data['id'] == null && data['id_profesor'] != null)
+        // Compatibilidad con diferentes nombres de ID en la BD
+        if (data['id'] == null && data['id_profesor'] != null) {
           data['id'] = data['id_profesor'].toString();
+        }
         return ProfesorModel.fromJson(data);
       }).toList();
 
@@ -30,8 +32,6 @@ class ProfesorRemoteDataSource {
     }
   }
 
-  /// Procesa la lista de profesores para añadir información en tiempo real
-  /// sobre su ubicación y estado actual basándose en el horario.
   Future<List<Profesor>> _enriquecerProfesoresConEstado(
     List<Profesor> profesores,
   ) async {
@@ -42,7 +42,6 @@ class ProfesorRemoteDataSource {
       final String currentHour =
           "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
 
-      // Consultas en paralelo para optimizar el rendimiento
       final results = await Future.wait([
         _supabase
             .from('horario')
@@ -88,14 +87,16 @@ class ProfesorRemoteDataSource {
 
           if (currentHour.compareTo(inicio) >= 0 &&
               currentHour.compareTo(fin) < 0) {
-            if (idAula != null)
+            if (idAula != null) {
               currentAula[idProf] = mapAulas[idAula] ?? "Aula $idAula";
+            }
           }
         }
       }
 
       return profesores.map((p) {
-        final int? idInt = int.tryParse(p.id_profesor);
+        // Intentamos obtener el ID numérico
+        final int? idInt = p.idProfesor ?? int.tryParse(p.id);
         if (idInt == null) return p;
 
         String? hEntrada, hSalida, ubicacion, estado;
@@ -137,13 +138,18 @@ class ProfesorRemoteDataSource {
 
   Future<void> guardarProfesor(Profesor profesor) async {
     final model = ProfesorModel.fromEntity(profesor);
-    await _supabase.from('profesores').upsert(model.toJson());
+    final data = model.toJson();
+    
+    if (model.idProfesor == null) {
+      await _supabase.from('profesores').insert(data);
+    } else {
+      await _supabase.from('profesores').upsert(data);
+    }
   }
 
   Future<void> eliminarProfesor(String id) async {
     final int? idInt = int.tryParse(id);
 
-    // 1. Borrar horarios (pueden usar id_profesor como int o como UUID string)
     try {
       if (idInt != null) {
         await _supabase.from('horario').delete().eq('id_profesor', idInt);
@@ -154,12 +160,9 @@ class ProfesorRemoteDataSource {
       await _supabase.from('horario').delete().eq('id_profesor', id);
     } catch (_) {}
 
-    // 2. Borrar profesor (intentar ambos nombres de columna posibles)
     try {
-      // Intentamos con 'id' (UUID o similar)
       await _supabase.from('profesores').delete().eq('id', id);
     } catch (_) {
-      // Si falla, intentamos con 'id_profesor' (entero)
       if (idInt != null) {
         try {
           await _supabase.from('profesores').delete().eq('id_profesor', idInt);
@@ -169,18 +172,46 @@ class ProfesorRemoteDataSource {
   }
 
   Future<void> actualizarEstadoAusencia(String id, bool estado) async {
-    await _supabase
-        .from('profesores')
-        .update({'estado_ausente': estado})
-        .eq('id', id);
+    final int? idInt = int.tryParse(id);
+    if (idInt != null) {
+      await _supabase.from('profesores').update({'estado_ausente': estado}).eq('id_profesor', idInt);
+    } else {
+      await _supabase.from('profesores').update({'estado_ausente': estado}).eq('id', id);
+    }
+  }
+
+  Future<void> actualizarEstadoGuardia(
+    String id, {
+    required bool esGuardia,
+    double? karmaExtra,
+  }) async {
+    final int? idInt = int.tryParse(id);
+    if (idInt == null) return;
+
+    final updates = <String, dynamic>{'es_guardia': esGuardia};
+
+    if (karmaExtra != null && karmaExtra > 0) {
+      final row = await _supabase
+          .from('profesores')
+          .select('karma')
+          .eq('id_profesor', idInt)
+          .maybeSingle();
+      final double currentKarma = ((row?['karma']) ?? 0.0).toDouble();
+      updates['karma'] = currentKarma + karmaExtra;
+    }
+
+    await _supabase.from('profesores').update(updates).eq('id_profesor', idInt);
   }
 
   Future<ProfesorModel?> obtenerSesionActual(String id) async {
-    final response = await _supabase
-        .from('profesores')
-        .select()
-        .eq('id', id)
-        .maybeSingle();
+    final int? idInt = int.tryParse(id);
+    
+    final query = _supabase.from('profesores').select();
+    
+    final response = (idInt != null) 
+        ? await query.eq('id_profesor', idInt).maybeSingle()
+        : await query.eq('id', id).maybeSingle();
+        
     if (response == null) return null;
     return ProfesorModel.fromJson(response);
   }

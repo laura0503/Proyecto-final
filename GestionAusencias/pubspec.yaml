@@ -41,8 +41,15 @@ dependencies:
   shared_preferences: ^2.5.4
   supabase_flutter: ^2.0.0
   flutter_dotenv: ^5.1.0
+  google_sign_in: ^6.2.1
+  url_launcher: ^6.3.0
+  app_links: ^6.3.2
+  collection: ^1.18.0
   csv: ^6.0.0
   file_picker: ^10.3.10
+  path_provider: ^2.1.5
+  image_cropper: ^9.0.0
+  cached_network_image: ^3.4.1
   # shared_preferences: ^2.5.4 # Eliminado temporalmente
 
 dev_dependencies:
@@ -70,6 +77,7 @@ flutter:
   assets:
     - assets/wallpapers/
     - assets/csv/
+    - assets/images/
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

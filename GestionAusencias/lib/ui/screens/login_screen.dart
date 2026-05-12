@@ -1,7 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
+import '../widgets/login/login_form_card.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLoginSuccess;
@@ -14,33 +16,22 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _userController = TextEditingController();
-  final _cursoController = TextEditingController();
-  final _asigController = TextEditingController();
-  final _depController = TextEditingController();
+  bool _esModoRegistro = false;
 
-  bool esModoRegistro = false;
-
-  final List<String> _departamentos = [
-    'General',
-    'Matemáticas',
-    'Historia',
-    'Tecnología',
-    'Lengua',
-    'Ciencias',
-    'Inglés',
-    'Educación Física',
-    'Arte',
-    'Música',
-    'Otro',
-  ];
+  @override
+  void dispose() {
+    _userController.dispose();
+    super.dispose();
+  }
 
   void _mensaje(String texto, {bool esError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(texto),
-        backgroundColor: esError ? Colors.red : Colors.green,
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(texto, style: const TextStyle(fontWeight: FontWeight.bold)),
+      backgroundColor: esError ? Colors.redAccent : Colors.indigoAccent,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      margin: const EdgeInsets.all(20),
+    ));
   }
 
   Future<void> _login() async {
@@ -48,10 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
       _mensaje("Por favor, introduce tu nombre", esError: true);
       return;
     }
-
-    final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.login(_userController.text);
-
+    final input = _userController.text.trim();
+    final nombre = input.contains('@') ? input : "$input@g.educaand.es";
+    final success = await context.read<AuthProvider>().login(nombre);
     if (success) {
       widget.onLoginSuccess();
     } else {
@@ -60,220 +50,80 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _registrar() async {
-    if (_userController.text.isEmpty ||
-        _cursoController.text.isEmpty ||
-        _asigController.text.isEmpty ||
-        _depController.text.isEmpty) {
-      _mensaje("Por favor, rellena todos los campos", esError: true);
+    if (_userController.text.isEmpty) {
+      _mensaje("Por favor, rellena el campo de usuario", esError: true);
       return;
     }
-
+    final input = _userController.text.trim();
+    final nombreConDominio = input.contains('@') ? input : "$input@g.educaand.es";
     final nuevoProfe = Profesor(
-      id_profesor: DateTime.now().millisecondsSinceEpoch.toString(),
-      nombre: _userController.text.trim(),
-      asignatura: _asigController.text.trim(),
-      curso: _cursoController.text.trim(),
-      foto: "https://i.pravatar.cc/150?u=${_userController.text}",
-      departamento: _depController.text.trim(),
+      id: "user_${DateTime.now().millisecondsSinceEpoch}",
+      nombre: nombreConDominio,
+      asignatura: "Pendiente",
+      curso: "General",
+      foto: "https://i.pravatar.cc/150?u=$nombreConDominio",
+      departamento: "General",
       estadoAusente: false,
     );
-
     try {
       await context.read<AuthProvider>().register(nuevoProfe);
       _mensaje("¡Registro con éxito! Ahora inicia sesión.");
-      setState(() {
-        esModoRegistro = false;
-      });
+      setState(() => _esModoRegistro = false);
     } catch (e) {
       _mensaje("Error al registrar: $e", esError: true);
     }
   }
 
   @override
-  void dispose() {
-    _userController.dispose();
-    _cursoController.dispose();
-    _asigController.dispose();
-    _depController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Container(
-            width: 380,
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 20,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.school_rounded, size: 64, color: Color(0xFF6C63FF)),
-                const SizedBox(height: 16),
-                Text(
-                  esModoRegistro ? "Crear Nueva Cuenta" : "Acceso Docente",
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                TextField(
-                  controller: _userController,
-                  decoration: InputDecoration(
-                    labelText: "Nombre Completo",
-                    prefixIcon: const Icon(
-                      Icons.person_outline,
-                      color: Color(0xFF6C63FF),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                if (esModoRegistro) ...[
-                  TextField(
-                    controller: _asigController,
-                    decoration: InputDecoration(
-                      labelText: "Especialidad / Asignatura",
-                      prefixIcon: const Icon(
-                        Icons.school_outlined,
-                        color: Color(0xFF6C63FF),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _cursoController,
-                    decoration: InputDecoration(
-                      labelText: "Curso (ej. 2º ESO)",
-                      prefixIcon: const Icon(
-                        Icons.book_outlined,
-                        color: Color(0xFF6C63FF),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _depController.text.isEmpty
-                        ? 'General'
-                        : _depController.text,
-                    decoration: InputDecoration(
-                      labelText: "Departamento",
-                      prefixIcon: const Icon(
-                        Icons.business_center_outlined,
-                        color: Color(0xFF6C63FF),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    items: _departamentos.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(
-                          value,
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        setState(() => _depController.text = newValue);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                const SizedBox(height: 24),
-
-                if (authProvider.isLoading)
-                  const CircularProgressIndicator()
-                else ...[
-                  if (!esModoRegistro) ...[
-                    ElevatedButton(
-                      onPressed: _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6C63FF),
-                        minimumSize: const Size(double.infinity, 54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        "INICIAR SESIÓN",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => setState(() => esModoRegistro = true),
-                      child: const Text(
-                        "¿No tienes cuenta? Regístrate aquí",
-                        style: TextStyle(color: Color(0xFF6C63FF)),
-                      ),
-                    ),
-                  ] else ...[
-                    ElevatedButton(
-                      onPressed: _registrar,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        minimumSize: const Size(double.infinity, 54),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        "CONFIRMAR REGISTRO",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => setState(() => esModoRegistro = false),
-                      child: const Text(
-                        "Volver al inicio de sesión",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                  ],
-                ],
-              ],
+      body: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/login_bg.png'),
+                fit: BoxFit.cover,
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+              ),
             ),
           ),
-        ),
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(color: Colors.black.withOpacity(0.3)),
+          ),
+          LoginFormCard(
+            userController: _userController,
+            esModoRegistro: _esModoRegistro,
+            authProvider: authProvider,
+            onLogin: _login,
+            onRegister: _registrar,
+            onToggleModeToRegister: () => setState(() => _esModoRegistro = true),
+            onToggleModeToLogin: () => setState(() => _esModoRegistro = false),
+            onMensaje: (t, {esError = false}) {
+              _mensaje(t, esError: esError);
+              if (!esError) widget.onLoginSuccess();
+            },
+          ),
+          Positioned(
+            bottom: 30, left: 0, right: 0,
+            child: Center(
+              child: Text(
+                "Versión 2.0 • Diseñado para Centros Educativos",
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.3),
+                  fontSize: 10, letterSpacing: 1),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

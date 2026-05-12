@@ -19,10 +19,11 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
           .select('''
             dia_semana,
             id_tramo,
+            es_guardia,
             horario_tramo(texto, horario_inicio, horario_fin),
-            profesores!id_profesor(nombre),
-            Asignaturas!id_asignatura(nombre),
-            grupo!id_grupo(nombre)
+            profesores(nombre),
+            Asignaturas(nombre),
+            grupo(nombre)
           ''')
           .eq('id_aula', aulaId);
 
@@ -50,14 +51,12 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
         });
 
         final List<String> nombresDias = ['', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
-        if (dia < 0 || dia >= nombresDias.length) {
-          print("Aviso: dia_semana fuera de rango ($dia) en fila de tramo $tramoId");
-          continue;
+        if (dia >= 1 && dia < nombresDias.length) {
+          final String diaKey = nombresDias[dia];
+          tramos[tramoId]![diaKey] = asign;
+          tramos[tramoId]!['profesor'] = prof;
+          tramos[tramoId]!['grupo'] = grupo;
         }
-        final String diaKey = nombresDias[dia];
-        tramos[tramoId]![diaKey] = asign;
-        tramos[tramoId]!['profesor'] = prof;
-        tramos[tramoId]!['grupo'] = grupo;
       }
 
       final result = tramos.values.map((json) => HorarioAulaModel.fromJson(json)).toList();
@@ -65,106 +64,128 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
       return result;
 
     } catch (e) {
-      print("ERROR: $e");
+      debugPrint("ERROR getHorarioByAula: $e");
       return [];
     }
   }
 
   @override
   Future<List<HorarioClase>> getHorarioDetallado(int aulaId) async {
-    try {
-      final response = await supabase
-          .from('horario')
-          .select('''
-            dia_semana,
-            es_guardia,
-            profesores!id_profesor(nombre),
-            aulas!id_aula(nombre),
-            grupo!id_grupo(nombre),
-            Asignaturas!id_asignatura(nombre),
-            horario_tramo(texto, horario_fin, horario_inicio)
-          ''')
-          .eq('id_aula', aulaId);
+    final response = await supabase
+        .from('horario')
+        .select('''
+          id_horario:id,
+          dia_semana,
+          id_tramo,
+          es_guardia,
+          profesores(nombre),
+          aulas(nombre),
+          grupo(nombre),
+          Asignaturas(nombre),
+          horario_tramo(horario_fin, horario_inicio)
+        ''')
+        .eq('id_aula', aulaId);
 
-      final List rows = response as List;
-      return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
-    } catch (e) {
-      debugPrint('ERROR getHorarioDetallado: $e');
-      return [];
-    }
+    final List rows = response as List;
+    return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
   }
 
   @override
-  Future<List<HorarioClase>> getHorarioDetalladoByProfesor(int profesorId, {String? nombreFallback}) async {
-    const query = '''
-      dia_semana,
-      es_guardia,
-      profesores!id_profesor(nombre),
-      aulas!id_aula(nombre),
-      grupo!id_grupo(nombre),
-      Asignaturas!id_asignatura(nombre),
-      horario_tramo(texto, horario_fin, horario_inicio)
-    ''';
+  Future<List<HorarioClase>> getHorarioDetalladoByProfesor(int profesorId) async {
+    final results = await Future.wait([
+      supabase.from('horario').select('''
+        id_horario:id,
+        dia_semana,
+        id_tramo,
+        es_guardia,
+        profesores(nombre),
+        aulas(nombre),
+        grupo(nombre),
+        Asignaturas(nombre),
+        horario_tramo(horario_fin, horario_inicio)
+      ''').eq('id_profesor', profesorId),
+      supabase.from('profesores').select('nombre').eq('id_profesor', profesorId).limit(1),
+    ]);
+
+    final clases = (results[0] as List)
+        .map((json) => HorarioClaseModel.fromJson(json))
+        .toList();
 
     try {
-      final response = await supabase
-          .from('horario')
-          .select(query)
-          .eq('id_profesor', profesorId);
+      final profRows = results[1] as List;
+      if (profRows.isNotEmpty) {
+        final nombreProfesor = profRows.first['nombre'] as String? ?? '';
+        if (nombreProfesor.isNotEmpty) {
+          final guardiasResp = await supabase
+              .from('guardias')
+              .select()
+              .eq('profesorGuardia', nombreProfesor);
 
-      final List rows = response as List;
-      if (rows.isNotEmpty) {
-        return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
+          const dias = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+          final guardiasClases = (guardiasResp as List).map((json) {
+            final fecha = DateTime.tryParse(json['fecha']?.toString() ?? '');
+            if (fecha == null) return null;
+            final wd = fecha.weekday;
+            if (wd < 1 || wd > 5) return null;
+            return HorarioClaseModel(
+              id: 0,
+              profesor: json['profesorGuardia'] ?? '',
+              aula: json['aula'] ?? '',
+              grupo: json['grupo'] ?? '',
+              asignatura: 'GUARDIA',
+              dia: dias[wd],
+              inicio: json['horaInicio'] ?? '',
+              fin: json['horaFin'] ?? '',
+              esGuardia: true,
+            );
+          }).whereType<HorarioClaseModel>().toList();
+
+          return [...clases, ...guardiasClases];
+        }
       }
+    } catch (_) {}
 
-      // Fallback: el ID no tiene filas, buscamos por nombre similar
-      if (nombreFallback != null && nombreFallback.trim().isNotEmpty) {
-        final profResult = await supabase
-            .from('profesores')
-            .select('id_profesor')
-            .ilike('nombre', '%${nombreFallback.trim()}%');
-
-        final ids = (profResult as List)
-            .map((r) => r['id_profesor'] as int)
-            .where((id) => id != profesorId)
-            .toList();
-
-        if (ids.isEmpty) return [];
-
-        final fallback = await supabase
-            .from('horario')
-            .select(query)
-            .inFilter('id_profesor', ids);
-
-        return (fallback as List).map((json) => HorarioClaseModel.fromJson(json)).toList();
-      }
-
-      return [];
-    } catch (e) {
-      return [];
-    }
+    return clases;
   }
 
   @override
   Future<List<HorarioClase>> getHorarioDetalladoByGrupo(int grupoId) async {
-    try {
-      final response = await supabase
-          .from('horario')
-          .select('''
-            dia_semana,
-            es_guardia,
-            profesores!id_profesor(nombre),
-            aulas!id_aula(nombre),
-            grupo!id_grupo(nombre),
-            Asignaturas!id_asignatura(nombre),
-            horario_tramo(texto, horario_fin, horario_inicio)
-          ''')
-          .eq('id_grupo', grupoId);
+    final response = await supabase
+        .from('horario')
+        .select('''
+          id_horario:id,
+          dia_semana,
+          id_tramo,
+          es_guardia,
+          profesores(nombre),
+          aulas(nombre),
+          grupo(nombre),
+          Asignaturas(nombre),
+          horario_tramo(horario_fin, horario_inicio)
+        ''')
+        .eq('id_grupo', grupoId);
 
-      final List rows = response as List;
-      return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
-    } catch (e) {
-      return [];
-    }
+    final List rows = response as List;
+    return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
+  }
+
+  @override
+  Future<List<HorarioClase>> getAllHorariosDetallados() async {
+    final response = await supabase
+        .from('horario')
+        .select('''
+          id_horario:id,
+          dia_semana,
+          id_tramo,
+          es_guardia,
+          profesores(nombre),
+          aulas(nombre),
+          grupo(nombre),
+          Asignaturas(nombre),
+          horario_tramo(horario_fin, horario_inicio)
+        ''');
+
+    final List rows = response as List;
+    return rows.map((json) => HorarioClaseModel.fromJson(json)).toList();
   }
 }

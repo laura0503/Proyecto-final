@@ -15,45 +15,110 @@ class GuardiasDateSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final startOfWeek = fechaSeleccionada.subtract(Duration(days: fechaSeleccionada.weekday - 1));
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: () => onDateChanged(
-              fechaSeleccionada.subtract(const Duration(days: 1)),
-            ),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          Column(
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                DateFormat(
-                  'EEEE, d MMMM',
-                  'es',
-                ).format(fechaSeleccionada).toUpperCase(),
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  color: primaryColor,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    DateFormat('MMMM', 'es').format(fechaSeleccionada).toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: primaryColor,
+                    ),
+                  ),
+                  Text(
+                    "${fechaSeleccionada.year}",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey.withOpacity(0.6),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                "CURSO ${fechaSeleccionada.year}",
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                  letterSpacing: 1.2,
-                ),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => onDateChanged(fechaSeleccionada.subtract(const Duration(days: 7))),
+                    icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                    color: Colors.grey,
+                  ),
+                  IconButton(
+                    onPressed: () => onDateChanged(fechaSeleccionada.add(const Duration(days: 7))),
+                    icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                    color: Colors.grey,
+                  ),
+                ],
               ),
             ],
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: () => onDateChanged(
-              fechaSeleccionada.add(const Duration(days: 1)),
-            ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(7, (index) {
+              final date = startOfWeek.add(Duration(days: index));
+              final isSelected = date.day == fechaSeleccionada.day &&
+                  date.month == fechaSeleccionada.month &&
+                  date.year == fechaSeleccionada.year;
+              final isToday = DateTime.now().day == date.day &&
+                  DateTime.now().month == date.month &&
+                  DateTime.now().year == date.year;
+
+              return GestureDetector(
+                onTap: () => onDateChanged(date),
+                child: Container(
+                  width: 38,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? primaryColor : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        DateFormat('E', 'es').format(date).substring(0, 3).toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : Colors.grey[400],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${date.day}",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: isSelected ? Colors.white : (isToday ? primaryColor : Colors.black87),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
           ),
         ],
       ),

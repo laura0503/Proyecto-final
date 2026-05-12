@@ -21,53 +21,47 @@ class AulaHorarioScreen extends StatefulWidget {
 }
 
 class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
-  late Future<List<HorarioClase>> _horarioFuture;
+  late Future<List<HorarioClase>> _futureHorario;
+
+  String get _titulo => widget.aula != null
+      ? 'Aula ${widget.aula!.nombre}'
+      : (widget.profesor != null ? widget.profesor!.nombre : 'Grupo ${widget.grupo!.nombre}');
+
+  String get _subtitulo => widget.aula != null
+      ? 'Dept: ${widget.aula!.departamento} • Planta 1'
+      : (widget.profesor != null
+          ? 'Dept: ${widget.profesor!.departamento}'
+          : 'Horario de Grupo');
+
+  int get _id => widget.aula != null
+      ? widget.aula!.id
+      : (widget.profesor != null
+          ? (widget.profesor!.idProfesor ?? int.tryParse(widget.profesor!.id) ?? 0)
+          : (widget.grupo?.id ?? 0));
 
   @override
   void initState() {
     super.initState();
-    _cargarHorario();
+    _cargar();
   }
 
-  void _cargarHorario() {
-    final int id = widget.aula != null
-        ? widget.aula!.id
-        : (widget.profesor != null
-              ? (int.tryParse(widget.profesor!.id_profesor) ?? 0)
-              : widget.grupo!.id);
-
+  void _cargar() {
     setState(() {
-      _horarioFuture = widget.aula != null
-          ? Provider.of<GetHorarioAulaDetalladoUseCase>(
-              context,
-              listen: false,
-            ).execute(id)
-          : (widget.profesor != null
-                ? Provider.of<GetHorarioProfesorDetalladoUseCase>(
-                    context,
-                    listen: false,
-                  ).execute(id, nombreFallback: widget.profesor!.nombre)
-                : Provider.of<GetHorarioGrupoDetalladoUseCase>(
-                    context,
-                    listen: false,
-                  ).execute(id));
+      if (widget.aula != null) {
+        _futureHorario =
+            context.read<GetHorarioAulaDetalladoUseCase>().execute(_id);
+      } else if (widget.profesor != null) {
+        _futureHorario =
+            context.read<GetHorarioOfesorDetalladoUseCase>().execute(_id);
+      } else if (widget.grupo != null) {
+        _futureHorario =
+            context.read<GetHorarioGrupoDetalladoUseCase>().execute(_id);
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final String screenTitle = widget.aula != null
-        ? "Aula ${widget.aula!.nombre}"
-        : (widget.profesor != null
-              ? widget.profesor!.nombre
-              : "Grupo ${widget.grupo!.nombre}");
-
-    final String subtitulo = widget.aula != null
-        ? "Dept: ${widget.aula!.departamento} • Planta 1"
-        : (widget.profesor != null
-              ? "Dept: ${widget.profesor!.departamento} • ${widget.profesor!.asignatura}"
-              : "Horario de Grupo");
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -81,7 +75,7 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              screenTitle,
+              _titulo,
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -89,31 +83,40 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
               ),
             ),
             Text(
-              subtitulo,
+              _subtitulo,
               style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
             ),
           ],
         ),
       ),
       body: FutureBuilder<List<HorarioClase>>(
-        future: _horarioFuture,
+        future: _futureHorario,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          } else if (!snapshot.hasData) {
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: SelectableText(
+                  'ERROR:\n${snapshot.error}',
+                  style: const TextStyle(color: Colors.red, fontSize: 14),
+                ),
+              ),
+            );
+          }
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final horarios = snapshot.data!;
-          if (horarios.isEmpty) {
-            return _buildSinHorario(screenTitle);
+          final data = snapshot.data!;
+          if (data.isEmpty) {
+            return _buildSinHorario(_titulo);
           }
           return CalendarioAulaWidget(
-            titulo: screenTitle,
-            horario: horarios,
-            mostrarGuardia: widget.profesor != null,
+            titulo: _titulo,
+            horario: data,
           );
         },
       ),
@@ -128,7 +131,7 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
           Container(
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: const Color(0xFF6366F1).withValues(alpha: 0.08),
+              color: const Color(0xFF6366F1).withOpacity(0.08),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -148,7 +151,7 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            "Este docente no tiene horario asignado",
+            "Sin horario asignado actualmente",
             style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 4),

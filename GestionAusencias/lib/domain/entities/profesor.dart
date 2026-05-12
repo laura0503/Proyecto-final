@@ -1,5 +1,6 @@
 class Profesor {
-  final String id_profesor;
+  final String id;
+  final int? idProfesor; // id_profesor entero de BD, usado como FK en horario
   final String nombre;
   final String asignatura;
   final String curso;
@@ -9,11 +10,15 @@ class Profesor {
   final String? tutoria;
   final String? horarioEntrada;
   final String? horarioSalida;
-  final String? ubicacionActual; // Nueva: Aula donde está ahora
-  final String? estadoActual; // Nueva: "En clase", "Disponible", etc.
+  final String? ubicacionActual;
+  final String? estadoActual;
+  final double karma;
+  final bool esGuardia;
+  final String rol; // 'admin', 'directiva', 'profesor'
 
   const Profesor({
-    required this.id_profesor,
+    required this.id,
+    this.idProfesor,
     required this.nombre,
     required this.asignatura,
     required this.curso,
@@ -25,10 +30,17 @@ class Profesor {
     this.horarioSalida,
     this.ubicacionActual,
     this.estadoActual,
+    this.karma = 0.0,
+    this.esGuardia = false,
+    this.rol = 'profesor',
   });
+
+  // Helper para saber si es parte de la directiva o admin
+  bool get isAdmin => rol == 'admin' || rol == 'directiva';
 
   Profesor copyWith({
     String? id,
+    int? idProfesor,
     String? nombre,
     String? asignatura,
     String? curso,
@@ -40,9 +52,13 @@ class Profesor {
     String? horarioSalida,
     String? ubicacionActual,
     String? estadoActual,
+    double? karma,
+    bool? esGuardia,
+    String? rol,
   }) {
     return Profesor(
-      id_profesor: id ?? this.id_profesor,
+      id: id ?? this.id,
+      idProfesor: idProfesor ?? this.idProfesor,
       nombre: nombre ?? this.nombre,
       asignatura: asignatura ?? this.asignatura,
       curso: curso ?? this.curso,
@@ -54,6 +70,9 @@ class Profesor {
       horarioSalida: horarioSalida ?? this.horarioSalida,
       ubicacionActual: ubicacionActual ?? this.ubicacionActual,
       estadoActual: estadoActual ?? this.estadoActual,
+      karma: karma ?? this.karma,
+      esGuardia: esGuardia ?? this.esGuardia,
+      rol: rol ?? this.rol,
     );
   }
 }

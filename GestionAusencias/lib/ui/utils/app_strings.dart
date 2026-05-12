@@ -52,6 +52,11 @@ class AppStrings {
       'absent': 'Ausente',
       'present': 'Presente',
       'logout': 'Cerrar Sesión',
+      'grupos': 'Grupos',
+      'asignaturas': 'Asignaturas',
+      'aulas': 'Aulas',
+      'gestion_prof': 'Gestión Prof.',
+      'importar_csv': 'Importar CSV',
     },
     'en': {
       'dashboard_title': 'San José Dashboard',
@@ -103,6 +108,11 @@ class AppStrings {
       'absent': 'Absent',
       'present': 'Present',
       'logout': 'Logout',
+      'grupos': 'Groups',
+      'asignaturas': 'Subjects',
+      'aulas': 'Rooms',
+      'gestion_prof': 'Staff Mgmt',
+      'importar_csv': 'Import CSV',
     },
   };
 

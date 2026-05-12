@@ -6,6 +6,7 @@ import 'package:gestion_ausencias/domain/repositories/profesor_repository.dart';
 
 class ProfesorRepositoryImpl implements ProfesorRepository {
   final ProfesorRemoteDataSource remoteDataSource;
+  Profesor? _sesionEnMemoria; // Nueva variable para recordar quién ha entrado
 
   ProfesorRepositoryImpl({required this.remoteDataSource});
 
@@ -16,18 +17,17 @@ class ProfesorRepositoryImpl implements ProfesorRepository {
 
   @override
   Future<Profesor?> obtenerSesionActual() async {
-    // Logic for local session removed as per user request
-    return null;
+    return _sesionEnMemoria;
   }
 
   @override
   Future<void> guardarSesionActual(Profesor profesor) async {
-    // Logic for local session removed as per user request
+    _sesionEnMemoria = profesor;
   }
 
   @override
   Future<void> cerrarSesion() async {
-    // Logic for local session removed as per user request
+    _sesionEnMemoria = null;
   }
 
   @override
@@ -48,11 +48,13 @@ class ProfesorRepositoryImpl implements ProfesorRepository {
   @override
   Future<bool> verificarLogin(String nombre) async {
     final profesores = await obtenerProfesores();
+    final nombreLimpio = nombre.trim().toLowerCase();
+    
     try {
       final profesor = profesores.firstWhere(
-        (p) => p.nombre == nombre,
+        (p) => p.nombre.trim().toLowerCase() == nombreLimpio,
       );
-      await guardarSesionActual(profesor);
+      _sesionEnMemoria = profesor; // Guardamos en memoria
       return true;
     } catch (e) {
       return false;
@@ -68,5 +70,18 @@ class ProfesorRepositoryImpl implements ProfesorRepository {
   Future<String> obtenerTodosComoJson() async {
     final list = await obtenerProfesores();
     return list.map((e) => ProfesorModel.fromEntity(e).toJson()).toString();
+  }
+
+  @override
+  Future<void> actualizarEstadoGuardia(
+    String id, {
+    required bool esGuardia,
+    double? karmaExtra,
+  }) async {
+    await remoteDataSource.actualizarEstadoGuardia(
+      id,
+      esGuardia: esGuardia,
+      karmaExtra: karmaExtra,
+    );
   }
 }

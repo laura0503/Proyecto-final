@@ -11,6 +11,7 @@ class GuardiaUIModel {
   final String profesorGuardiaAsignado;
   final IconData estadoIcono;
   final Color estadoColor;
+  final String aula;
   final String horarioSlot;
   final Guardia entidadOriginal;
 
@@ -22,6 +23,7 @@ class GuardiaUIModel {
     required this.profesorGuardiaAsignado,
     required this.estadoIcono,
     required this.estadoColor,
+    required this.aula,
     required this.horarioSlot,
     required this.entidadOriginal,
   });
@@ -39,6 +41,7 @@ class GuardiaUIAdapter {
       profesorGuardiaAsignado: guardia.profesorGuardia ?? "Sin asignar",
       estadoIcono: guardia.confirmada ? Icons.check_circle : Icons.pending,
       estadoColor: guardia.confirmada ? Colors.green : Colors.orange,
+      aula: guardia.aula.isEmpty ? "Sin Aula" : guardia.aula,
       horarioSlot: '${guardia.horaInicio} - ${guardia.horaFin}',
       entidadOriginal: guardia,
     );

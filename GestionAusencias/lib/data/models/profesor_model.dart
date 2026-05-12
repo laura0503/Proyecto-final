@@ -2,7 +2,8 @@ import 'package:gestion_ausencias/domain/entities/profesor.dart';
 
 class ProfesorModel extends Profesor {
   const ProfesorModel({
-    required super.id_profesor,
+    required super.id,
+    super.idProfesor,
     required super.nombre,
     required super.asignatura,
     required super.curso,
@@ -14,28 +15,36 @@ class ProfesorModel extends Profesor {
     super.horarioSalida,
     super.ubicacionActual,
     super.estadoActual,
+    super.karma = 0.0,
+    super.esGuardia = false,
+    super.rol = 'profesor',
   });
 
   factory ProfesorModel.fromJson(Map<String, dynamic> json) {
     return ProfesorModel(
-      id_profesor: json['id']?.toString() ?? '',
+      id: json['id']?.toString() ?? '',
+      idProfesor: json['id_profesor'] as int?,
       nombre: json['nombre'] ?? '',
-      asignatura: json['asignatura'] ?? '',
-      curso: json['curso'] ?? '',
+      asignatura: json['asignatura'] ?? '', 
+      curso: json['curso'] ?? '',           
       foto: json['foto'] ?? '',
       departamento: json['departamento'] ?? 'General',
-      estadoAusente: json['estadoAusente'] ?? false,
+      estadoAusente: json['estado_ausente'] ?? false,
       tutoria: json['tutoria'],
       horarioEntrada: json['horario_entrada']?.toString(),
       horarioSalida: json['horario_salida']?.toString(),
       ubicacionActual: json['ubicacion_actual']?.toString(),
       estadoActual: json['estado_actual']?.toString(),
+      karma: (json['karma'] ?? 0).toDouble(),
+      esGuardia: json['es_guardia'] as bool? ?? false,
+      rol: json['rol']?.toString() ?? 'profesor',
     );
   }
 
   factory ProfesorModel.fromEntity(Profesor profesor) {
     return ProfesorModel(
-      id_profesor: profesor.id_profesor,
+      id: profesor.id,
+      idProfesor: profesor.idProfesor,
       nombre: profesor.nombre,
       asignatura: profesor.asignatura,
       curso: profesor.curso,
@@ -47,23 +56,20 @@ class ProfesorModel extends Profesor {
       horarioSalida: profesor.horarioSalida,
       ubicacionActual: profesor.ubicacionActual,
       estadoActual: profesor.estadoActual,
+      karma: profesor.karma,
+      esGuardia: profesor.esGuardia,
+      rol: profesor.rol,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id_profesor,
+      'id': id,
+      if (idProfesor != null) 'id_profesor': idProfesor,
       'nombre': nombre,
-      'asignatura': asignatura,
-      'curso': curso,
-      'foto': foto,
-      'departamento': departamento,
-      'estadoAusente': estadoAusente,
-      'tutoria': tutoria,
-      'horario_entrada': horarioEntrada,
-      'horario_salida': horarioSalida,
-      'ubicacion_actual': ubicacionActual,
-      'estado_actual': estadoActual,
+      'rol': rol,
     };
   }
+
+  Map<String, dynamic> toMap() => toJson();
 }

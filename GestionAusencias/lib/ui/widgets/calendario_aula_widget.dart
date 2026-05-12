@@ -14,15 +14,13 @@ class CalendarioAulaWidget extends StatelessWidget {
     required this.horario,
     required this.titulo,
     this.onCellTap,
-    this.mostrarGuardia = false,
+    this.mostrarGuardia = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Definimos los días de la semana
     final dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
     
-    // Plantilla estándar de los tramos
     final tramosMap = <String, String>{
       '16:00:00': '17:00:00',
       '17:00:00': '18:00:00',
@@ -31,40 +29,37 @@ class CalendarioAulaWidget extends StatelessWidget {
       '19:15:00': '20:10:00',
       '20:10:00': '21:10:00',
       '21:10:00': '21:45:00',
-    }; 
-    
+    };
+
     for (var h in horario) {
-      String inicio = h.inicio;
-      String fin = h.fin;
-      if (inicio.length == 5) inicio = '$inicio:00';
-      if (fin.length == 5) fin = '$fin:00';
-      tramosMap[inicio] = fin;
+      tramosMap[_normalizeTime(h.inicio)] = _normalizeTime(h.fin);
     }
     final tramosSorted = tramosMap.keys.toList()..sort();
 
     final matrix = <String, Map<String, HorarioClase>>{};
     for (var h in horario) {
-      String inicio = h.inicio;
-      if (inicio.length == 5) inicio = '$inicio:00';
+      final inicio = _normalizeTime(h.inicio);
       matrix.putIfAbsent(inicio, () => {});
       if (matrix[inicio]!.containsKey(h.dia)) {
         final existente = matrix[inicio]![h.dia]!;
-        if (!existente.grupo.contains(h.grupo)) {
-            matrix[inicio]![h.dia] = HorarioClase(
-              profesor: existente.profesor,
-              aula: existente.aula,
-              grupo: '${existente.grupo}\n${h.grupo}',
-              asignatura: existente.asignatura,
-              dia: existente.dia,
-              inicio: existente.inicio,
-              fin: existente.fin,
-            );
-        }
+        matrix[inicio]![h.dia] = HorarioClase(
+          id: existente.id,
+          profesor: existente.profesor,
+          aula: existente.aula,
+          grupo: existente.grupo.contains(h.grupo) ? existente.grupo : '${existente.grupo}\n${h.grupo}',
+          asignatura: (existente.asignatura == h.asignatura) ? existente.asignatura : '${existente.asignatura} / ${h.asignatura}',
+          dia: existente.dia,
+          inicio: existente.inicio,
+          fin: existente.fin,
+          esGuardia: existente.esGuardia || h.esGuardia,
+          nota: existente.nota,
+        );
       } else {
         matrix[inicio]![h.dia] = h;
       }
     }
 
+    // Estadísticas para limpiar datos sucios del CSV
     String commonGroup = "";
     final groupCounts = <String, int>{};
     for (var h in horario) {
@@ -109,84 +104,60 @@ class CalendarioAulaWidget extends StatelessWidget {
             padding: const EdgeInsets.all(24.0),
             child: Column(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  child: Text(
-                    'Horario - $titulo',
-                    style: const TextStyle(
-                      fontSize: 24, 
-                      fontWeight: FontWeight.w800, 
-                      color: Colors.black87,
-                      letterSpacing: 1.2
-                    ),
+                Text(
+                  'Horario - $titulo',
+                  style: const TextStyle(
+                    fontSize: 24, 
+                    fontWeight: FontWeight.w800, 
+                    color: Colors.black87,
+                    letterSpacing: 1.2
                   ),
                 ),
                 const SizedBox(height: 24),
                 Expanded(
-                  child: Container(
-                    alignment: Alignment.topCenter,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
                     child: SingleChildScrollView(
-                      scrollDirection: Axis.vertical,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          headingRowHeight: 56.0,
-                          dataRowMaxHeight: 96.0,
-                          dataRowMinHeight: 70.0,
-                          horizontalMargin: 16,
-                          columnSpacing: 40,
-                          dividerThickness: 0, 
-                          headingRowColor: WidgetStateProperty.resolveWith<Color?>(
-                            (Set<WidgetState> states) => Colors.transparent 
-                          ),
-                          border: TableBorder(
-                            horizontalInside: BorderSide(color: Colors.black.withOpacity(0.03), width: 0.5),
-                            verticalInside: BorderSide(color: Colors.black.withOpacity(0.03), width: 0.5),
-                          ),
-                          columns: [
-                            DataColumn(label: Expanded(child: Text('Tramo Horario', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)))),
-                            for (var dia in dias)
-                              DataColumn(label: Expanded(child: Text(dia, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)))),
-                          ],
-                          rows: tramosSorted.map((tramo) {
-                            final isRecreo = tramo == '19:00:00';
-                            return DataRow(
-                              color: WidgetStateProperty.resolveWith<Color?>(
-                                (Set<WidgetState> states) => isRecreo ? Colors.orange.withOpacity(0.04) : Colors.transparent
+                      scrollDirection: Axis.horizontal,
+                      child: DataTable(
+                        headingRowHeight: 56.0,
+                        dataRowMaxHeight: 110.0,
+                        dataRowMinHeight: 80.0,
+                        horizontalMargin: 16,
+                        columnSpacing: 20,
+                        dividerThickness: 0, 
+                        columns: [
+                          const DataColumn(label: Text('Tramo', style: TextStyle(fontWeight: FontWeight.bold))),
+                          for (var dia in dias)
+                            DataColumn(label: Text(dia, style: const TextStyle(fontWeight: FontWeight.bold))),
+                        ],
+                        rows: tramosSorted.map((tramo) {
+                          final isRecreo = tramo == '19:00:00';
+                          return DataRow(
+                            color: WidgetStateProperty.resolveWith<Color?>(
+                              (states) => isRecreo ? Colors.orange.withOpacity(0.04) : Colors.transparent
+                            ),
+                            cells: [
+                              DataCell(
+                                Center(
+                                  child: Text(
+                                    '${tramo.substring(0,5)} - ${tramosMap[tramo]?.substring(0,5)}', 
+                                    style: TextStyle(fontWeight: isRecreo ? FontWeight.bold : FontWeight.w600, color: Colors.black54)
+                                  )
+                                )
                               ),
-                              cells: [
+                              for (var i = 0; i < dias.length; i++)
                                 DataCell(
                                   Center(
-                                    child: Text(
-                                      '${tramo.substring(0,5)} - ${tramosMap[tramo]?.substring(0,5)}', 
-                                      style: TextStyle(
-                                        fontWeight: isRecreo ? FontWeight.bold : FontWeight.w600, 
-                                        color: Colors.black54, 
-                                        fontSize: 13,
-                                      )
-                                    )
-                                  )
-                                ),
-                                for (var i = 0; i < dias.length; i++)
-                                  DataCell(
-                                    Center(
-                                      child: isRecreo 
-                                        ? (i == 2 // Miércoles
-                                            ? Text('RECREO', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[800], letterSpacing: 4.0))
-                                            : const SizedBox.shrink())
-                                        : InkWell(
-                                            onTap: onCellTap != null 
-                                              ? () => onCellTap!(dias[i], tramo, matrix[tramo]?[dias[i]]) 
-                                              : null,
-                                            borderRadius: BorderRadius.circular(16),
-                                            child: _buildCell(matrix[tramo]?[dias[i]], isRecreo, commonGroup, correctTeachers),
-                                          )
-                                    )
+                                    child: isRecreo
+                                      ? (i == 2 ? Text('RECREO', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[800], letterSpacing: 4.0)) : const SizedBox.shrink())
+                                      : _buildCell(matrix[tramo]?[dias[i]], isRecreo, commonGroup, correctTeachers),
                                   ),
-                              ]
-                            );
-                          }).toList(),
-                        ),
+                                  onTap: onCellTap != null ? () => onCellTap!(dias[i], tramo, matrix[tramo]?[dias[i]]) : null,
+                                ),
+                            ]
+                          );
+                        }).toList(),
                       ),
                     ),
                   ),
@@ -197,6 +168,14 @@ class CalendarioAulaWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _normalizeTime(String t) {
+    if (t.isEmpty) return '00:00:00';
+    final p = t.split(':');
+    final h = p[0].padLeft(2, '0');
+    final m = (p.length > 1 ? p[1] : '00').padLeft(2, '0');
+    return '$h:$m:00';
   }
 
   String _formatProfesorName(String raw) {
@@ -215,7 +194,7 @@ class CalendarioAulaWidget extends StatelessWidget {
   Widget _buildCell(HorarioClase? clase, bool isRecreo, String defaultGroup, Map<String, String> correctTeachers) {
     if (clase == null) {
       if (isRecreo) return const SizedBox.shrink();
-      return const Text("Libre", style: TextStyle(color: Colors.black26, fontStyle: FontStyle.italic, fontSize: 12));
+      return const Text('Libre', style: TextStyle(color: Colors.black26, fontStyle: FontStyle.italic, fontSize: 12));
     }
 
     if (clase.esGuardia && mostrarGuardia) {
@@ -223,21 +202,28 @@ class CalendarioAulaWidget extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
         width: 150,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF3E0).withValues(alpha: 0.85),
+          color: Colors.amber.withOpacity(0.2),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+          border: Border.all(color: Colors.amber[700]!, width: 2),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.shield_outlined, size: 18, color: Colors.orange),
+            Icon(Icons.security_rounded, color: Colors.amber[800], size: 20),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'GUARDIA',
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.orange, letterSpacing: 0.5),
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.amber[900], letterSpacing: 1),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _formatProfesorName(clase.profesor),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 10, color: Colors.amber[900]?.withOpacity(0.8)),
             ),
           ],
         ),
@@ -246,7 +232,7 @@ class CalendarioAulaWidget extends StatelessWidget {
 
     String displayGroup = clase.grupo;
     if (displayGroup.contains(';') || displayGroup.toLowerCase().contains('recreo') || displayGroup.length > 45) {
-      displayGroup = defaultGroup.isNotEmpty ? defaultGroup : "Asignado";
+      displayGroup = defaultGroup.isNotEmpty ? defaultGroup : 'Asignado';
     }
 
     String displayTeacher = clase.profesor;
@@ -258,7 +244,7 @@ class CalendarioAulaWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       width: 150,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.6),
+        color: Colors.white.withOpacity(0.6),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -271,13 +257,13 @@ class CalendarioAulaWidget extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.black87)
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.black87),
           ),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: Colors.white.withOpacity(0.9),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
@@ -285,7 +271,7 @@ class CalendarioAulaWidget extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.bold)
+              style: const TextStyle(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 4),
@@ -294,7 +280,7 @@ class CalendarioAulaWidget extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, color: Colors.black54)
+            style: const TextStyle(fontSize: 11, color: Colors.black54),
           ),
         ],
       ),
