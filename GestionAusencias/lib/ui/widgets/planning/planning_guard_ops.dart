@@ -60,10 +60,27 @@ Future<List<Map<String, dynamic>>> fetchGuardiasParaTramo(
       }
     }
 
-    return todosGuardias.where((g) {
+    final List<Map<String, dynamic>> aptos = [];
+    for (var g in todosGuardias) {
       final pid = g['id_profesor'] as int?;
-      return pid != null && !yaAsignados.contains(pid);
-    }).toList();
+      if (pid == null || yaAsignados.contains(pid)) continue;
+
+      // REGLA: No puede tener una clase lectiva en el mismo tramo
+      final tieneClase = await supabase
+          .from('horario')
+          .select('id')
+          .eq('id_profesor', pid)
+          .eq('id_tramo', idTramo)
+          .eq('dia_semana', diaSemana)
+          .eq('es_guardia', false)
+          .maybeSingle();
+      
+      if (tieneClase == null) {
+        aptos.add(g);
+      }
+    }
+
+    return aptos;
   } catch (e) {
     debugPrint("Error cargando guardias del tramo: $e");
     return [];
@@ -94,7 +111,6 @@ Future<void> planningAsignarGuardia(
       await supabase.from('sustitucion').insert({
         'id_ausencia': ausencia.id,
         'id_profesor_sustituto': guardProfesorId,
-        'puntos_karma': 1.0,
       });
     }
 

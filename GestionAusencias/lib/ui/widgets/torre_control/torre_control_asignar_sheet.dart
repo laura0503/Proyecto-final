@@ -8,7 +8,15 @@ Future<void> showAsignarGuardiaSheet(
   VoidCallback onAsignado,
 ) async {
   final supabase = Supabase.instance.client;
-  final hoy = DateTime.now();
+  final hoyReal = DateTime.now();
+  // OVERRIDE TEMPORAL PARA PRUEBAS (Permitir acceso 24/7 y fines de semana)
+  DateTime hoy = hoyReal;
+  if (hoyReal.weekday > 5 || hoyReal.hour > 20 || hoyReal.hour < 8) {
+    // Si es fin de semana o noche, simulamos que es LUNES (weekday 1)
+    if (hoyReal.weekday > 5) {
+      hoy = hoyReal.subtract(Duration(days: hoyReal.weekday - 1));
+    }
+  }
   List<Map<String, dynamic>> guardasDisponibles = [];
 
   if (slot.idTramo != null) {
@@ -121,7 +129,6 @@ Future<void> _asignarProfesor(
       await supabase.from('sustitucion').insert({
         'id_ausencia': ausenciaId,
         'id_profesor_sustituto': profId,
-        'puntos_karma': 1.0,
       });
     }
     messenger.showSnackBar(

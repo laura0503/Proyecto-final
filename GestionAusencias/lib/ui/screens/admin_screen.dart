@@ -110,16 +110,6 @@ class _AdminScreenState extends State<AdminScreen> {
                                       });
                                     },
                                   ),
-                                  _buildSidebarItem(
-                                    icon: Icons.upload_file_rounded,
-                                    text: AppStrings.get(context, 'importar_csv'),
-                                    isSelected: _selectedSection == 'Importar',
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedSection = 'Importar';
-                                      });
-                                    },
-                                  ),
                             ],
                           ),
                         ),
@@ -177,7 +167,6 @@ class _AdminScreenState extends State<AdminScreen> {
     return switch (_selectedSection) {
       'GestionProf'  => AdminProfesoradoSection(isDark: isDark),
       'Horarios'     => HorariosSection(isDark: isDark),
-      'Importar'     => ImportarHorariosSection(isDark: isDark),
       _              => AdminProfesoradoSection(isDark: isDark),
     };
   }

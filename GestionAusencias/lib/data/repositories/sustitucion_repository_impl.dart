@@ -47,8 +47,7 @@ class SustitucionRepositoryImpl implements SustitucionRepository {
       // O caemos en la fecha de la ausencia para registros viejos
       final results = await Future.wait([
         guardiasQuery.gte('fecha', dateIni).lte('fecha', dateFin),
-        sustitucionesQuery.or('fecha_sustitucion.gte.$dateIni, ausencia.fecha.gte.$dateIni')
-                          .or('fecha_sustitucion.lte.$dateFin, ausencia.fecha.lte.$dateFin'),
+        sustitucionesQuery.gte('ausencia.fecha', dateIni).lte('ausencia.fecha', dateFin),
       ]);
 
       final guardiasAntiguas = _mapGuardias(results[0] as List, profesorNombre);
@@ -89,8 +88,7 @@ class SustitucionRepositoryImpl implements SustitucionRepository {
       final h = ausenciaJson['horario'];
       final t = h['horario_tramo'] ?? {};
       
-      // PRIORIDAD: fecha_sustitucion (nueva) > ausencia.fecha (vieja)
-      final fechaStr = json['fecha_sustitucion'] ?? ausenciaJson['fecha'];
+      final fechaStr = ausenciaJson['fecha'];
       final fechaG = DateTime.parse(fechaStr as String);
 
       return HorarioClase(

@@ -63,62 +63,39 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1E293B)),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _titulo,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B),
-              ),
-            ),
-            Text(
-              _subtitulo,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-            ),
-          ],
-        ),
-      ),
-      body: FutureBuilder<List<HorarioClase>>(
-        future: _futureHorario,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: SelectableText(
-                  'ERROR:\n${snapshot.error}',
-                  style: const TextStyle(color: Colors.red, fontSize: 14),
+      backgroundColor: const Color(0xFFF1F5F9), // Fondo Slate claro como en la imagen
+      body: SafeArea(
+        child: FutureBuilder<List<HorarioClase>>(
+          future: _futureHorario,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: SelectableText(
+                    'ERROR:\n${snapshot.error}',
+                    style: const TextStyle(color: Colors.red, fontSize: 14),
+                  ),
                 ),
-              ),
-            );
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+              );
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final data = snapshot.data!;
-          if (data.isEmpty) {
-            return _buildSinHorario(_titulo);
-          }
-          return CalendarioAulaWidget(
-            titulo: _titulo,
-            horario: data,
-          );
-        },
+            final data = snapshot.data!;
+            if (data.isEmpty) {
+              return _buildSinHorario(_titulo);
+            }
+            return CalendarioAulaWidget(
+              titulo: _titulo,
+              horario: data,
+            );
+          },
+        ),
       ),
     );
   }

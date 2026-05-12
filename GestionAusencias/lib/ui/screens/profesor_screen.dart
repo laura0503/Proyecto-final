@@ -6,8 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_ocupados_usecase.dart';
-import 'package:gestion_ausencias/domain/usecases/exportar_profesores_usecase.dart';
-import 'package:gestion_ausencias/domain/usecases/importar_profesores_usecase.dart';
 import '../widgets/profesores/profesor_card.dart';
 import '../adapters/profesor_ui_adapter.dart';
 import '../../core/layout/app_breakpoints.dart';
@@ -63,7 +61,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
         final res = await supabase
             .from('horario')
             .select('id_profesor, horario_tramo!id_tramo(horario_inicio)')
-            .eq('dia_semana', dia) // Corregido de 'dia' a 'dia_semana'
+            .eq('dia_semana', dia) 
             .neq('es_guardia', true);
             
         final Map<int, List<String>> horariosMap = {};
@@ -112,8 +110,6 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
           children: [
             ProfesoresScreenHeader(
               onSearch: (val) => setState(() => _query = val),
-              onCopy: _copiarDatos,
-              onPaste: _pegarDatos,
             ),
             ProfesoresFilterTabs(
               filtroEstado: _filtroEstado,
@@ -128,10 +124,10 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: context.responsive(
-                                mobile: 2, tablet: 4, desktop: 6),
-                            crossAxisSpacing: 15, 
-                            mainAxisSpacing: 15,
-                            childAspectRatio: 0.65,
+                                mobile: 3, tablet: 6, desktop: 10),
+                            crossAxisSpacing: 10, 
+                            mainAxisSpacing: 10,
+                            childAspectRatio: 0.85,
                           ),
                           itemCount: _profesoresFiltrados.length,
                           itemBuilder: (context, index) {
@@ -149,31 +145,6 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _copiarDatos() async {
-    final exportarUseCase = context.read<ExportarProfesoresUseCase>();
-    try {
-      final json = await exportarUseCase.execute();
-      await Clipboard.setData(ClipboardData(text: json));
-      if (mounted) _mostrarNotificacion("¡Datos copiados al portapapeles!", Colors.green);
-    } catch (e) {
-      if (mounted) _mostrarNotificacion("Error al copiar datos", Colors.red);
-    }
-  }
-
-  Future<void> _pegarDatos() async {
-    final importarUseCase = context.read<ImportarProfesoresUseCase>();
-    try {
-      final data = await Clipboard.getData(Clipboard.kTextPlain);
-      if (data != null && data.text != null) {
-        await importarUseCase.execute(data.text!);
-        await _cargarProfesores();
-        if (mounted) _mostrarNotificacion("¡Datos sincronizados con éxito!", Colors.blue);
-      }
-    } catch (e) {
-      if (mounted) _mostrarNotificacion("Error: Datos no válidos", Colors.red);
-    }
   }
 
   void _mostrarNotificacion(String msg, Color color) {

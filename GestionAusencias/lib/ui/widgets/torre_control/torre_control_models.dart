@@ -8,6 +8,7 @@ class SlotMonitor {
   final String asignatura;
   final String profesorAusente;
   final String tipo;
+  final String? tipoDetalle; // Nuevo: Para colores y estados específicos
   final String? sustitutoNombre;
   final bool esActual;
   final bool esPasado;
@@ -23,6 +24,7 @@ class SlotMonitor {
     required this.asignatura,
     required this.profesorAusente,
     required this.tipo,
+    this.tipoDetalle,
     this.sustitutoNombre,
     this.esActual = false,
     this.esPasado = false,

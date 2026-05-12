@@ -76,30 +76,47 @@ class GestionRow extends StatelessWidget {
   }
 
   Widget _buildProfesorAusente(bool isPast) {
-    Color typeColor = Colors.grey;
-    String typeText = slot.tipo.toUpperCase();
-    
-    if (typeText.contains("MÉDICA") || typeText.contains("MALO")) {
-      typeColor = const Color(0xFFF59E0B); // Ambar
-    } else if (typeText.contains("VACACIONES")) {
-      typeColor = const Color(0xFF0D9488); // Teal
-    } else if (typeText.contains("PROPIOS")) {
-      typeColor = const Color(0xFF4F46E5); // Indigo
-    } else if (typeText.contains("INDISPOSICIÓN")) {
-      typeColor = const Color(0xFFE11D48); // Rosa
+    Color statusColor = const Color(0xFF64748B); // Slate por defecto
+    String statusLabel = "CRÍTICA";
+
+    if (slot.sustitutoNombre != null) {
+      statusColor = const Color(0xFF10B981); // Verde Esmeralda (Asignada)
+      statusLabel = "ASIGNADA";
+    } else {
+      switch (slot.tipoDetalle) {
+        case 'BAJA_MEDICA':
+          statusColor = const Color(0xFFF59E0B);
+          statusLabel = "BAJA MÉDICA";
+          break;
+        case 'VACACIONES':
+          statusColor = const Color(0xFF0D9488);
+          statusLabel = "VACACIONES";
+          break;
+        case 'DIAS_PERSONALES':
+          statusColor = const Color(0xFF4F46E5);
+          statusLabel = "ASUNTOS PROPIOS";
+          break;
+        case 'FORMACION':
+          statusColor = const Color(0xFFE11D48);
+          statusLabel = "SE ENCUENTRA MALO";
+          break;
+        default:
+          statusColor = const Color(0xFFBE123C);
+          statusLabel = "CRÍTICA";
+      }
     }
 
     return Row(children: [
       Container(
-        width: 30,
-        height: 30,
+        width: 32,
+        height: 32,
         decoration: BoxDecoration(
-            color: isPast ? Colors.grey[100] : Colors.red.withOpacity(0.1),
-            shape: BoxShape.circle),
+            color: isPast ? Colors.grey[100] : statusColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10)),
         child: Icon(Icons.person_off_rounded,
-            size: 14, color: isPast ? Colors.grey[400] : Colors.redAccent),
+            size: 16, color: isPast ? Colors.grey[400] : statusColor),
       ),
-      const SizedBox(width: 8),
+      const SizedBox(width: 12),
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,23 +124,26 @@ class GestionRow extends StatelessWidget {
           children: [
             Text(slot.profesorAusente,
                 style: TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     fontSize: 13,
                     color: isPast ? Colors.grey[400] : const Color(0xFF1E293B)),
                 overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: isPast ? Colors.grey[200] : typeColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(4),
+                color: isPast ? Colors.grey[200] : statusColor,
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: isPast ? null : [
+                  BoxShadow(color: statusColor.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))
+                ],
               ),
               child: Text(
-                typeText,
-                style: TextStyle(
-                  fontSize: 8,
+                statusLabel,
+                style: const TextStyle(
+                  fontSize: 7,
                   fontWeight: FontWeight.w900,
-                  color: isPast ? Colors.grey[400] : typeColor,
+                  color: Colors.white,
                   letterSpacing: 0.5,
                 ),
               ),
@@ -152,33 +172,64 @@ class GestionRow extends StatelessWidget {
 
   Widget _buildGuardiaAsignada(bool isPast) {
     if (slot.sustitutoNombre != null) {
-      return Row(children: [
-        Icon(Icons.check_circle_rounded,
-            size: 16, color: isPast ? Colors.grey[300] : const Color(0xFF10B981)),
-        const SizedBox(width: 6),
-        Expanded(
-            child: Text(slot.sustitutoNombre!,
-                style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: isPast ? Colors.grey[400] : const Color(0xFF1E293B)),
-                overflow: TextOverflow.ellipsis)),
-      ]);
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isPast ? Colors.grey[50] : const Color(0xFF10B981).withOpacity(0.05),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isPast ? Colors.grey[100]! : const Color(0xFF10B981).withOpacity(0.1)),
+        ),
+        child: Row(children: [
+          Icon(Icons.check_circle_rounded,
+              size: 14, color: isPast ? Colors.grey[300] : const Color(0xFF10B981)),
+          const SizedBox(width: 8),
+          Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("SUSTITUTO", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: isPast ? Colors.grey[300] : const Color(0xFF94A3B8))),
+                  Text(slot.sustitutoNombre!,
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 11,
+                          color: isPast ? Colors.grey[400] : const Color(0xFF1E293B)),
+                      overflow: TextOverflow.ellipsis),
+                ],
+              )),
+        ]),
+      );
     }
-    return Row(children: [
-      Icon(Icons.warning_amber_rounded,
-          size: 16, color: isPast ? Colors.grey[200] : Colors.orange[600]),
-      const SizedBox(width: 6),
-      Text(isPast ? "No cubierta" : "Sin asignar",
-          style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-              color: isPast ? Colors.grey[300] : Colors.orange[700])),
-    ]);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isPast ? Colors.grey[50] : Colors.orange.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: isPast ? Colors.grey[100]! : Colors.orange.withOpacity(0.1)),
+      ),
+      child: Row(children: [
+        Icon(Icons.warning_amber_rounded,
+            size: 14, color: isPast ? Colors.grey[200] : Colors.orange[600]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("ESTADO", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: isPast ? Colors.grey[300] : Colors.orange[400])),
+              Text(isPast ? "No cubierta" : "Sin asignar",
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                      color: isPast ? Colors.grey[300] : Colors.orange[700])),
+            ],
+          ),
+        ),
+      ]),
+    );
   }
 
   Widget _buildAccion(bool isPast) {
-    if (isPast) return const SizedBox(); // No permitir asignar si ya pasó
+    // Temporalmene permitimos asignar aunque haya pasado para facilitar pruebas 24/7
+    // if (isPast) return const SizedBox(); 
 
     if (slot.esDesierta) {
       return ElevatedButton(

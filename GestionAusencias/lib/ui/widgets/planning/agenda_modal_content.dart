@@ -399,11 +399,14 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
           fecha: widget.fecha,
           fechaInicio: widget.fecha,
           idHorario: sesion.id,
+          idTramo: sesion.idTramo, // Pasamos el tramo para auto-asignación total
           tipo: tipo,
           observaciones: obs ?? (ausenciaActual?.observaciones ?? "Reportado desde Mis Guardias"),
         );
 
-        if (tipo == 'FALTA' || obs != null) {
+        final bool requiereSustitucion = ['FALTA', 'BAJA', 'VACACIONES', 'ASUNTOS PROPIOS', 'MALO'].contains(tipo.toUpperCase());
+
+        if (requiereSustitucion || obs != null) {
           await reportarUseCase.executeConSustitucion(ausencia);
         } else {
           await reportarUseCase.execute(ausencia);

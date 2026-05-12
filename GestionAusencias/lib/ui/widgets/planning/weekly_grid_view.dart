@@ -68,11 +68,12 @@ class WeeklyGridView extends StatelessWidget {
   }
 
   Widget _buildDayColumn(BuildContext context, DateTime dia) {
+    final Set<int> shownPuntualIds = {};
     return Container(
       width: 260,
       margin: const EdgeInsets.only(right: 16),
       child: Column(
-        children: tramos.map((tramo) => _buildTramoSlot(context, dia, tramo)).toList(),
+        children: tramos.map((tramo) => _buildTramoSlot(context, dia, tramo, shownPuntualIds)).toList(),
       ),
     );
   }
@@ -124,47 +125,50 @@ class WeeklyGridView extends StatelessWidget {
     );
   }
 
-  Widget _buildTramoSlot(BuildContext context, DateTime dia, Horario tramo) {
+  Widget _buildTramoSlot(BuildContext context, DateTime dia, Horario tramo, Set<int> shownPuntualIds) {
     // 1. Encontrar qué sesiones de clase hay en este tramo para este día
     final diaSemanaNombre = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"][dia.weekday];
-    final sesionesEnTramo = horarios.where((h) => 
-      h.dia.toUpperCase() == diaSemanaNombre && 
+    final sesionesEnTramo = horarios.where((h) =>
+      h.dia.toUpperCase() == diaSemanaNombre &&
       h.inicio == tramo.horario_inicio
     ).toList();
 
     // 2. Para cada sesión, ver si el profesor tiene una ausencia activa
     final List<Widget> cards = [];
-    final Set<String> profesoresProcesados = {}; // Evitar duplicados por error de datos
+    final Set<String> profesoresProcesados = {};
 
     for (final sesion in sesionesEnTramo) {
-      // Resolvemos el ID del profesor de la sesión
       final profSesion = profesores.firstWhereOrNull((p) => p.nombre == sesion.profesor);
       final idSesionProf = profSesion?.idProfesor?.toString() ?? profSesion?.id ?? "";
 
-      // Si ya hemos mostrado una tarjeta para este profesor en este tramo, saltamos
       if (profesoresProcesados.contains(idSesionProf)) continue;
 
-      final ausencia = ausencias.firstWhereOrNull((a) {
-        final idProfAusente = a.profesorId;
-        
-        if (idProfAusente != idSesionProf && idProfAusente != sesion.profesor) return false;
-
-        // Está activa en este día
+      // Candidato: ausencia activa del profesor en este día
+      final candidata = ausencias.firstWhereOrNull((a) {
+        if (a.profesorId != idSesionProf) return false;
         if (!a.estaActivaEn(dia)) return false;
-
-        // Si es puntual, debe coincidir el horario. Si es día completo, vale cualquiera.
-        return a.esDiaCompleto || a.idHorario == sesion.id;
+        // Día completo: aparece en todos los tramos del profesor
+        if (a.esDiaCompleto) return true;
+        // Puntual con sesión concreta: solo en su tramo
+        if (a.idHorario != null) return a.idHorario == sesion.id;
+        // Puntual sin sesión (idHorario null): mostrar solo si no se ha mostrado ya hoy
+        return a.id == null || !shownPuntualIds.contains(a.id!);
       });
 
-      if (ausencia != null) {
+      if (candidata != null) {
         profesoresProcesados.add(idSesionProf);
+        // Registrar las puntuales sin sesión para no duplicarlas en otros tramos
+        if (!candidata.esDiaCompleto && candidata.idHorario == null && candidata.id != null) {
+          shownPuntualIds.add(candidata.id!);
+        }
         cards.add(ModernAbsenceCard(
-          ausencia: ausencia,
+          ausencia: candidata,
           profesores: profesores,
           horarios: horarios,
           sustituciones: sustituciones,
           onAction: onAction,
           onClear: onClear,
+          sessionId: sesion.id > 0 ? sesion.id : null,
         ));
       }
     }
@@ -185,11 +189,46 @@ class WeeklyGridView extends StatelessWidget {
             ],
           ),
         ),
-        if (cards.isEmpty)
-          _buildEmptySlot(tramo, dia)
+        ...cards,
+        if (cards.isNotEmpty)
+          _buildSmallAddButton(tramo, dia)
         else
-          ...cards,
+          _buildEmptySlot(tramo, dia),
       ],
+    );
+  }
+
+  Widget _buildSmallAddButton(Horario tramo, DateTime dia) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: InkWell(
+        onTap: () => onEmptySlotClick(tramo, dia),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_circle_outline_rounded, size: 14, color: Color(0xFF64748B)),
+              SizedBox(width: 6),
+              Text(
+                "AÑADIR AUSENCIA",
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

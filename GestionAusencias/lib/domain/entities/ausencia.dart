@@ -10,11 +10,12 @@ enum TipoAusencia {
 class Ausencia {
   final int? id;
   final String profesorId;
-  final DateTime fecha; // Se mantiene por compatibilidad, pero usaremos fechaInicio/Fin
+  final DateTime fecha; 
   final DateTime fechaInicio;
   final DateTime? fechaFin;
   final int? idHorario;
-  final String? tipo; // 'FALTA' o 'RETRASO' (Nivel UI)
+  final int? idTramo; // Nuevo campo para auto-asignación sin clase
+  final String? tipo; 
   final TipoAusencia tipoDetalle;
   final bool esDiaCompleto;
   final String? observaciones;
@@ -26,19 +27,18 @@ class Ausencia {
     required this.fechaInicio,
     this.fechaFin,
     this.idHorario,
+    this.idTramo, // Nuevo
     this.tipo,
     this.tipoDetalle = TipoAusencia.ausenciaPuntual,
     this.esDiaCompleto = false,
     this.observaciones,
   });
 
-  // Helper para saber si la ausencia está activa en una fecha concreta
   bool estaActivaEn(DateTime target) {
     final t = DateTime(target.year, target.month, target.day);
     final inicio = DateTime(fechaInicio.year, fechaInicio.month, fechaInicio.day);
     
     if (fechaFin == null) {
-      // Indefinida: activa si target >= inicio
       return t.isAtSameMomentAs(inicio) || t.isAfter(inicio);
     }
     
@@ -54,6 +54,7 @@ class Ausencia {
     DateTime? fechaInicio,
     DateTime? fechaFin,
     int? idHorario,
+    int? idTramo, // Nuevo
     String? tipo,
     TipoAusencia? tipoDetalle,
     bool? esDiaCompleto,
@@ -66,6 +67,7 @@ class Ausencia {
       fechaInicio: fechaInicio ?? this.fechaInicio,
       fechaFin: fechaFin ?? this.fechaFin,
       idHorario: idHorario ?? this.idHorario,
+      idTramo: idTramo ?? this.idTramo, // Nuevo
       tipo: tipo ?? this.tipo,
       tipoDetalle: tipoDetalle ?? this.tipoDetalle,
       esDiaCompleto: esDiaCompleto ?? this.esDiaCompleto,

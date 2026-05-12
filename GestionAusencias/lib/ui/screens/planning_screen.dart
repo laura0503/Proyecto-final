@@ -12,6 +12,7 @@ import '../../domain/usecases/get_ausencias_usecase.dart';
 import '../../domain/usecases/get_all_horarios_usecase.dart';
 import '../../domain/usecases/reportar_ausencia_usecase.dart';
 import '../../domain/usecases/eliminar_ausencia_usecase.dart';
+import '../../domain/usecases/auto_asignar_todo_usecase.dart'; // Nuevo
 import '../../data/models/sustitucion_model.dart';
 import '../widgets/planning/planning_body.dart';
 import '../widgets/planning/planning_action_sheet.dart';
@@ -85,7 +86,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
         try {
           final sustResp = await Supabase.instance.client
               .from('sustitucion')
-              .select('id_sustitucion, id_ausencia, id_profesor_sustituto, puntos_karma, profesores:id_profesor_sustituto(nombre)')
+              .select('id_sustitucion, id_ausencia, id_profesor_sustituto, id_horario_cubierto, profesores:id_profesor_sustituto(nombre)')
               .inFilter('id_ausencia', ids);
           if (mounted) {
             setState(() => _sustituciones =
@@ -95,7 +96,8 @@ class _PlanningScreenState extends State<PlanningScreen> {
       }
 
       if (mounted) setState(() => _isLoading = false);
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint("Error _cargarDatos planning: $e\n$st");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -165,6 +167,33 @@ class _PlanningScreenState extends State<PlanningScreen> {
     _cargarDatos();
   }
 
+  Future<void> _ejecutarAutoAsignacion() async {
+    setState(() => _isLoading = true);
+    try {
+      final inicioSemana = _fechaSeleccionada.subtract(
+          Duration(days: _fechaSeleccionada.weekday - 1));
+      final finSemana = inicioSemana.add(const Duration(days: 4)); // De Lunes a Viernes
+
+      await context.read<AutoAsignarTodoUseCase>().execute(inicioSemana, finSemana);
+      
+      await _cargarDatos();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Auto-asignación completada para toda la semana ✨"),
+          backgroundColor: Colors.orange,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error en auto-asignación: $e"),
+          backgroundColor: Colors.red,
+        ));
+      }
+      setState(() => _isLoading = false);
+    }
+  }
+
   void _showActionMenu(Profesor profesor, DateTime fecha, Ausencia ausencia) async {
     final guardas = await fetchGuardiasParaTramo(ausencia, fecha);
     if (!mounted) return;
@@ -218,6 +247,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
               onCambiarSemana: _cambiarSemana,
               onSeleccionarFecha: _seleccionarFecha,
               onGestionarAusencias: _abrirGestionAvanzada,
+              onAutoAsignar: _ejecutarAutoAsignacion, // Nuevo
               primaryColor: primaryColor,
               cardColor: cardColor,
             ),

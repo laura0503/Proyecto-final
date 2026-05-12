@@ -6,4 +6,5 @@ abstract class AusenciaRepository {
   Future<void> reportarAusencia(Ausencia ausencia);
   Future<void> reportarAusenciaConSustitucion(Ausencia ausencia);
   Future<void> eliminarAusencia(int id);
+  Future<void> autoAsignarTodo(DateTime inicio, DateTime fin);
 }

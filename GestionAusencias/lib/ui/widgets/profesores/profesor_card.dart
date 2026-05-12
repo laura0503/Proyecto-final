@@ -15,15 +15,15 @@ class ProfesorCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: profesor.cardColor.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
+            color: profesor.cardColor.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1),
       ),
       child: Material(
         color: Colors.transparent,
@@ -38,50 +38,33 @@ class ProfesorCard extends StatelessWidget {
               ),
             );
           },
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(14),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Avatar más compacto para ganar espacio
                 _buildAvatarStack(),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 
-                // Nombre
-                SizedBox(
-                  height: 30,
-                  child: Text(
-                    profesor.nombreDisplay,
-                    style: const TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F172A),
-                      height: 1.1,
-                      letterSpacing: -0.4,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                // Nombre más compacto
+                Text(
+                  profesor.nombreDisplay,
+                  style: const TextStyle(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF1E293B),
+                    height: 1.1,
                   ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 
-                // Etiquetas (Wrap para evitar overflow lateral y vertical)
-                Wrap(
-                  spacing: 3,
-                  runSpacing: 3,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _buildBadge(profesor.estadoTexto, profesor.estadoColor, Icons.circle, size: 5),
-                    if (profesor.estaOcupado)
-                      _buildBadge("En clase", const Color(0xFF4F46E5), Icons.flash_on_rounded),
-                    
-                    ...profesor.asignatura.split(',').where((s) => s.trim().isNotEmpty).map((asig) => 
-                      _buildBadge(asig.trim(), const Color(0xFFC026D3), Icons.book_rounded)
-                    ),
-                  ],
-                ),
+                // Badge de estado minimalista
+                _buildBadge(profesor.estadoTexto, profesor.estadoColor, Icons.circle, size: 4),
               ],
             ),
           ),
@@ -94,15 +77,14 @@ class ProfesorCard extends StatelessWidget {
     return Stack(
       children: [
         Container(
-          width: 40,
-          height: 40,
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
-            color: profesor.cardColor.withValues(alpha: 0.1),
+            color: profesor.cardColor.withOpacity(0.1),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(15),
             child: _buildImagenOIniciales(),
           ),
         ),
@@ -110,12 +92,12 @@ class ProfesorCard extends StatelessWidget {
           right: 0,
           bottom: 0,
           child: Container(
-            width: 11,
-            height: 11,
+            width: 8,
+            height: 8,
             decoration: BoxDecoration(
               color: profesor.estadoColor,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
+              border: Border.all(color: Colors.white, width: 1.5),
             ),
           ),
         ),
@@ -141,36 +123,31 @@ class ProfesorCard extends StatelessWidget {
         style: TextStyle(
           color: profesor.cardColor,
           fontWeight: FontWeight.w900,
-          fontSize: 14,
+          fontSize: 11,
         ),
       ),
     );
   }
 
-  Widget _buildBadge(String text, Color color, IconData icon, {double size = 10}) {
+  Widget _buildBadge(String text, Color color, IconData icon, {double size = 8}) {
     if (text.isEmpty) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 0.5),
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: size, color: color),
-          const SizedBox(width: 3),
-          Flexible(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 7.5,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          const SizedBox(width: 2),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 7,
+              fontWeight: FontWeight.w700,
+              color: color,
             ),
           ),
         ],

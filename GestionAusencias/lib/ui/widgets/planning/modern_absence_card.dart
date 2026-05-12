@@ -12,6 +12,7 @@ class ModernAbsenceCard extends StatelessWidget {
   final List<Sustitucion> sustituciones;
   final void Function(Profesor, DateTime, Ausencia) onAction;
   final Future<void> Function(Ausencia) onClear;
+  final int? sessionId; // ID de la sesión concreta que muestra esta tarjeta
 
   const ModernAbsenceCard({
     super.key,
@@ -21,6 +22,7 @@ class ModernAbsenceCard extends StatelessWidget {
     required this.sustituciones,
     required this.onAction,
     required this.onClear,
+    this.sessionId,
   });
 
   @override
@@ -28,9 +30,12 @@ class ModernAbsenceCard extends StatelessWidget {
     final prof = profesores.firstWhereOrNull((p) => 
       p.id == ausencia.profesorId || p.idProfesor?.toString() == ausencia.profesorId);
     
-    final sesion = horarios.firstWhereOrNull((h) => h.id == ausencia.idHorario);
-    
-    final sust = sustituciones.firstWhereOrNull((s) => s.idAusencia == ausencia.id);
+    final sesion = horarios.firstWhereOrNull((h) => h.id == (sessionId ?? ausencia.idHorario));
+
+    // Buscar sustituto para la sesión concreta; si no hay por sesión, buscar cualquiera de la baja
+    final sust = sustituciones.firstWhereOrNull((s) =>
+          s.idAusencia == ausencia.id &&
+          (sessionId == null || s.idHorarioCubierto == sessionId || s.idHorarioCubierto == null));
     final tieneSustituto = sust != null;
 
     // Lógica de colores OFICIAL del sistema

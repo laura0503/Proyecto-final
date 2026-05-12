@@ -38,6 +38,7 @@ Future<void> planningReportarEstadoEnTramo(
       fecha: f,
       fechaInicio: f,
       idHorario: sesionReal?.id,
+      idTramo: tramo.id_horario, // Corregido: es id_horario
       tipo: 'FALTA',
       observaciones: tareas.isNotEmpty
           ? tareas
@@ -90,7 +91,9 @@ Future<void> planningReportarEstado(
         tipo: tipo,
         observaciones: "Reportado desde Planning (Sin horario específico)",
       );
-      if (tipo == 'FALTA') {
+      final bool requiereSustitucion = ['FALTA', 'BAJA', 'VACACIONES', 'ASUNTOS PROPIOS', 'MALO'].contains(tipo.toUpperCase());
+      
+      if (requiereSustitucion) {
         await reportarUseCase.executeConSustitucion(ausencia);
       } else {
         await reportarUseCase.execute(ausencia);
@@ -108,7 +111,9 @@ Future<void> planningReportarEstado(
           tipo: tipo,
           observaciones: "Reportado desde Planning (${sesion.asignatura})",
         );
-        if (tipo == 'FALTA') {
+        final bool requiereSustitucion = ['FALTA', 'BAJA', 'VACACIONES', 'ASUNTOS PROPIOS', 'MALO'].contains(tipo.toUpperCase());
+
+        if (requiereSustitucion) {
           await reportarUseCase.executeConSustitucion(ausencia);
         } else {
           await reportarUseCase.execute(ausencia);

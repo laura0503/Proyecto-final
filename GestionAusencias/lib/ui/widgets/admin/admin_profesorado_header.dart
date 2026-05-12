@@ -4,14 +4,12 @@ class AdminProfesoradoHeader extends StatelessWidget {
   final bool isDark;
   final bool mostrandoDuplicados;
   final VoidCallback onToggleDuplicados;
-  final VoidCallback onImportarCSV;
 
   const AdminProfesoradoHeader({
     super.key,
     required this.isDark,
     required this.mostrandoDuplicados,
     required this.onToggleDuplicados,
-    required this.onImportarCSV,
   });
 
   @override
@@ -45,17 +43,6 @@ class AdminProfesoradoHeader extends StatelessWidget {
                     : Colors.orange.withValues(alpha: 0.15),
                 foregroundColor: mostrandoDuplicados ? Colors.white : Colors.orange[800],
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            ElevatedButton.icon(
-              onPressed: onImportarCSV,
-              icon: const Icon(Icons.upload_file_rounded),
-              label: const Text("Importar CSV"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF007AFF),
-                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),

@@ -7,12 +7,14 @@ import '../../../domain/entities/ausencia.dart';
 class HomeWeeklySchedule extends StatelessWidget {
   final List<HorarioClase> horario;
   final List<Ausencia> ausencias;
+  final List<HorarioClase> sustituciones; // Añadido
   final Function(HorarioClase, DateTime) onAction;
 
   const HomeWeeklySchedule({
     super.key, 
     required this.horario, 
     this.ausencias = const [],
+    this.sustituciones = const [], // Añadido
     required this.onAction,
   });
 
@@ -23,9 +25,12 @@ class HomeWeeklySchedule extends StatelessWidget {
     final lunes = hoy.subtract(Duration(days: hoy.weekday - 1));
     final fechasSemana = List.generate(5, (i) => lunes.add(Duration(days: i)));
 
-    // Obtener todos los tramos únicos presentes en el horario
+    // Combinamos horario normal y sustituciones para calcular los tramos
     final tramosSet = <String>{};
     for (var s in horario) {
+      tramosSet.add("${s.inicio} — ${s.fin}");
+    }
+    for (var s in sustituciones) {
       tramosSet.add("${s.inicio} — ${s.fin}");
     }
     final sortedTramos = tramosSet.toList()..sort();
@@ -60,16 +65,22 @@ class HomeWeeklySchedule extends StatelessWidget {
           _buildDayHeader(diaNombre.substring(0, 3), isToday, fecha),
           const SizedBox(height: 20),
           ...allTramos.map((tramoStr) {
-            final sesionesEnTramo = horario.where((h) {
-              // Si tiene fecha específica (es una sustitución), debe coincidir con la fecha de la columna
-              if (h.fecha != null) {
-                return h.fecha!.day == fecha.day && h.fecha!.month == fecha.month && "${h.inicio} — ${h.fin}" == tramoStr;
-              }
-              // Si es horario normal, solo por día de la semana
+            // Buscamos sesiones normales
+            final sesionesNormales = horario.where((h) {
               return h.dia.toUpperCase() == diaNombre && "${h.inicio} — ${h.fin}" == tramoStr;
             }).toList();
 
-            return _buildTramoSlot(context, tramoStr, sesionesEnTramo, fecha, isToday);
+            // Buscamos sustituciones (guardias asignadas) para este día y tramo
+            final sesionesSustitucion = sustituciones.where((h) {
+              if (h.fecha == null) return false;
+              return h.fecha!.day == fecha.day && 
+                     h.fecha!.month == fecha.month && 
+                     "${h.inicio} — ${h.fin}" == tramoStr;
+            }).toList();
+
+            final todasLasSesiones = [...sesionesNormales, ...sesionesSustitucion];
+
+            return _buildTramoSlot(context, tramoStr, todasLasSesiones, fecha, isToday);
           }).toList(),
           const SizedBox(height: 12),
           _buildEmptySlot(() => onAction(HorarioClase(profesor: "", aula: "", grupo: "", asignatura: "", dia: diaNombre, inicio: "", fin: ""), fecha)),
@@ -83,16 +94,16 @@ class HomeWeeklySchedule extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: isToday ? const Color(0xFF4F46E5).withOpacity(0.05) : Colors.white.withOpacity(0.4),
+        color: isToday ? const Color(0xFF6366F1).withOpacity(0.05) : Colors.white.withOpacity(0.4),
         borderRadius: BorderRadius.circular(16),
-        border: isToday ? Border.all(color: const Color(0xFF4F46E5).withOpacity(0.2)) : null,
+        border: isToday ? Border.all(color: const Color(0xFF6366F1).withOpacity(0.2)) : null,
       ),
       child: Column(
         children: [
           Text(
             label,
             style: TextStyle(
-              color: isToday ? const Color(0xFF4F46E5) : Colors.grey[600],
+              color: isToday ? const Color(0xFF6366F1) : Colors.grey[600],
               fontWeight: FontWeight.w900,
               fontSize: 13,
               letterSpacing: 1.5,
@@ -101,7 +112,7 @@ class HomeWeeklySchedule extends StatelessWidget {
           Text(
             DateFormat('d MMM', 'es').format(fecha).toUpperCase(),
             style: TextStyle(
-              color: isToday ? const Color(0xFF4F46E5).withOpacity(0.6) : Colors.grey[400],
+              color: isToday ? const Color(0xFF6366F1).withOpacity(0.6) : Colors.grey[400],
               fontWeight: FontWeight.bold,
               fontSize: 10,
             ),
@@ -165,11 +176,11 @@ class HomeWeeklySchedule extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_circle_outline_rounded, color: const Color(0xFF4F46E5).withOpacity(0.4), size: 24),
+            Icon(Icons.add_circle_outline_rounded, color: const Color(0xFF6366F1).withOpacity(0.4), size: 24),
             const SizedBox(height: 6),
             const Text(
               "Reportar incidencia",
-              style: TextStyle(color: Color(0xFF4F46E5), fontSize: 11, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Color(0xFF6366F1), fontSize: 11, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -198,8 +209,8 @@ class HomeWeeklySchedule extends StatelessWidget {
             border: Border.all(color: Colors.white.withOpacity(0.3)),
           ),
           child: const Text(
-            "Semana Actual",
-            style: TextStyle(color: Color(0xFF4F46E5), fontSize: 12, fontWeight: FontWeight.bold),
+            "Horario",
+            style: TextStyle(color: Color(0xFF6366F1), fontSize: 12, fontWeight: FontWeight.bold),
           ),
         ),
       ],
@@ -210,12 +221,12 @@ class HomeWeeklySchedule extends StatelessWidget {
     final bool isSubstitution = s.profesorAusente.isNotEmpty;
     final bool hasAusencia = ausencia.tipo != null;
     
-    // Si es guardia, usamos Índigo/Morado. Si no, color normal.
-    Color accentColor = isSubstitution ? const Color(0xFF4F46E5) : _getAccentColor(s.asignatura, isToday);
+    // Si es guardia, usamos Morado Neón. Si no, color normal vibrante.
+    Color accentColor = isSubstitution ? const Color(0xFFA855F7) : _getAccentColor(s.asignatura, isToday);
     
-    // Si yo falto, color rojo/ambar
+    // Si yo falto, color rojo intenso
     if (hasAusencia) {
-      accentColor = ausencia.tipo == 'FALTA' ? const Color(0xFFBE123C) : const Color(0xFFD97706);
+      accentColor = ausencia.tipo == 'FALTA' ? const Color(0xFFFF3B30) : const Color(0xFFF59E0B);
     }
 
     return Container(
@@ -228,11 +239,11 @@ class HomeWeeklySchedule extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: isSubstitution 
-                ? accentColor.withOpacity(0.15) 
-                : (hasAusencia ? accentColor.withOpacity(0.1) : Colors.white.withOpacity(0.75)),
+                ? accentColor.withOpacity(0.25) 
+                : (hasAusencia ? accentColor.withOpacity(0.15) : Colors.white.withOpacity(0.75)),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: isSubstitution || hasAusencia || isToday ? accentColor.withOpacity(0.4) : Colors.white.withOpacity(0.5),
+                color: isSubstitution || hasAusencia || isToday ? accentColor.withOpacity(0.5) : Colors.white.withOpacity(0.5),
                 width: (isToday || hasAusencia || isSubstitution) ? 2 : 1,
               ),
             ),
@@ -268,7 +279,7 @@ class HomeWeeklySchedule extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.location_on_rounded, size: 10, color: accentColor.withOpacity(0.5)),
+                    Icon(isSubstitution ? Icons.shield_rounded : Icons.location_on_rounded, size: 10, color: accentColor.withOpacity(0.5)),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -299,11 +310,13 @@ class HomeWeeklySchedule extends StatelessWidget {
   }
 
   Color _getAccentColor(String asignatura, bool isToday) {
-    if (!isToday) return Colors.blueGrey[400]!;
+    if (!isToday) return Colors.blueGrey[300]!;
     final name = asignatura.toUpperCase();
-    if (name.contains("MAT")) return const Color(0xFFFF3B30); // iOS Red
-    if (name.contains("ENG") || name.contains("ING")) return const Color(0xFF007AFF); // iOS Blue
-    if (name.contains("GUARDIA")) return const Color(0xFF34C759); // iOS Green
-    return const Color(0xFF5856D6); // iOS Indigo
+    if (name.contains("MACS")) return const Color(0xFFF43F5E); // Rose brillante
+    if (name.contains("MAT")) return const Color(0xFF6366F1); // Indigo
+    if (name.contains("BIO") || name.contains("NATU")) return const Color(0xFF10B981); // Esmeralda
+    if (name.contains("ENG") || name.contains("ING")) return const Color(0xFF06B6D4); // Cian
+    if (name.contains("DAM") || name.contains("ASIR")) return const Color(0xFFA855F7); // Morado neón
+    return const Color(0xFF6366F1);
   }
 }

@@ -79,11 +79,17 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
         ausenciaId = res['id_ausencia'];
       }
 
-      // MOTOR AUTOMÁTICO
+      // MOTOR AUTOMÁTICO REFORZADO
       if (ausencia.esDiaCompleto) {
         await _cubrirTodasLasSesiones(ausenciaId, ausencia);
-      } else if (ausencia.idHorario != null && ausencia.idHorario! > 0) {
-        await _asignarSustitutoAutomatico(ausenciaId, ausencia.idHorario!, ausencia.fecha);
+      } else {
+        // Ahora intentamos asignar aunque idHorario sea nulo, usando idTramo si está disponible
+        await _asignarSustitutoAutomatico(
+          ausenciaId, 
+          ausencia.idHorario, 
+          ausencia.fecha, 
+          idTramoManual: ausencia.idTramo
+        );
       }
     } catch (e) {
       debugPrint("Error en motor de sustituciones: $e");
@@ -93,13 +99,12 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
 
   Future<void> _cubrirTodasLasSesiones(int ausenciaId, Ausencia ausencia) async {
     final profId = int.tryParse(ausencia.profesorId) ?? 0;
-    
-    // Obtenemos el horario lectivo (clases reales) del profesor ausente
+
+    // Obtenemos TODAS las sesiones del profesor (clases Y guardias)
     final horarioProfesor = await _supabase
         .from('horario')
         .select('id, dia_semana, id_tramo')
-        .eq('id_profesor', profId)
-        .eq('es_guardia', false);
+        .eq('id_profesor', profId);
 
     final sesiones = horarioProfesor as List;
     if (sesiones.isEmpty) return;
@@ -108,8 +113,9 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
     final end = ausencia.fechaFin ?? ausencia.fechaInicio;
 
     while (current.isBefore(end.add(const Duration(days: 1)))) {
-      final diaSemanaNombre = _getDiaNombre(current.weekday);
-      final sesionesHoy = sesiones.where((s) => s['dia_semana'] == diaSemanaNombre).toList();
+      // dia_semana en BD es entero: 1=Lunes … 5=Viernes
+      final diaIndice = current.weekday;
+      final sesionesHoy = sesiones.where((s) => s['dia_semana'] == diaIndice).toList();
 
       for (final sesion in sesionesHoy) {
         await _asignarSustitutoAutomatico(ausenciaId, sesion['id'], current);
@@ -118,37 +124,74 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
     }
   }
 
-  Future<void> _asignarSustitutoAutomatico(int ausenciaId, int idHorario, DateTime fecha) async {
-    // 1. Datos del tramo de la clase a cubrir
-    final horData = await _supabase
-        .from('horario')
-        .select('id_tramo, dia_semana')
-        .eq('id', idHorario)
-        .maybeSingle();
+  Future<void> _asignarSustitutoAutomatico(int ausenciaId, int? idHorario, DateTime fecha, {int? idTramoManual}) async {
+    int? idTramo;
+    String? diaSemana;
+    Map<String, dynamic>? horData;
 
-    if (horData == null) return;
-    final idTramo = horData['id_tramo'];
-    final diaSemana = horData['dia_semana'];
+    if (idHorario != null && idHorario > 0) {
+      // 1. Datos del tramo desde la clase
+      horData = await _supabase
+          .from('horario')
+          .select('id_tramo, dia_semana')
+          .eq('id', idHorario)
+          .maybeSingle();
+
+      if (horData != null) {
+        idTramo = horData['id_tramo'];
+        diaSemana = horData['dia_semana']?.toString();
+      }
+    } else if (idTramoManual != null) {
+      // 1b. Datos del tramo manual (cuando no hay clase lectiva)
+      idTramo = idTramoManual;
+      diaSemana = _getDiaNombre(fecha.weekday);
+    }
+
+    int diaIndice = 0;
+    if (horData != null && horData['dia_semana'] != null) {
+      // Si ya viene de la DB, suele ser un int
+      final val = horData['dia_semana'];
+      diaIndice = val is int ? val : (int.tryParse(val.toString()) ?? 0);
+    } else if (diaSemana != null) {
+      // Si viene de _getDiaNombre, es un String ("LUNES", etc.)
+      final diasMap = {"LUNES": 1, "MARTES": 2, "MIÉRCOLES": 3, "JUEVES": 4, "VIERNES": 5};
+      diaIndice = diasMap[diaSemana.toUpperCase()] ?? 0;
+    }
+
+    if (idTramo == null || diaIndice == 0) return;
+    
     final dateStr = fecha.toIso8601String().substring(0, 10);
 
-    // 2. BUSCAR CANDIDATOS: Profesores que tienen GUARDIA en este tramo y día
+    // 2. BUSCAR CANDIDATOS: Profesores que tienen GUARDIA en este tramo y día índice
     final candidatosGuardia = await _supabase
         .from('horario')
         .select('id_profesor, profesores:id_profesor(karma)')
         .eq('id_tramo', idTramo)
-        .eq('dia_semana', diaSemana)
+        .eq('dia_semana', diaIndice) // Usamos el índice numérico
         .eq('es_guardia', true);
 
     final listaCandidatos = candidatosGuardia as List;
     if (listaCandidatos.isEmpty) return;
 
     // 3. FILTRAR DISPONIBILIDAD REAL
+    // 3a. Obtener lista de profesores ya ocupados sustituyendo en este tramo hoy
+    final ocupadosRes = await _supabase
+        .from('sustitucion')
+        .select('id_profesor_sustituto, ausencia!inner(id_horario_sesion, horario:id_horario_sesion(id_tramo))')
+        .eq('ausencia.fecha', dateStr)
+        .filter('ausencia.horario.id_tramo', 'eq', idTramo);
+    
+    final List ocupadosList = ocupadosRes as List;
+    final Set<int> idsOcupados = ocupadosList
+        .map((s) => s['id_profesor_sustituto'] as int)
+        .toSet();
+
     List<int> aptosIds = [];
     
     for (var cand in listaCandidatos) {
       final idCand = cand['id_profesor'] as int;
 
-      // REGLA 1: No puede estar ausente hoy (baja, vacaciones, etc)
+      // REGLA 1: No puede estar ausente hoy
       final estaAusente = await _supabase
           .from('ausencia')
           .select('id_ausencia')
@@ -159,38 +202,37 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
       
       if (estaAusente != null) continue;
 
-      // REGLA 2: No puede tener ya otra sustitución asignada en este mismo tramo/fecha
-      final yaOcupado = await _supabase
-          .from('sustitucion')
-          .select('id_sustitucion, ausencia!inner(id_horario_sesion)')
-          .eq('id_profesor_sustituto', idCand)
-          .eq('fecha_sustitucion', dateStr)
-          .eq('ausencia.id_horario_sesion', idHorario) // mismo tramo
+      // REGLA 2: No puede tener ya una clase lectiva en este tramo y día
+      final tieneClase = await _supabase
+          .from('horario')
+          .select('id')
+          .eq('id_profesor', idCand)
+          .eq('id_tramo', idTramo)
+          .eq('dia_semana', diaIndice)
+          .eq('es_guardia', false)
           .maybeSingle();
 
-      if (yaOcupado != null) continue;
+      if (tieneClase != null) continue;
+
+      // REGLA 3: No puede estar ya sustituyendo a otro profesor en este mismo tramo hoy
+      if (idsOcupados.contains(idCand)) continue;
 
       aptosIds.add(idCand);
     }
 
     if (aptosIds.isNotEmpty) {
-      // REGLA DE EQUIDAD: Elegimos al profesor con menos Karma (o el primero por ahora)
-      // Podríamos ordenar aptosIds por el karma obtenido en el paso 2
+      // REGLA DE EQUIDAD: Barajamos o rotamos para no cargar siempre al primero
+      aptosIds.shuffle(); 
       int elegidoId = aptosIds.first; 
 
-      // 4. CREAR SUSTITUCIÓN
+      // 4. CREAR SUSTITUCIÓN (guardamos qué sesión concreta cubre)
       await _supabase.from('sustitucion').insert({
         'id_ausencia': ausenciaId,
         'id_profesor_sustituto': elegidoId,
-        'fecha_sustitucion': dateStr,
-        'puntos_karma': 1.0 // Sumamos karma por el esfuerzo
+        if (idHorario != null) 'id_horario_cubierto': idHorario,
       });
 
-      // 5. ACTUALIZAR KARMA DEL PROFESOR
-      await _supabase.rpc('incrementar_karma', params: {
-        'prof_id': elegidoId,
-        'cantidad': 1.0
-      });
+      // Karma desactivado por petición del usuario
     }
   }
 
@@ -205,6 +247,40 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
       await _supabase.from('ausencia').delete().eq('id_ausencia', id);
     } catch (e) {
       debugPrint("Error eliminando ausencia: $e");
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> autoAsignarTodo(DateTime inicio, DateTime fin) async {
+    try {
+      final dateFin = fin.toIso8601String().substring(0, 10);
+      final dateInicio = inicio.toIso8601String().substring(0, 10);
+
+      // 1. Buscamos todas las ausencias en el rango
+      final ausencias = await getAusenciasByRango(inicio, fin);
+      
+      for (final aus in ausencias) {
+        if (aus.id == null) continue;
+
+        // 2. Comprobar si ya tiene sustitución
+        final tieneSust = await _supabase
+            .from('sustitucion')
+            .select('id_sustitucion')
+            .eq('id_ausencia', aus.id!)
+            .maybeSingle();
+        
+        if (tieneSust != null) continue; // Ya está cubierta
+
+        // 3. Si no tiene, lanzamos el motor según sea día completo o sesión única
+        if (aus.esDiaCompleto) {
+          await _cubrirTodasLasSesiones(aus.id!, aus);
+        } else if (aus.idHorario != null && aus.idHorario! > 0) {
+          await _asignarSustitutoAutomatico(aus.id!, aus.idHorario!, aus.fecha);
+        }
+      }
+    } catch (e) {
+      debugPrint("Error en auto-asignación masiva: $e");
       rethrow;
     }
   }

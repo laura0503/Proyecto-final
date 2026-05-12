@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/domain/entities/aula.dart';
@@ -14,117 +15,152 @@ class AulaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final horarioAulaUseCase = context.read<GetHorarioAulaUseCase>();
-    final cardBgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF4A443C);
-    final iconColor = isDark ? Colors.blueAccent : Colors.blue;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBgColor,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+    return FutureBuilder<List<HorarioAula>>(
+      future: horarioAulaUseCase.call(aula.id),
+      builder: (context, snapshot) {
+        final isOccupied = snapshot.hasData && snapshot.data!.any((h) => h.grupo != null && h.grupo!.isNotEmpty);
+        final Color statusColor = isOccupied ? const Color(0xFFEF4444) : const Color(0xFF10B981);
+        final String statusText = isOccupied ? "OCUPADA" : "LIBRE";
+
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: statusColor.withOpacity(0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-        ],
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => AulaHorarioScreen(aula: aula)),
-            );
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Icono circular premium más pequeño
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
-                    shape: BoxShape.circle,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark 
+                    ? Colors.black.withOpacity(0.4) 
+                    : Colors.white.withOpacity(0.85),
+                  border: Border.all(
+                    color: statusColor.withOpacity(0.4),
+                    width: 1.5,
                   ),
-                  child: Icon(Icons.meeting_room_rounded, color: iconColor, size: 18),
+                  borderRadius: BorderRadius.circular(28),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  "Aula ${aula.nombre}",
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    color: textColor,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-
-                // Badge de Estado (Libre/Ocupada)
-                FutureBuilder<List<HorarioAula>>(
-                  future: horarioAulaUseCase.call(aula.id),
-                  builder: (context, hSnapshot) {
-                    final isOccupied = hSnapshot.hasData && hSnapshot.data!.any((h) => h.grupo != null && h.grupo!.isNotEmpty);
-                    final statusColor = isOccupied ? Colors.redAccent : Colors.greenAccent;
-                    final statusText = isOccupied ? "Ocupada" : "Libre";
-
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => AulaHorarioScreen(aula: aula)),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(28),
+                    child: Stack(
+                      children: [
+                        // Marca de agua de fondo (Icono sutil)
+                        Positioned(
+                          right: -10,
+                          bottom: -10,
+                          child: Icon(
+                            isOccupied ? Icons.meeting_room : Icons.door_front_door_outlined,
+                            size: 80,
+                            color: statusColor.withOpacity(0.05),
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            statusText,
-                            style: TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.w800,
-                              color: statusColor,
-                            ),
+                        ),
+                        // Contenido principal
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withOpacity(0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      isOccupied ? Icons.lock_outline_rounded : Icons.lock_open_rounded, 
+                                      color: statusColor, 
+                                      size: 14
+                                    ),
+                                  ),
+                                  _buildStatusBadge(statusText, statusColor),
+                                ],
+                              ),
+                              const Spacer(),
+                              Text(
+                                "Aula ${aula.nombre}",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                                  letterSpacing: -0.5,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                aula.departamento.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  color: isDark ? Colors.white54 : Colors.blueGrey[400],
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 4),
-
-                // Departamento reducido
-                Text(
-                  aula.departamento.length > 15 ? "${aula.departamento.substring(0, 15)}..." : aula.departamento,
-                  style: TextStyle(
-                    fontSize: 8,
-                    color: textColor.withOpacity(0.4),
-                    fontWeight: FontWeight.w600,
+                        ),
+                      ],
+                    ),
                   ),
-                  textAlign: TextAlign.center,
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatusBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              color: color, 
+              fontSize: 8, 
+              fontWeight: FontWeight.w900, 
+              letterSpacing: 0.5
+            ),
+          ),
+        ],
       ),
     );
   }

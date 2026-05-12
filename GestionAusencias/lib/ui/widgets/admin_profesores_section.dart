@@ -84,7 +84,6 @@ class _AdminProfesoradoSectionState extends State<AdminProfesoradoSection> {
               _calcularDuplicados();
             }
           },
-          onImportarCSV: () => adminImportarCSV(context, _loadProfesores),
         ),
         const SizedBox(height: 30),
         Container(

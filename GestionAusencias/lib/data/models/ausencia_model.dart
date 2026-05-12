@@ -7,7 +7,8 @@ class AusenciaModel extends Ausencia {
     required super.fecha,
     required super.fechaInicio,
     super.fechaFin,
-    required super.idHorario,
+    super.idHorario,
+    super.idTramo, // Añadido
     super.observaciones,
     super.tipo,
     super.tipoDetalle = TipoAusencia.ausenciaPuntual,
@@ -76,6 +77,7 @@ class AusenciaModel extends Ausencia {
       fechaInicio: ausencia.fechaInicio,
       fechaFin: ausencia.fechaFin,
       idHorario: ausencia.idHorario,
+      idTramo: ausencia.idTramo, // Pasamos el tramo
       observaciones: ausencia.observaciones,
       tipo: ausencia.tipo,
       tipoDetalle: ausencia.tipoDetalle,

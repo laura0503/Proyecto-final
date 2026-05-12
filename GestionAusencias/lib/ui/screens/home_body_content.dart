@@ -115,6 +115,7 @@ class HomeBodyContent extends StatelessWidget {
         HomeWeeklySchedule(
           horario: horario,
           ausencias: ausenciasSemana,
+          sustituciones: sustituciones, // Ahora se pasan las guardias aquí
           onAction: (_, fecha) {
             if (prof != null) _openAgendaDialog(context, fecha);
           },

@@ -12,6 +12,7 @@ class PlanningHeader extends StatelessWidget {
   final DateTime fechaSeleccionada;
   final VoidCallback onSeleccionarFecha;
   final VoidCallback onGestionarAusencias;
+  final VoidCallback onAutoAsignar; // Nuevo callback
 
   const PlanningHeader({
     super.key,
@@ -20,6 +21,7 @@ class PlanningHeader extends StatelessWidget {
     required this.onCambiarSemana,
     required this.onSeleccionarFecha,
     required this.onGestionarAusencias,
+    required this.onAutoAsignar, // Nuevo
     required this.primaryColor,
     required this.cardColor,
     required this.diasSemana,
@@ -81,6 +83,19 @@ class PlanningHeader extends StatelessWidget {
                             label: const Text("GESTIONAR"),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF1E293B),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: onAutoAsignar,
+                            icon: const Icon(Icons.flash_on_rounded, size: 18),
+                            label: const Text("AUTO-ASIGNAR"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFF59E0B),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

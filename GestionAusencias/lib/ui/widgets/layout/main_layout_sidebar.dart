@@ -33,42 +33,46 @@ class MainLayoutSidebar extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 60),
-              if (isAdmin) ...[
-                _Item(icon: Icons.radar_rounded, label: 'Monitor', index: 6,
-                  selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
-                _Item(icon: Icons.auto_awesome_rounded, label: 'Karma', index: 7,
-                  selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
-                _Item(icon: Icons.admin_panel_settings_rounded, label: AppStrings.get(context, 'admin'), index: 8,
-                  selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
-                const SizedBox(height: 20),
-                Container(width: 40, height: 1, color: Colors.grey.withValues(alpha: 0.2)),
-                const SizedBox(height: 20),
-              ],
-              if (!isAdmin)
-                _Item(icon: Icons.dashboard_rounded, label: AppStrings.get(context, 'inicio'), index: 0,
-                  selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
-              _Item(icon: Icons.calendar_month_rounded, label: AppStrings.get(context, 'planning'), index: 1,
-                selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
-              _Item(icon: Icons.people_alt_rounded, label: AppStrings.get(context, 'profesores'), index: 2,
-                selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
-              _Item(icon: Icons.groups_rounded, label: AppStrings.get(context, 'grupos'), index: 3,
-                selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
-              _Item(icon: Icons.auto_stories_rounded, label: AppStrings.get(context, 'asignaturas'), index: 4,
-                selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
-              _Item(icon: Icons.meeting_room_rounded, label: AppStrings.get(context, 'aulas'), index: 5,
-                selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+              const SizedBox(height: 40),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  child: Column(
+                    children: [
+                      if (isAdmin) ...[
+                        _Item(icon: Icons.radar_rounded, label: 'Monitor', index: 6,
+                          selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+                        _Item(icon: Icons.auto_awesome_rounded, label: 'Karma', index: 7,
+                          selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+                        _Item(icon: Icons.admin_panel_settings_rounded, label: AppStrings.get(context, 'admin'), index: 8,
+                          selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+                        const SizedBox(height: 10),
+                      ],
+                      if (!isAdmin)
+                        _Item(icon: Icons.dashboard_rounded, label: AppStrings.get(context, 'inicio'), index: 0,
+                          selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+                      _Item(icon: Icons.calendar_month_rounded, label: AppStrings.get(context, 'planning'), index: 1,
+                        selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+                      _Item(icon: Icons.people_alt_rounded, label: AppStrings.get(context, 'profesores'), index: 2,
+                        selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+                      _Item(icon: Icons.groups_rounded, label: AppStrings.get(context, 'grupos'), index: 3,
+                        selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+                      _Item(icon: Icons.auto_stories_rounded, label: AppStrings.get(context, 'asignaturas'), index: 4,
+                        selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+                      _Item(icon: Icons.meeting_room_rounded, label: AppStrings.get(context, 'aulas'), index: 5,
+                        selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+                      const SizedBox(height: 10),
+                      _Item(icon: Icons.settings_rounded, label: AppStrings.get(context, 'ajustes'),
+                        index: 10,
+                        selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+                      _Item(icon: Icons.logout_rounded, label: 'Salir', index: -1, isLogout: true,
+                        selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
-              Container(width: 40, height: 1, color: Colors.grey.withValues(alpha: 0.2)),
-              const SizedBox(height: 20),
-              _Item(icon: Icons.settings_rounded, label: AppStrings.get(context, 'ajustes'),
-                index: isAdmin ? 9 : 6,
-                selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
-              const SizedBox(height: 10),
-              _Item(icon: Icons.logout_rounded, label: 'Salir', index: -1, isLogout: true,
-                selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
-              const Spacer(),
-              const SizedBox(height: 30),
             ],
           ),
         ),
@@ -118,7 +122,7 @@ class _Item extends StatelessWidget {
     if (index == 8) {
       return () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminScreen()));
     }
-    if (index == 9) {
+    if (index == 10) {
       return () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
     }
     return () => onNavigate(index);

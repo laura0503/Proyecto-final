@@ -52,6 +52,7 @@ import 'domain/usecases/guardar_guardia_usecase.dart';
 import 'domain/usecases/eliminar_guardia_usecase.dart';
 import 'domain/usecases/get_sustituciones_semana_usecase.dart';
 import 'domain/usecases/actualizar_estado_guardia_usecase.dart';
+import 'domain/usecases/auto_asignar_todo_usecase.dart'; // Nuevo import
 import 'data/services/horario_importer.dart';
 import 'data/services/supabase_service.dart';
 import 'core/services/karma_service.dart';
@@ -138,6 +139,8 @@ Widget buildApp({
         create: (c) => GetSustitucionesSemanaUseCase(c.read<SustitucionRepository>())),
       Provider<ActualizarEstadoGuardiaUseCase>(
         create: (c) => ActualizarEstadoGuardiaUseCase(c.read<ProfesorRepository>())),
+      Provider<AutoAsignarTodoUseCase>(
+        create: (c) => AutoAsignarTodoUseCase(c.read<AusenciaRepository>())),
       ChangeNotifierProvider<AuthProvider>(
         create: (c) => AuthProvider(
           loginUseCase: c.read<LoginProfesorUseCase>(),

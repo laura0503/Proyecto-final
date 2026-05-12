@@ -21,6 +21,7 @@ class PlanningBody extends StatelessWidget {
   final void Function(int) onCambiarSemana;
   final VoidCallback onSeleccionarFecha;
   final VoidCallback onGestionarAusencias;
+  final VoidCallback onAutoAsignar; // Nuevo callback
   final Color primaryColor;
   final Color cardColor;
 
@@ -38,6 +39,7 @@ class PlanningBody extends StatelessWidget {
     required this.onCambiarSemana,
     required this.onSeleccionarFecha,
     required this.onGestionarAusencias,
+    required this.onAutoAsignar, // Nuevo
     required this.primaryColor,
     required this.cardColor,
   });
@@ -57,6 +59,7 @@ class PlanningBody extends StatelessWidget {
           onCambiarSemana: onCambiarSemana,
           onSeleccionarFecha: onSeleccionarFecha,
           onGestionarAusencias: onGestionarAusencias,
+          onAutoAsignar: onAutoAsignar, // Nuevo
           primaryColor: primaryColor,
           cardColor: cardColor,
           diasSemana: diasSemana,

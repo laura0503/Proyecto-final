@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../widgets/torre_control_section.dart';
-import '../../core/layout/app_breakpoints.dart';
 
 class MonitorScreen extends StatelessWidget {
   const MonitorScreen({super.key});
@@ -11,13 +10,7 @@ class MonitorScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: context.horizontalPadding,
-          vertical: 40,
-        ),
-        child: TorreControlSection(isDark: isDark),
-      ),
+      body: TorreControlSection(isDark: isDark),
     );
   }
 }
