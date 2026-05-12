@@ -1,32 +1,63 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+class WallpaperItem {
+  final String path;
+  final String name;
+  const WallpaperItem({required this.path, required this.name});
+}
 
 class ConfigProvider extends ChangeNotifier {
   String? _backgroundImage;
 
-  // Lista de fondos predefinidos (URLs de imágenes de alta calidad)
-  final List<String> _wallpapers = [
-    'assets/wallpapers/forest_road.png',
-    'assets/wallpapers/dark_forest_road.png',
-    'assets/wallpapers/autumn_mountains.jpg',
-    'assets/wallpapers/mountain_lake.jpg',
-    'https://i.pinimg.com/1200x/10/93/35/1093355c37a53cb8fca48df435418e79.jpg',
-    'https://i.pinimg.com/1200x/9c/4a/1a/9c4a1a04330f0a7b2ae1f3d9b189f40d.jpg',
-    'https://i.pinimg.com/1200x/87/d8/02/87d80227d335a4906251c266bc46bc0a.jpg',
-    'https://i.pinimg.com/1200x/3e/ca/2f/3eca2ff1fd84d665cb8882ca0004307d.jpg',
-    'https://i.pinimg.com/736x/21/14/79/211479f8a28b42621bc4a9c20e8910d.jpg',
-    'https://i.pinimg.com/736x/ae/c7/0a/aec70ad497b05a56d70f0d3337803eaf.jpg',
+  final List<WallpaperItem> _wallpapers = const [
+    WallpaperItem(path: 'assets/wallpapers/forest_road.png', name: 'Bosque'),
+    WallpaperItem(path: 'assets/wallpapers/dark_forest_road.png', name: 'Bosque Oscuro'),
+    WallpaperItem(path: 'assets/wallpapers/autumn_mountains.jpg', name: 'Otoño'),
+    WallpaperItem(path: 'assets/wallpapers/mountain_lake.jpg', name: 'Lago Azul'),
+    WallpaperItem(
+      path: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80',
+      name: 'Montaña Nevada',
+    ),
+    WallpaperItem(
+      path: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&q=80',
+      name: 'Aurora Boreal',
+    ),
+    WallpaperItem(
+      path: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=800&q=80',
+      name: 'Ciudad Nocturna',
+    ),
+    WallpaperItem(
+      path: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=800&q=80',
+      name: 'Abstracto',
+    ),
+    WallpaperItem(
+      path: 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=800&q=80',
+      name: 'Océano',
+    ),
+    WallpaperItem(
+      path: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=800&q=80',
+      name: 'Vía Láctea',
+    ),
+    WallpaperItem(
+      path: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+      name: 'Playa',
+    ),
+    WallpaperItem(
+      path: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=80',
+      name: 'Entre Niebla',
+    ),
   ];
 
   String? get backgroundImage => _backgroundImage;
-  List<String> get wallpapers => _wallpapers;
+  List<WallpaperItem> get wallpapers => _wallpapers;
 
   ImageProvider? get backgroundImageProvider {
     if (_backgroundImage == null) return null;
-    if (_backgroundImage!.startsWith('assets/')) {
-      return AssetImage(_backgroundImage!);
-    }
-    return NetworkImage(_backgroundImage!);
+    if (_backgroundImage!.startsWith('assets/')) return AssetImage(_backgroundImage!);
+    if (_backgroundImage!.startsWith('http')) return NetworkImage(_backgroundImage!);
+    return FileImage(File(_backgroundImage!));
   }
 
   ConfigProvider() {
@@ -41,16 +72,9 @@ class ConfigProvider extends ChangeNotifier {
 
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedBg = prefs.getString('backgroundImage');
     final savedLang = prefs.getString('app_language');
 
-    // Load Background
-    if (savedBg != null && !_wallpapers.contains(savedBg)) {
-      await prefs.remove('backgroundImage');
-      _backgroundImage = null;
-    } else {
-      _backgroundImage = savedBg;
-    }
+    _backgroundImage = prefs.getString('backgroundImage');
 
     // Load Language
     if (savedLang != null) {
