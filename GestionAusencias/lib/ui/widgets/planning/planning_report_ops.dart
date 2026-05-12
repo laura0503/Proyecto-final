@@ -27,7 +27,7 @@ Future<void> planningReportarEstadoEnTramo(
       if (idHorario != null && idHorario > 0) {
         return h.profesor == p.nombre &&
             h.dia.toUpperCase() == diaNombre &&
-            h.inicio == tramo.horarioInicio;
+            h.inicio == tramo.horario_inicio;
       }
       return false;
     });
@@ -43,7 +43,7 @@ Future<void> planningReportarEstadoEnTramo(
           ? tareas
           : (sesionReal != null
               ? "Falta en ${sesionReal.asignatura} (${sesionReal.grupo})"
-              : "Falta en tramo general ${tramo.horarioInicio}"),
+              : "Falta en tramo general ${tramo.horario_inicio}"),
     );
 
     await reportarUseCase.executeConSustitucion(ausencia);

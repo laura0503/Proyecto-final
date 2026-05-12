@@ -64,7 +64,7 @@ class ProfesorUIAdapter {
     final String display = _formatearNombre(profesor.nombre);
 
     return ProfesorUIModel(
-      id: profesor.id_profesor,
+      id: profesor.id,
       nombre: profesor.nombre,
       nombreDisplay: display,
       asignatura: profesor.asignatura,

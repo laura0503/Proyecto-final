@@ -129,7 +129,7 @@ class WeeklyGridView extends StatelessWidget {
     final diaSemanaNombre = ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"][dia.weekday];
     final sesionesEnTramo = horarios.where((h) => 
       h.dia.toUpperCase() == diaSemanaNombre && 
-      h.inicio == tramo.horarioInicio
+      h.inicio == tramo.horario_inicio
     ).toList();
 
     // 2. Para cada sesión, ver si el profesor tiene una ausencia activa
@@ -179,7 +179,7 @@ class WeeklyGridView extends StatelessWidget {
               Container(width: 4, height: 4, decoration: BoxDecoration(color: Colors.grey[300], shape: BoxShape.circle)),
               const SizedBox(width: 6),
               Text(
-                "${tramo.horarioInicio} — ${tramo.horarioFin}",
+                "${tramo.horario_inicio} — ${tramo.horario_fin}",
                 style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold, fontSize: 11),
               ),
             ],

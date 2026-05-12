@@ -157,9 +157,7 @@ class _EditarClaseScreenState extends State<EditarClaseScreen> {
       );
 
       final diaInt = _diasSemana.indexOf(_diaSeleccionado!) + 1;
-      final profesorId =
-          int.tryParse(widget.profesor.id_profesor) ??
-          widget.profesor.id_profesor;
+      final profesorId = widget.profesor.idProfesor ?? int.tryParse(widget.profesor.id) ?? 0;
 
       if (widget.clase == null) {
         await supabase.from('horario').insert({

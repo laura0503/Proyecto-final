@@ -52,7 +52,7 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
             context.read<GetHorarioAulaDetalladoUseCase>().execute(_id);
       } else if (widget.profesor != null) {
         _futureHorario =
-            context.read<GetHorarioOfesorDetalladoUseCase>().execute(_id);
+            context.read<GetHorarioProfesorDetalladoUseCase>().execute(_id, nombreFallback: widget.profesor!.nombre);
       } else if (widget.grupo != null) {
         _futureHorario =
             context.read<GetHorarioGrupoDetalladoUseCase>().execute(_id);

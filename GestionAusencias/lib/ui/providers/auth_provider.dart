@@ -141,6 +141,17 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> register(Profesor profesor) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _registerUseCase.execute(profesor);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     await _cerrarSesionUseCase.execute();
     try {

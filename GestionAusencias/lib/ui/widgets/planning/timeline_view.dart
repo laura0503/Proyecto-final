@@ -47,14 +47,14 @@ class TimelineView extends StatelessWidget {
           // 1. Tiene sesión real → buscar por inicio del horario
           if (idHorario != null && idHorario > 0) {
             final h = horarios.firstWhereOrNull((h) => h.id == idHorario);
-            return h?.inicio == tramo.horarioInicio;
+            return h?.inicio == tramo.horario_inicio;
           }
           // 2. Sin sesión → buscar el tramo por hora en observaciones
-          return a.observaciones?.contains(tramo.horarioInicio) == true;
+          return a.observaciones?.contains(tramo.horario_inicio) == true;
         }).toList();
 
         return _buildTimelineRow(
-          "${tramo.horarioInicio} - ${tramo.horarioFin}", 
+          "${tramo.horario_inicio} - ${tramo.horario_fin}", 
           ausenciasTramo, 
           tramo.recreo ? "RECREO" : null,
           tramo,

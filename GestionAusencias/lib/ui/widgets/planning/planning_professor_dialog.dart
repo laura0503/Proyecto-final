@@ -62,7 +62,7 @@ class _ProfessorDialogContentState extends State<_ProfessorDialogContent> {
           Text("Reportar Ausencia",
             style: TextStyle(color: widget.primaryColor, fontWeight: FontWeight.w900, fontSize: 24)),
           const SizedBox(height: 4),
-          Text("Horario: ${widget.tramo.horarioInicio} - ${widget.tramo.horarioFin}",
+          Text("Horario: ${widget.tramo.horario_inicio} - ${widget.tramo.horario_fin}",
             style: TextStyle(fontSize: 13, color: Colors.grey[600], fontWeight: FontWeight.w600)),
         ],
       ),

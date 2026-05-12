@@ -91,7 +91,7 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
   }
 
   @override
-  Future<List<HorarioClase>> getHorarioDetalladoByProfesor(int profesorId) async {
+  Future<List<HorarioClase>> getHorarioDetalladoByProfesor(int profesorId, {String? nombreFallback}) async {
     final results = await Future.wait([
       supabase.from('horario').select('''
         id_horario:id,
@@ -113,37 +113,46 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
 
     try {
       final profRows = results[1] as List;
+      String nombreProfesor = "";
+      
       if (profRows.isNotEmpty) {
-        final nombreProfesor = profRows.first['nombre'] as String? ?? '';
-        if (nombreProfesor.isNotEmpty) {
-          final guardiasResp = await supabase
-              .from('guardias')
-              .select()
-              .eq('profesorGuardia', nombreProfesor);
-
-          const dias = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-          final guardiasClases = (guardiasResp as List).map((json) {
-            final fecha = DateTime.tryParse(json['fecha']?.toString() ?? '');
-            if (fecha == null) return null;
-            final wd = fecha.weekday;
-            if (wd < 1 || wd > 5) return null;
-            return HorarioClaseModel(
-              id: 0,
-              profesor: json['profesorGuardia'] ?? '',
-              aula: json['aula'] ?? '',
-              grupo: json['grupo'] ?? '',
-              asignatura: 'GUARDIA',
-              dia: dias[wd],
-              inicio: json['horaInicio'] ?? '',
-              fin: json['horaFin'] ?? '',
-              esGuardia: true,
-            );
-          }).whereType<HorarioClaseModel>().toList();
-
-          return [...clases, ...guardiasClases];
-        }
+        nombreProfesor = profRows.first['nombre'] as String? ?? '';
       }
-    } catch (_) {}
+      
+      if (nombreProfesor.isEmpty && nombreFallback != null) {
+        nombreProfesor = nombreFallback;
+      }
+
+      if (nombreProfesor.isNotEmpty) {
+        final guardiasResp = await supabase
+            .from('guardias')
+            .select()
+            .eq('profesorGuardia', nombreProfesor);
+
+        const dias = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+        final guardiasClases = (guardiasResp as List).map((json) {
+          final fecha = DateTime.tryParse(json['fecha']?.toString() ?? '');
+          if (fecha == null) return null;
+          final wd = fecha.weekday;
+          if (wd < 1 || wd > 5) return null;
+          return HorarioClaseModel(
+            id: 0,
+            profesor: json['profesorGuardia'] ?? '',
+            aula: json['aula'] ?? '',
+            grupo: json['grupo'] ?? '',
+            asignatura: 'GUARDIA',
+            dia: dias[wd],
+            inicio: json['horaInicio'] ?? '',
+            fin: json['horaFin'] ?? '',
+            esGuardia: true,
+          );
+        }).whereType<HorarioClaseModel>().toList();
+
+        return [...clases, ...guardiasClases];
+      }
+    } catch (e) {
+      debugPrint("Error cargando guardias del profesor: $e");
+    }
 
     return clases;
   }
