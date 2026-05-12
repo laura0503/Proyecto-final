@@ -57,7 +57,8 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
       }
 
       try {
-        final res = await Supabase.instance.client
+        final supabase = Supabase.instance.client;
+        final res = await supabase
             .from('horario')
             .select('id_profesor, horario_tramo!id_tramo(horario_inicio)')
             .eq('dia', ["", "LUNES", "MARTES", "MIÉRCOLES", "JUEVES", "VIERNES", "SÁBADO", "DOMINGO"][dia])
