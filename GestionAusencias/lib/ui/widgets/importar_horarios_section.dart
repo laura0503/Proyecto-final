@@ -4,15 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import '../../domain/usecases/importar_horario_usecase.dart';
-
-enum _EstadoArchivo { pendiente, importando, ok, error }
-
-class _ArchivoItem {
-  final String nombre;
-  _EstadoArchivo estado;
-  String? mensaje;
-  _ArchivoItem(this.nombre) : estado = _EstadoArchivo.pendiente;
-}
+import 'importar_horarios_models.dart';
+import 'importar_archivo_row.dart';
 
 class ImportarHorariosSection extends StatefulWidget {
   final bool isDark;
@@ -23,7 +16,7 @@ class ImportarHorariosSection extends StatefulWidget {
 }
 
 class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
-  final List<_ArchivoItem> _archivos = [];
+  final List<ArchivoItem> _archivos = [];
   bool _importando = false;
   int _procesados = 0;
 
@@ -39,7 +32,7 @@ class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
     setState(() {
       _archivos.clear();
       for (final f in result.files) {
-        _archivos.add(_ArchivoItem(f.name));
+        _archivos.add(ArchivoItem(f.name));
       }
       _procesados = 0;
     });
@@ -52,7 +45,7 @@ class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
 
     for (int i = 0; i < files.length; i++) {
       final file = files[i];
-      setState(() => _archivos[i].estado = _EstadoArchivo.importando);
+      setState(() => _archivos[i].estado = EstadoArchivo.importando);
 
       try {
         String contenido;
@@ -65,12 +58,12 @@ class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
         await useCase.execute(contenido);
 
         setState(() {
-          _archivos[i].estado = _EstadoArchivo.ok;
+          _archivos[i].estado = EstadoArchivo.ok;
           _procesados++;
         });
       } catch (e) {
         setState(() {
-          _archivos[i].estado = _EstadoArchivo.error;
+          _archivos[i].estado = EstadoArchivo.error;
           _archivos[i].mensaje = e.toString().length > 80
               ? '${e.toString().substring(0, 80)}…'
               : e.toString();
@@ -81,7 +74,7 @@ class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
 
     setState(() => _importando = false);
     if (mounted) {
-      final errores = _archivos.where((a) => a.estado == _EstadoArchivo.error).length;
+      final errores = _archivos.where((a) => a.estado == EstadoArchivo.error).length;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(errores == 0
             ? '${_archivos.length} archivo(s) importados correctamente'
@@ -100,14 +93,7 @@ class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Importar Horarios CSV',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: textColor,
-          ),
-        ),
+        Text('Importar Horarios CSV', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: textColor)),
         const SizedBox(height: 6),
         Text(
           'Selecciona uno o varios archivos CSV de profesores, aulas o grupos. '
@@ -115,8 +101,6 @@ class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
           style: TextStyle(fontSize: 13, color: subColor),
         ),
         const SizedBox(height: 28),
-
-        // Botón seleccionar
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -127,33 +111,16 @@ class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
               foregroundColor: const Color(0xFF354231),
               side: const BorderSide(color: Color(0xFF354231)),
               padding: const EdgeInsets.symmetric(vertical: 16),
-              textStyle: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+              textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
           ),
         ),
-
         if (_archivos.isNotEmpty) ...[
           const SizedBox(height: 24),
-          Text(
-            'Archivos seleccionados',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: textColor,
-            ),
-          ),
+          Text('Archivos seleccionados', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textColor)),
           const SizedBox(height: 12),
-          ...List.generate(_archivos.length, (i) => _ArchivoRow(
-            item: _archivos[i],
-            isDark: isDark,
-          )),
-
+          ...List.generate(_archivos.length, (i) => ArchivoRow(item: _archivos[i], isDark: isDark)),
           if (!_importando && _procesados == _archivos.length && _procesados > 0) ...[
             const SizedBox(height: 20),
             SizedBox(
@@ -166,86 +133,13 @@ class _ImportarHorariosSectionState extends State<ImportarHorariosSection> {
                   backgroundColor: const Color(0xFF354231),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
               ),
             ),
           ],
         ],
       ],
-    );
-  }
-}
-
-class _ArchivoRow extends StatelessWidget {
-  final _ArchivoItem item;
-  final bool isDark;
-
-  const _ArchivoRow({required this.item, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    final Color color;
-    final Widget trailing;
-
-    switch (item.estado) {
-      case _EstadoArchivo.importando:
-        color = Colors.blue;
-        trailing = const SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blue),
-        );
-      case _EstadoArchivo.ok:
-        color = const Color(0xFF354231);
-        trailing = const Icon(Icons.check_circle_rounded,
-            color: Color(0xFF354231), size: 20);
-      case _EstadoArchivo.error:
-        color = Colors.red;
-        trailing = const Icon(Icons.error_rounded, color: Colors.red, size: 20);
-      case _EstadoArchivo.pendiente:
-        color = isDark ? Colors.white38 : Colors.grey;
-        trailing = const Icon(Icons.schedule_rounded, color: Colors.grey, size: 20);
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(12),
-        border: Border(left: BorderSide(color: color, width: 3)),
-      ),
-      child: Row(
-        children: [
-          trailing,
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.nombre,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : const Color(0xFF1E293B),
-                  ),
-                ),
-                if (item.mensaje != null) ...[
-                  const SizedBox(height: 3),
-                  Text(
-                    item.mensaje!,
-                    style: const TextStyle(fontSize: 11, color: Colors.red),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

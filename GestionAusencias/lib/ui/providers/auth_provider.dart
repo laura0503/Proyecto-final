@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/domain/usecases/login_profesor_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/register_profesor_usecase.dart';
@@ -8,7 +9,8 @@ import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import '../../core/utils/profesor_matcher.dart';
+import 'google_auth_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final LoginProfesorUseCase _loginUseCase;
@@ -19,9 +21,7 @@ class AuthProvider extends ChangeNotifier {
   final SupabaseClient _supabase;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    hostedDomain: 'g.educaand.es',
-  );
+  final GoogleSignIn _googleSignIn = GoogleSignIn(hostedDomain: 'g.educaand.es');
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -39,12 +39,12 @@ class AuthProvider extends ChangeNotifier {
     required CerrarSesionUseCase cerrarSesionUseCase,
     required GetProfesoresUseCase getProfesoresUseCase,
     required SupabaseClient supabase,
-  }) : _loginUseCase = loginUseCase,
-       _registerUseCase = registerUseCase,
-       _getSesionActualUseCase = getSesionActualUseCase,
-       _cerrarSesionUseCase = cerrarSesionUseCase,
-       _getProfesoresUseCase = getProfesoresUseCase,
-       _supabase = supabase {
+  })  : _loginUseCase = loginUseCase,
+        _registerUseCase = registerUseCase,
+        _getSesionActualUseCase = getSesionActualUseCase,
+        _cerrarSesionUseCase = cerrarSesionUseCase,
+        _getProfesoresUseCase = getProfesoresUseCase,
+        _supabase = supabase {
     _listenToAuthChanges();
   }
 
@@ -71,52 +71,14 @@ class AuthProvider extends ChangeNotifier {
         try {
           final googleEmail = session.user.email?.toLowerCase().trim();
           final googleName = session.user.userMetadata?['full_name']?.toString().toLowerCase().trim();
-          
+
           if (googleEmail != null) {
             final profesores = await _getProfesoresUseCase.execute();
+            final matched = matchProfesorByGoogle(profesores, googleEmail, googleName);
 
-            String normName(String s) => s.toLowerCase()
-                .replaceAll(RegExp(r'[áàâä]'), 'a')
-                .replaceAll(RegExp(r'[éèêë]'), 'e')
-                .replaceAll(RegExp(r'[íìîï]'), 'i')
-                .replaceAll(RegExp(r'[óòôö]'), 'o')
-                .replaceAll(RegExp(r'[úùûü]'), 'u')
-                .replaceAll('ñ', 'n');
-
-            final googleTokens = googleName != null
-                ? normName(googleName)
-                    .split(RegExp(r'[\s,]+'))
-                    .where((t) => t.length > 3)
-                    .toList()
-                : <String>[];
-
-            // Primero intentar coincidir con un profesor real (nombre sin @)
-            // usando tokens del nombre completo de Google (maneja "Apellidos, Nombre")
-            Profesor? profReal;
-            if (googleTokens.length >= 2) {
-              for (final p in profesores) {
-                if (p.nombre.contains('@')) continue; // saltar perfiles de email
-                final nombreNorm = normName(p.nombre);
-                final hits = googleTokens.where((t) => nombreNorm.contains(t)).length;
-                if (hits >= 2) { profReal = p; break; }
-              }
-            }
-
-            final match = profReal != null
-                ? [profReal]
-                : profesores.where((p) {
-                    final nombreProfe = p.nombre.toLowerCase().trim();
-                    if (nombreProfe == googleEmail) return true;
-                    if (googleName != null && nombreProfe == googleName) return true;
-                    if (googleEmail.split('@').first == nombreProfe.split('@').first) return true;
-                    return false;
-                  }).toList();
-
-            if (match.isNotEmpty) {
-              _profesorActual = match.first;
+            if (matched != null) {
+              _profesorActual = matched;
             } else {
-              // No crear perfil en BD — el home screen resolverá el profesor real
-              // usando la columna email de la tabla profesores.
               debugPrint("Sin match para $googleEmail — creando perfil temporal en memoria");
               _profesorActual = Profesor(
                 id: session.user.id,
@@ -138,19 +100,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> checkSession() async {
-    // Para desarrollo, podrías activar esto si no tienes internet:
-    /*
-    _profesorActual = const Profesor(
-      id: 'dummy_id',
-      nombre: 'Admin Local',
-      asignatura: 'Informática',
-      curso: '1',
-      foto: '',
-      departamento: 'Tecnología',
-      estadoAusente: false,
-      rol: 'admin',
-    );
-    */
     notifyListeners();
   }
 
@@ -159,29 +108,22 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Normalizamos el email
-      final String email = nombre.contains('@') ? nombre.toLowerCase().trim() : "${nombre.toLowerCase().trim()}@g.educaand.es";
-      
+      final String email = nombre.contains('@')
+          ? nombre.toLowerCase().trim()
+          : "${nombre.toLowerCase().trim()}@g.educaand.es";
+
       bool success = false;
 
       if (password != null && password.isNotEmpty) {
-        // Autenticación REAL con Firebase
-        final credential = await _auth.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
+        final credential = await _auth.signInWithEmailAndPassword(email: email, password: password);
         success = credential.user != null;
       } else {
-        // Autenticación por nombre (Legacy/Búsqueda directa)
         success = await _loginUseCase.execute(email);
       }
 
       if (success) {
-        // Buscamos los datos completos del profesor en la base de datos
         _profesorActual = await _getSesionActualUseCase.execute();
-        
-        // Si tras el loginUseCase no tenemos profesor (ej: no existe en la tabla)
-        // intentamos buscarlo por email directamente
+
         if (_profesorActual == null) {
           final profesores = await _getProfesoresUseCase.execute();
           _profesorActual = profesores.cast<Profesor?>().firstWhere(
@@ -224,27 +166,10 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
-
-      if (!googleUser.email.endsWith('@g.educaand.es')) {
-        await _googleSignIn.signOut();
-        throw 'Solo se permiten correos de @g.educaand.es';
+      final userCredential = await signInWithGoogle(googleSignIn: _googleSignIn, auth: _auth);
+      if (userCredential?.user != null) {
+        await login(userCredential!.user!.email!);
       }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final userCredential = await _auth.signInWithCredential(credential);
-      
-      // Sincronizar con tu lógica de profesores
-      if (userCredential.user != null) {
-        await login(userCredential.user!.email!);
-      }
-      
       return userCredential;
     } catch (e) {
       debugPrint('Error en Google Sign-In Firebase: $e');

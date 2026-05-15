@@ -7,7 +7,6 @@ import '../widgets/home/home_header_premium.dart';
 import '../widgets/home/home_absence_alert.dart';
 import '../widgets/home/home_weekly_schedule.dart';
 import '../widgets/home/home_active_guard_monitor.dart';
-import '../widgets/home/home_lounge_banner.dart';
 import '../widgets/home/home_sidebar_cards.dart';
 import '../widgets/planning/agenda_modal_content.dart';
 import 'guard_session_screen.dart';
@@ -97,55 +96,9 @@ class HomeBodyContent extends StatelessWidget {
               border: Border.all(color: const Color(0xFF4F46E5).withValues(alpha: 0.2)),
             ),
             child: const Text("DIRECTIVA",
-              style: TextStyle(
-                color: Color(0xFF4F46E5), fontSize: 10,
-                fontWeight: FontWeight.w900, letterSpacing: 1)),
+              style: TextStyle(color: Color(0xFF4F46E5), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
           ),
       ],
-    );
-  }
-
-  Widget _buildSubstitutionBanner(List<HorarioClase> susts) {
-    if (susts.isEmpty) return const SizedBox.shrink();
-    
-    final ausentes = susts.map((s) => s.profesorAusente).toSet().join(', ');
-    final horas = susts.map((s) => s.inicio).toSet().join(' • ');
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.orangeAccent.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.shield, color: Colors.orangeAccent, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: const TextStyle(fontSize: 13),
-                children: [
-                  TextSpan(
-                    text: "GUARDIA: $horas ",
-                    style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold),
-                  ),
-                  const TextSpan(text: " • ", style: TextStyle(color: Colors.white38)),
-                  const WidgetSpan(child: Icon(Icons.sync, color: Colors.blueAccent, size: 14)),
-                  const TextSpan(text: " "),
-                  TextSpan(
-                    text: "SUSTITUYE A: $ausentes",
-                    style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -160,7 +113,6 @@ class HomeBodyContent extends StatelessWidget {
           HomeAbsenceAlert(ausencia: ausenciaHoy),
           const SizedBox(height: 24),
         ],
-        
         HomeWeeklySchedule(
           horario: horario,
           ausencias: ausenciasSemana,
@@ -185,8 +137,7 @@ class HomeBodyContent extends StatelessWidget {
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.symmetric(
-        horizontal: context.horizontalPadding, vertical: 24),
+      padding: EdgeInsets.symmetric(horizontal: context.horizontalPadding, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

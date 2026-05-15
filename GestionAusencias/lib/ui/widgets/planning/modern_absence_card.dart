@@ -4,6 +4,7 @@ import '../../../domain/entities/ausencia.dart';
 import '../../../domain/entities/profesor.dart';
 import '../../../domain/entities/horario_clase.dart';
 import '../../../domain/entities/sustitucion.dart';
+import 'absence_card_widgets.dart';
 
 class ModernAbsenceCard extends StatelessWidget {
   final Ausencia ausencia;
@@ -12,7 +13,7 @@ class ModernAbsenceCard extends StatelessWidget {
   final List<Sustitucion> sustituciones;
   final void Function(Profesor, DateTime, Ausencia) onAction;
   final Future<void> Function(Ausencia) onClear;
-  final int? sessionId; // ID de la sesión concreta que muestra esta tarjeta
+  final int? sessionId;
 
   const ModernAbsenceCard({
     super.key,
@@ -27,44 +28,42 @@ class ModernAbsenceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final prof = profesores.firstWhereOrNull((p) => 
-      p.id == ausencia.profesorId || p.idProfesor?.toString() == ausencia.profesorId);
-    
+    final prof = profesores.firstWhereOrNull((p) =>
+        p.id == ausencia.profesorId || p.idProfesor?.toString() == ausencia.profesorId);
+
     final sesion = horarios.firstWhereOrNull((h) => h.id == (sessionId ?? ausencia.idHorario));
 
-    // Buscar sustituto para la sesión concreta; si no hay por sesión, buscar cualquiera de la baja
     final sust = sustituciones.firstWhereOrNull((s) =>
-          s.idAusencia == ausencia.id &&
-          (sessionId == null || s.idHorarioCubierto == sessionId || s.idHorarioCubierto == null));
+        s.idAusencia == ausencia.id &&
+        (sessionId == null || s.idHorarioCubierto == sessionId || s.idHorarioCubierto == null));
     final tieneSustituto = sust != null;
 
-    // Lógica de colores OFICIAL del sistema
-    Color statusColor = const Color(0xFF64748B); // Slate por defecto
+    Color statusColor = const Color(0xFF64748B);
     String statusLabel = "CRÍTICA";
 
     if (tieneSustituto) {
-      statusColor = const Color(0xFF10B981); // Verde Esmeralda (Asignada)
+      statusColor = const Color(0xFF10B981);
       statusLabel = "ASIGNADA";
     } else {
       switch (ausencia.tipoDetalle) {
         case TipoAusencia.bajaMedica:
-          statusColor = const Color(0xFFF59E0B); // Orange Oficial
+          statusColor = const Color(0xFFF59E0B);
           statusLabel = "BAJA MÉDICA";
           break;
         case TipoAusencia.vacaciones:
-          statusColor = const Color(0xFF0D9488); // Teal Oficial
+          statusColor = const Color(0xFF0D9488);
           statusLabel = "VACACIONES";
           break;
         case TipoAusencia.diasPersonales:
-          statusColor = const Color(0xFF4F46E5); // Indigo Oficial
+          statusColor = const Color(0xFF4F46E5);
           statusLabel = "ASUNTOS PROPIOS";
           break;
         case TipoAusencia.formacion:
-          statusColor = const Color(0xFFE11D48); // Rose Oficial (Se encuentra malo)
+          statusColor = const Color(0xFFE11D48);
           statusLabel = "SE ENCUENTRA MALO";
           break;
         default:
-          statusColor = const Color(0xFFBE123C); // Crimson (Crítica)
+          statusColor = const Color(0xFFBE123C);
           statusLabel = "CRÍTICA";
       }
     }
@@ -75,11 +74,7 @@ class ModernAbsenceCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       child: ClipRRect(
@@ -98,7 +93,7 @@ class ModernAbsenceCard extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildBadge(statusLabel, statusColor),
+                          AbsenceStatusBadge(label: statusLabel, color: statusColor),
                           _buildActions(context),
                         ],
                       ),
@@ -119,10 +114,10 @@ class ModernAbsenceCard extends StatelessWidget {
                       ),
                       if (tieneSustituto) ...[
                         const SizedBox(height: 14),
-                        _buildSustitutoInfo(sust!),
+                        AbsenceSustitutoInfo(sust: sust!),
                       ] else ...[
                         const SizedBox(height: 14),
-                        _buildAssignButton(context, prof, sesion),
+                        AbsenceAssignButton(prof: prof, ausencia: ausencia, onAction: onAction),
                       ],
                     ],
                   ),
@@ -131,23 +126,6 @@ class ModernAbsenceCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBadge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(6),
-        boxShadow: [
-          BoxShadow(color: color.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5),
       ),
     );
   }
@@ -191,63 +169,6 @@ class ModernAbsenceCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSustitutoInfo(Sustitucion sust) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF1F5F9)),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 12,
-            backgroundColor: const Color(0xFF10B981).withOpacity(0.1),
-            child: const Icon(Icons.person_outline, size: 14, color: Color(0xFF10B981)),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("SUSTITUTO", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Color(0xFF94A3B8))),
-                Text(
-                  sust.profesorNombre ?? "Asignado",
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Color(0xFF1E293B)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAssignButton(BuildContext context, Profesor? prof, HorarioClase? sesion) {
-    return SizedBox(
-      width: double.infinity,
-      height: 36,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          if (prof != null) onAction(prof, ausencia.fecha, ausencia);
-        },
-        icon: const Icon(Icons.bolt_rounded, size: 14),
-        label: const Text("ASIGNAR"),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1E293B),
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          elevation: 0,
-          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11),
-        ),
       ),
     );
   }

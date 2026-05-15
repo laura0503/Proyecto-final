@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/asignatura.dart';
 import '../../domain/usecases/get_asignaturas_usecase.dart';
-import '../../core/utils/string_utils.dart';
+import 'asignatura_card.dart';
 
 class AsignaturasSection extends StatefulWidget {
   final bool isDark;
@@ -126,14 +126,14 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
                   ),
                   Text(
                     'Selecciona una asignatura para ver detalles',
-                    style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6), fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha:0.6), fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -149,9 +149,9 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
           Container(
             height: 48,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha:0.15),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: Colors.white.withValues(alpha:0.1)),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
@@ -192,7 +192,7 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
                   childAspectRatio: 0.78, 
                 ),
                 itemCount: _filteredAsignaturas.length,
-                itemBuilder: (context, i) => _AsignaturaCard(
+                itemBuilder: (context, i) => AsignaturaCard(
                   asignatura: _filteredAsignaturas[i],
                   grupos: _gruposPorAsignatura[_filteredAsignaturas[i].id] ?? [],
                   isDark: widget.isDark,
@@ -208,7 +208,7 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
     return Center(
       child: Column(
         children: [
-          Icon(Icons.auto_stories_rounded, size: 64, color: Colors.white.withOpacity(0.1)),
+          Icon(Icons.auto_stories_rounded, size: 64, color: Colors.white.withValues(alpha:0.1)),
           const SizedBox(height: 16),
           const Text('No se encontraron asignaturas', style: TextStyle(color: Colors.white54)),
         ],
@@ -227,138 +227,5 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
         ],
       ),
     );
-  }
-}
-
-class _AsignaturaCard extends StatelessWidget {
-  final Asignatura asignatura;
-  final List<String> grupos;
-  final bool isDark;
-
-  const _AsignaturaCard({
-    required this.asignatura,
-    required this.grupos,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final String sigla = StringUtils.abbreviateAsignatura(asignatura.nombre);
-    final Color accentColor = _getAccentColor(asignatura.nombre);
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.85),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Icono circular superior
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(_getIcon(asignatura.nombre), color: accentColor, size: 22),
-                  ),
-                  const SizedBox(height: 10),
-                  // Siglas (Nombre abreviado)
-                  Text(
-                    sigla.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : const Color(0xFF1E293B),
-                      letterSpacing: 0.5,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  // Curso / Grupo
-                  Text(
-                    grupos.isNotEmpty ? grupos.first : 'General',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white54 : Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const Spacer(),
-                  // Pill Inferior (Departamento)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _getDeptAbbr(asignatura.departamento),
-                      style: TextStyle(
-                        fontSize: 7,
-                        fontWeight: FontWeight.w800,
-                        color: accentColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  IconData _getIcon(String name) {
-    final n = name.toUpperCase();
-    if (n.contains("MAT")) return Icons.calculate_rounded;
-    if (n.contains("ENG") || n.contains("ING")) return Icons.translate_rounded;
-    if (n.contains("DAM") || n.contains("ASIR") || n.contains("SIST")) return Icons.code_rounded;
-    if (n.contains("DATA") || n.contains("BADAT")) return Icons.storage_rounded;
-    if (n.contains("FIS") || n.contains("QUIM")) return Icons.science_rounded;
-    if (n.contains("FILO")) return Icons.psychology_rounded;
-    return Icons.auto_stories_rounded;
-  }
-
-  Color _getAccentColor(String name) {
-    final n = name.toUpperCase();
-    if (n.contains("MACS")) return const Color(0xFFF43F5E); // MACS -> Rose brillante
-    if (n.contains("MAT")) return const Color(0xFF6366F1); // Índigo eléctrico
-    if (n.contains("BIO") || n.contains("NATU")) return const Color(0xFF10B981); // Esmeralda vivo
-    if (n.contains("ENG") || n.contains("ING")) return const Color(0xFF06B6D4); // Cian diamante
-    if (n.contains("DAM") || n.contains("ASIR")) return const Color(0xFFA855F7); // Morado neón
-    if (n.contains("FIS") || n.contains("QUIM")) return const Color(0xFFF59E0B); // Naranja fuego
-    if (n.contains("FILO")) return const Color(0xFFEC4899); // Magenta vibrante
-    return const Color(0xFF3B82F6); // Azul vivo por defecto
-  }
-
-  String _getDeptAbbr(String dept) {
-    if (dept.length <= 10) return dept.toUpperCase();
-    return "${dept.substring(0, 8).toUpperCase()}...";
   }
 }

@@ -10,6 +10,7 @@ import '../../domain/usecases/get_horario_profesor_detallado_usecase.dart';
 import '../../domain/usecases/get_ausencias_usecase.dart';
 import '../../domain/usecases/get_sustituciones_semana_usecase.dart';
 import '../providers/auth_provider.dart';
+import '../../core/utils/profesor_id_resolver.dart';
 import 'home_body_content.dart';
 import '../widgets/home/home_weekly_schedule.dart';
 import '../widgets/torre_control_section.dart';
@@ -90,80 +91,6 @@ class _HomeScreenState extends State<HomeScreen> {
         .subscribe();
   }
 
-  /// Busca el id_profesor real en BD para un usuario logueado con email de Google.
-  /// Estrategia 1: columna `email` en profesores (solución definitiva — requiere SQL).
-  /// Estrategia 2: token-matching con full_name de los metadatos de Google.
-  Future<int?> _resolverIdProfesorReal(String emailNombre) async {
-    final supabase = context.read<SupabaseClient>();
-    final authUser = supabase.auth.currentUser;
-    final googleEmail = authUser?.email ?? emailNombre;
-
-    // ── Estrategia 1: buscar por columna email (la más fiable) ───────────────
-    try {
-      final byEmail = await supabase
-          .from('profesores')
-          .select('id_profesor, nombre')
-          .eq('email', googleEmail)
-          .not('nombre', 'ilike', '%@%')
-          .maybeSingle();
-      if (byEmail != null) {
-        final id = byEmail['id_profesor'] as int?;
-        debugPrint('[Resolver] Por email: $googleEmail → id=$id (${byEmail['nombre']})');
-        return id;
-      }
-    } catch (_) {
-      // La columna email puede no existir aún; ignorar y continuar
-    }
-
-    // ── Estrategia 2: token-matching con metadatos de Google ─────────────────
-    final meta = authUser?.userMetadata ?? {};
-    final candidatos = <String>{};
-    for (final key in ['full_name', 'name']) {
-      final v = meta[key]?.toString().trim();
-      if (v != null && v.isNotEmpty) candidatos.add(v);
-    }
-    final given = meta['given_name']?.toString().trim() ?? '';
-    final family = meta['family_name']?.toString().trim() ?? '';
-    if (given.isNotEmpty && family.isNotEmpty) candidatos.add('$given $family');
-
-    debugPrint('[Resolver] email=$googleEmail meta=$meta candidatos=$candidatos');
-
-    if (candidatos.isNotEmpty) {
-      String norm(String s) => s
-          .toLowerCase()
-          .replaceAll(RegExp(r'[áàâäã]'), 'a')
-          .replaceAll(RegExp(r'[éèêë]'), 'e')
-          .replaceAll(RegExp(r'[íìîï]'), 'i')
-          .replaceAll(RegExp(r'[óòôöõ]'), 'o')
-          .replaceAll(RegExp(r'[úùûü]'), 'u')
-          .replaceAll('ñ', 'n');
-
-      final allProfs = await supabase
-          .from('profesores')
-          .select('id_profesor, nombre')
-          .not('nombre', 'ilike', '%@%');
-
-      for (final nombre in candidatos) {
-        final tokens = norm(nombre)
-            .split(RegExp(r'[\s,]+'))
-            .where((t) => t.length > 2)
-            .toList();
-        if (tokens.length < 2) continue;
-        for (final p in allProfs as List) {
-          final nombreNorm = norm(p['nombre'] as String? ?? '');
-          if (tokens.where((t) => nombreNorm.contains(t)).length >= 2) {
-            final id = p['id_profesor'] as int?;
-            debugPrint('[Resolver] Por tokens "$nombre" → id=$id (${p['nombre']})');
-            return id;
-          }
-        }
-      }
-    }
-
-    debugPrint('[Resolver] Sin coincidencia — ejecuta el SQL de vinculación en Supabase');
-    return null;
-  }
-
   Future<void> _cargarDatos() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
@@ -194,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Cuando el perfil es un email auto-creado por login de Google,
       // SIEMPRE buscar el registro REAL del profesor en BD (el del CSV).
       if (nombreEsEmail) {
-        profId = await _resolverIdProfesorReal(prof.nombre);
+        profId = await resolverIdProfesorReal(context.read<SupabaseClient>(), prof.nombre);
       } else if (profId == null || profId == 0) {
         final nombreLimpio = prof.nombre.split(',').last.trim();
         final resp = await context.read<SupabaseClient>()
