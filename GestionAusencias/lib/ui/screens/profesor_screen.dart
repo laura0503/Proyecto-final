@@ -27,6 +27,7 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
   String _filtroEstado = "Todos";
   List<int> _idsOcupados = [];
   Map<int, List<String>> _horariosHoy = {};
+  Set<int> _idsConHorario = {}; // IDs de profesores reales del CSV
 
   @override
   void initState() {
@@ -55,24 +56,38 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
         });
       }
 
-      // Cargar huecos (horarios del día)
+      // Cargar huecos (horarios del día) + IDs con cualquier horario asignado
       try {
         final supabase = Supabase.instance.client;
-        final res = await supabase
-            .from('horario')
-            .select('id_profesor, horario_tramo!id_tramo(horario_inicio)')
-            .eq('dia_semana', dia) 
-            .neq('es_guardia', true);
-            
+        final results = await Future.wait([
+          supabase
+              .from('horario')
+              .select('id_profesor, horario_tramo!id_tramo(horario_inicio)')
+              .eq('dia_semana', dia)
+              .neq('es_guardia', true),
+          supabase.from('horario').select('id_profesor'),
+        ]);
+
         final Map<int, List<String>> horariosMap = {};
-        for (var h in res as List) {
+        for (var h in results[0] as List) {
           final id = h['id_profesor'] as int?;
           final hInicio = h['horario_tramo']?['horario_inicio'] as String?;
           if (id != null && hInicio != null) {
             horariosMap.putIfAbsent(id, () => []).add(hInicio.substring(0, 5));
           }
         }
-        if (mounted) setState(() => _horariosHoy = horariosMap);
+
+        final idsConHorario = (results[1] as List)
+            .map((h) => h['id_profesor'] as int?)
+            .whereType<int>()
+            .toSet();
+
+        if (mounted) {
+          setState(() {
+            _horariosHoy = horariosMap;
+            _idsConHorario = idsConHorario;
+          });
+        }
       } catch (e) {
         debugPrint("Error cargando huecos: $e");
       }
@@ -84,18 +99,26 @@ class _ProfesoresScreenState extends State<ProfesoresScreen> {
 
   List<Profesor> get _profesoresFiltrados {
     return _listaProfesores.where((p) {
-      if (!p.nombre.toLowerCase().contains(_query.toLowerCase())) return false;
-      
+      // 1. Excluir perfiles creados automáticamente por login (nombre = email)
+      if (p.nombre.contains('@')) return false;
+
+      // 2. Solo profesores con horario real en BD, salvo admin/directiva
       final idInt = p.idProfesor ?? int.tryParse(p.id) ?? -1;
+      if (!p.isAdmin && _idsConHorario.isNotEmpty && !_idsConHorario.contains(idInt)) {
+        return false;
+      }
+
+      // 3. Búsqueda por nombre
+      if (!p.nombre.toLowerCase().contains(_query.toLowerCase())) return false;
+
+      // 4. Filtros de estado
       final esOcupado = _idsOcupados.contains(idInt);
-      
       if (_filtroEstado == "Disponibles") return !p.estadoAusente && !esOcupado;
       if (_filtroEstado == "Ausentes") return p.estadoAusente;
       if (_filtroEstado == "En Clase") return !p.estadoAusente && esOcupado;
       if (_filtroEstado == "Huecos") {
         if (p.estadoAusente || esOcupado) return false;
-        final horas = _horariosHoy[idInt] ?? [];
-        return horas.isNotEmpty;
+        return (_horariosHoy[idInt] ?? []).isNotEmpty;
       }
       return true;
     }).toList();

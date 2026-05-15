@@ -38,7 +38,6 @@ class FichajeTeamSection extends StatelessWidget {
                   foto: "",
                   departamento: "Admin",
                   estadoAusente: false,
-                  karma: 0,
                 ));
 
     return Column(
@@ -104,8 +103,8 @@ class FichajeTeamSection extends StatelessWidget {
                             recommendedProfesor!.nombre.contains(n) ||
                             n.contains(recommendedProfesor!.nombre),
                       )
-                      ? "Programado (${recommendedProfesor!.karma.round()} pts)"
-                      : "Sugerido (${recommendedProfesor!.karma.round()} pts)",
+                      ? "Programado"
+                      : "Sugerido",
                   location: recommendedProfesor!.departamento,
                   isRecommended: true,
                   avatar:

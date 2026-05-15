@@ -53,7 +53,7 @@ class _TorreControlSectionState extends State<TorreControlSection> {
 
       final results = await Future.wait([
         supabase.from('ausencia').select('''
-            id_ausencia, id_profesor_ausente, es_dia_completo, tipo_detalle,
+            id_ausencia, id_profesor_ausente, es_dia_completo, tipo_detalle, observaciones,
             profesor_ausente:id_profesor_ausente (nombre),
             horario:id_horario_sesion (
               id, asignatura:id_asignatura(nombre), aula:id_aula(nombre), grupo:id_grupo(nombre),
@@ -89,16 +89,15 @@ class _TorreControlSectionState extends State<TorreControlSection> {
       for (var a in ausencias) {
         final h = a['horario'];
         // Si tiene horario específico, calculamos si es pasado
-        if (h != null) {
+        if (a['horario'] != null) {
+          final h = a['horario'];
           final t = h['horario_tramo'];
-          final inicio = (t['horario_inicio'] ?? '00:00').toString().substring(0, 5);
-          final fin = (t['horario_fin'] ?? '00:00').toString().substring(0, 5);
-          final bool esPasado = nowStr.compareTo(fin) >= 0;
-
-          if (!esPasado) {
+          if (t != null) {
+            final inicio = t['horario_inicio'].toString().substring(0, 5);
+            final fin = t['horario_fin'].toString().substring(0, 5);
             allSlots.add(SlotMonitor(
               ausenciaId: a['id_ausencia'] is String ? int.parse(a['id_ausencia']) : a['id_ausencia'],
-              idTramo: t['id_horario'] is String ? int.parse(t['id_horario']) : (t['id_horario'] ?? 0),
+              idTramo: t['id_horario'] ?? 0,
               inicio: inicio,
               fin: fin,
               grupo: h['grupo']?['nombre'] ?? 'N/A',
@@ -106,14 +105,13 @@ class _TorreControlSectionState extends State<TorreControlSection> {
               asignatura: h['asignatura']?['nombre'] ?? 'N/A',
               profesorAusente: a['profesor_ausente']?['nombre'] ?? 'Desconocido',
               tipo: "FALTA",
-              tipoDetalle: a['tipo_detalle']?.toString() ?? "PUNTUAL",
+              tipoDetalle: a['deberes']?.toString() ?? "",
               sustitutoNombre: cobertura[a['id_ausencia'] is String ? int.parse(a['id_ausencia']) : a['id_ausencia']],
               esActual: nowStr.compareTo(inicio) >= 0 && nowStr.compareTo(fin) < 0,
               esPasado: false,
             ));
           }
         } else if (a['es_dia_completo'] == true) {
-          // Si es día completo y no tiene sesión específica, lo mostramos siempre
           allSlots.add(SlotMonitor(
             ausenciaId: a['id_ausencia'] is String ? int.parse(a['id_ausencia']) : a['id_ausencia'],
             idTramo: 0,
@@ -124,7 +122,7 @@ class _TorreControlSectionState extends State<TorreControlSection> {
             asignatura: "Día Completo",
             profesorAusente: a['profesor_ausente']?['nombre'] ?? 'Desconocido',
             tipo: "FALTA",
-            tipoDetalle: a['tipo_detalle']?.toString() ?? "DÍA COMPLETO",
+            tipoDetalle: a['deberes']?.toString() ?? "",
             sustitutoNombre: cobertura[a['id_ausencia'] is String ? int.parse(a['id_ausencia']) : a['id_ausencia']],
             esActual: true,
             esPasado: false,
@@ -175,33 +173,30 @@ class _TorreControlSectionState extends State<TorreControlSection> {
     final desiertas = _slots.where((s) => s.esDesierta).length;
     final cubiertas = _slots.length - desiertas;
 
-    return Container(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: NetworkImage("https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=2070"),
-          fit: BoxFit.cover,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Monitor de Centro", 
+          style: TextStyle(
+            fontSize: 28, 
+            fontWeight: FontWeight.w900, 
+            color: Colors.white, 
+            shadows: [Shadow(blurRadius: 10, color: Colors.black45)]
+          )
         ),
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("Monitor de Centro", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, shadows: [Shadow(blurRadius: 10, color: Colors.black45)])),
-              const SizedBox(height: 32),
-              _buildKPIRow(desiertas, cubiertas),
-              const SizedBox(height: 32),
-              _buildMainManagementCard(),
-              const SizedBox(height: 48),
-              const Text("Equipo de Guardia para Hoy", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 24),
-              _buildGuardTeamScroll(),
-            ],
-          ),
+        const SizedBox(height: 24),
+        _buildKPIRow(desiertas, cubiertas),
+        const SizedBox(height: 24),
+        _buildMainManagementCard(),
+        const SizedBox(height: 32),
+        const Text(
+          "Equipo de Guardia para Hoy", 
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)
         ),
-      ),
+        const SizedBox(height: 16),
+        _buildGuardTeamScroll(),
+      ],
     );
   }
 

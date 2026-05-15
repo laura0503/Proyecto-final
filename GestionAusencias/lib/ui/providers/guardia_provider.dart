@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:gestion_ausencias/core/services/karma_service.dart';
 import 'package:gestion_ausencias/domain/usecases/actualizar_estado_guardia_usecase.dart';
 
 class GuardiaProvider extends ChangeNotifier {
-  final KarmaService _karmaService;
   final ActualizarEstadoGuardiaUseCase _actualizarEstadoGuardia;
 
   bool _isOnGuard = false;
@@ -22,10 +20,8 @@ class GuardiaProvider extends ChangeNotifier {
   String? get currentProfessorId => _currentProfessorId;
 
   GuardiaProvider({
-    required KarmaService karmaService,
     required ActualizarEstadoGuardiaUseCase actualizarEstadoGuardia,
-  })  : _karmaService = karmaService,
-        _actualizarEstadoGuardia = actualizarEstadoGuardia {
+  })  : _actualizarEstadoGuardia = actualizarEstadoGuardia {
     _loadFromPrefs();
   }
 
@@ -85,13 +81,10 @@ class GuardiaProvider extends ChangeNotifier {
   Future<void> stopGuard() async {
     if (_currentProfessorId == null || _startTime == null) return;
 
-    final double pointsEarned = _karmaService.calculatePoints(_elapsedTime);
-
     try {
       await _actualizarEstadoGuardia.execute(
         _currentProfessorId!,
         esGuardia: false,
-        karmaExtra: pointsEarned,
       );
     } catch (e) {
       debugPrint("Error al finalizar guardia: $e");

@@ -16,14 +16,28 @@ class ProfesorRemoteDataSource {
       final List profsJson = response as List;
       if (profsJson.isEmpty) return [];
 
-      List<Profesor> listaProfesores = profsJson.map((json) {
-        final Map<String, dynamic> data = Map<String, dynamic>.from(json);
-        // Compatibilidad con diferentes nombres de ID en la BD
+      // Deduplicar por nombre (conservar el registro con menor id_profesor)
+      final Map<String, Map<String, dynamic>> uniqueByName = {};
+      for (final json in profsJson) {
+        final Map<String, dynamic> data = Map<String, dynamic>.from(json as Map);
         if (data['id'] == null && data['id_profesor'] != null) {
           data['id'] = data['id_profesor'].toString();
         }
-        return ProfesorModel.fromJson(data);
-      }).toList();
+        final nombre = (data['nombre'] ?? '').toString().trim();
+        if (nombre.isEmpty) continue;
+        if (!uniqueByName.containsKey(nombre)) {
+          uniqueByName[nombre] = data;
+        } else {
+          final existingId = uniqueByName[nombre]!['id_profesor'] as int? ?? 99999;
+          final newId = data['id_profesor'] as int? ?? 99999;
+          if (newId < existingId) uniqueByName[nombre] = data;
+        }
+      }
+
+      List<Profesor> listaProfesores = uniqueByName.values
+          .map((data) => ProfesorModel.fromJson(data))
+          .toList()
+        ..sort((a, b) => a.nombre.compareTo(b.nombre));
 
       listaProfesores = await _enriquecerProfesoresConEstado(listaProfesores);
       return listaProfesores;
@@ -183,24 +197,32 @@ class ProfesorRemoteDataSource {
   Future<void> actualizarEstadoGuardia(
     String id, {
     required bool esGuardia,
-    double? karmaExtra,
   }) async {
     final int? idInt = int.tryParse(id);
     if (idInt == null) return;
+    await _supabase
+        .from('profesores')
+        .update({'es_guardia': esGuardia})
+        .eq('id_profesor', idInt);
+  }
 
-    final updates = <String, dynamic>{'es_guardia': esGuardia};
-
-    if (karmaExtra != null && karmaExtra > 0) {
-      final row = await _supabase
+  Future<Profesor?> buscarPorEmail(String email) async {
+    try {
+      final response = await _supabase
           .from('profesores')
-          .select('karma')
-          .eq('id_profesor', idInt)
+          .select()
+          .eq('email', email)
+          .not('nombre', 'ilike', '%@%')
           .maybeSingle();
-      final double currentKarma = ((row?['karma']) ?? 0.0).toDouble();
-      updates['karma'] = currentKarma + karmaExtra;
+      if (response == null) return null;
+      final data = Map<String, dynamic>.from(response as Map);
+      if (data['id'] == null && data['id_profesor'] != null) {
+        data['id'] = data['id_profesor'].toString();
+      }
+      return ProfesorModel.fromJson(data);
+    } catch (_) {
+      return null;
     }
-
-    await _supabase.from('profesores').update(updates).eq('id_profesor', idInt);
   }
 
   Future<ProfesorModel?> obtenerSesionActual(String id) async {

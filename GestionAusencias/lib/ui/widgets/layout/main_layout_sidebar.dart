@@ -43,8 +43,6 @@ class MainLayoutSidebar extends StatelessWidget {
                       if (isAdmin) ...[
                         _Item(icon: Icons.radar_rounded, label: 'Monitor', index: 6,
                           selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
-                        _Item(icon: Icons.auto_awesome_rounded, label: 'Karma', index: 7,
-                          selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
                         _Item(icon: Icons.admin_panel_settings_rounded, label: AppStrings.get(context, 'admin'), index: 8,
                           selectedIndex: selectedIndex, activeTabColor: activeTabColor, onNavigate: onNavigate, onLogout: onLogout),
                         const SizedBox(height: 10),

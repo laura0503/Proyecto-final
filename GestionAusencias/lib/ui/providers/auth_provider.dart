@@ -7,6 +7,7 @@ import 'package:gestion_ausencias/domain/usecases/cerrar_sesion_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -17,6 +18,7 @@ class AuthProvider extends ChangeNotifier {
   final GetProfesoresUseCase _getProfesoresUseCase;
   final SupabaseClient _supabase;
 
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId: '867000121620-m6vu65l321er11q0t3cifpbdsjk00tkq.apps.googleusercontent.com',
     hostedDomain: 'g.educaand.es',
@@ -73,31 +75,59 @@ class AuthProvider extends ChangeNotifier {
           
           if (googleEmail != null) {
             final profesores = await _getProfesoresUseCase.execute();
-            
-            final match = profesores.where((p) {
-              final nombreProfe = p.nombre.toLowerCase().trim();
-              return nombreProfe == googleEmail || 
-                     nombreProfe == googleName ||
-                     (googleName != null && googleName.contains(nombreProfe)) ||
-                     (googleName != null && nombreProfe.contains(googleName)) ||
-                     googleEmail.split('@').first == nombreProfe.split('@').first;
-            }).toList();
+
+            String normName(String s) => s.toLowerCase()
+                .replaceAll(RegExp(r'[áàâä]'), 'a')
+                .replaceAll(RegExp(r'[éèêë]'), 'e')
+                .replaceAll(RegExp(r'[íìîï]'), 'i')
+                .replaceAll(RegExp(r'[óòôö]'), 'o')
+                .replaceAll(RegExp(r'[úùûü]'), 'u')
+                .replaceAll('ñ', 'n');
+
+            final googleTokens = googleName != null
+                ? normName(googleName)
+                    .split(RegExp(r'[\s,]+'))
+                    .where((t) => t.length > 3)
+                    .toList()
+                : <String>[];
+
+            // Primero intentar coincidir con un profesor real (nombre sin @)
+            // usando tokens del nombre completo de Google (maneja "Apellidos, Nombre")
+            Profesor? profReal;
+            if (googleTokens.length >= 2) {
+              for (final p in profesores) {
+                if (p.nombre.contains('@')) continue; // saltar perfiles de email
+                final nombreNorm = normName(p.nombre);
+                final hits = googleTokens.where((t) => nombreNorm.contains(t)).length;
+                if (hits >= 2) { profReal = p; break; }
+              }
+            }
+
+            final match = profReal != null
+                ? [profReal]
+                : profesores.where((p) {
+                    final nombreProfe = p.nombre.toLowerCase().trim();
+                    if (nombreProfe == googleEmail) return true;
+                    if (googleName != null && nombreProfe == googleName) return true;
+                    if (googleEmail.split('@').first == nombreProfe.split('@').first) return true;
+                    return false;
+                  }).toList();
 
             if (match.isNotEmpty) {
               _profesorActual = match.first;
             } else {
-              debugPrint("Usuario nuevo de Google: $googleEmail. Creando perfil...");
-              final nuevoProfe = Profesor(
-                id: "google_${session.user.id.substring(0, 8)}",
-                nombre: session.user.email ?? googleName ?? "Usuario Google",
-                asignatura: "Pendiente",
-                curso: "General",
-                foto: session.user.userMetadata?['avatar_url'] ?? "https://i.pravatar.cc/150?u=$googleEmail",
-                departamento: "General",
+              // No crear perfil en BD — el home screen resolverá el profesor real
+              // usando la columna email de la tabla profesores.
+              debugPrint("Sin match para $googleEmail — creando perfil temporal en memoria");
+              _profesorActual = Profesor(
+                id: session.user.id,
+                nombre: googleEmail,
+                asignatura: "",
+                curso: "",
+                foto: session.user.userMetadata?['avatar_url'] ?? "",
+                departamento: "",
                 estadoAusente: false,
               );
-              await _registerUseCase.execute(nuevoProfe);
-              _profesorActual = nuevoProfe;
             }
           }
         } catch (e) {
@@ -125,16 +155,39 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login(String nombre) async {
+  Future<bool> login(String nombre, {String? password}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final success = await _loginUseCase.execute(nombre);
-      if (success) {
-        _profesorActual = await _getSesionActualUseCase.execute();
+      final String email = nombre.contains('@') ? nombre : "$nombre@g.educaand.es";
+      
+      // Si quieres usar Firebase Auth real con contraseña:
+      if (password != null) {
+        final credential = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        if (credential.user != null) {
+          // Aquí buscamos al profesor en tu base de datos actual (Supabase)
+          final success = await _loginUseCase.execute(email);
+          if (success) {
+            _profesorActual = await _getSesionActualUseCase.execute();
+          }
+          return success;
+        }
+        return false;
+      } else {
+        // Login "rápido" (solo nombre) que ya tenías
+        final success = await _loginUseCase.execute(email);
+        if (success) {
+          _profesorActual = await _getSesionActualUseCase.execute();
+        }
+        return success;
       }
-      return success;
+    } catch (e) {
+      debugPrint("Error en login: $e");
+      return false;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -161,35 +214,35 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<GoogleSignInAccount?> signInWithGoogle() async {
+  Future<UserCredential?> signInWithGoogleFirebase() async {
     _isLoading = true;
     notifyListeners();
     try {
-      if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.windows || defaultTargetPlatform == TargetPlatform.linux)) {
-        await _supabase.auth.signOut();
-        await _supabase.auth.signInWithOAuth(
-          OAuthProvider.google,
-          redirectTo: 'com.tuempresa.guardiasapp://login-callback',
-          queryParams: {
-            'hd': 'g.educaand.es',
-            'prompt': 'select_account',
-          },
-        );
-        return null; 
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
+
+      if (!googleUser.email.endsWith('@g.educaand.es')) {
+        await _googleSignIn.signOut();
+        throw 'Solo se permiten correos de @g.educaand.es';
       }
 
-      await _googleSignIn.signOut();
-      final GoogleSignInAccount? account = await _googleSignIn.signIn();
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
       
-      if (account != null && !account.email.endsWith('@g.educaand.es')) {
-        await _googleSignIn.signOut();
-        debugPrint('Acceso denegado: dominio no permitido');
-        return null;
+      // Sincronizar con tu lógica de profesores
+      if (userCredential.user != null) {
+        await login(userCredential.user!.email!);
       }
-      return account;
+      
+      return userCredential;
     } catch (e) {
-      debugPrint('Error en Google Sign-In: $e');
-      return null;
+      debugPrint('Error en Google Sign-In Firebase: $e');
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();

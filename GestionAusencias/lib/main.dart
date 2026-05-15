@@ -7,11 +7,18 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'data/services/horario_importer.dart';
 import 'data/services/supabase_service.dart';
-import 'core/services/karma_service.dart';
 import 'injection.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
 
   await initializeDateFormatting('es', null);
 
@@ -41,7 +48,6 @@ void main() async {
   final supabase = Supabase.instance.client;
   final horarioImporter = HorarioImporter();
   final supabaseService = SupabaseService(supabase);
-  final karmaService = KarmaService();
 
   Future(() async {
     try {
@@ -71,7 +77,6 @@ void main() async {
       supabase: supabase,
       horarioImporter: horarioImporter,
       supabaseService: supabaseService,
-      karmaService: karmaService,
     ),
   );
 }

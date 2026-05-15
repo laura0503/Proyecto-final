@@ -86,9 +86,13 @@ class LoginFormCard extends StatelessWidget {
   Widget _buildGoogleButton() {
     return OutlinedButton.icon(
       onPressed: () async {
-        final account = await authProvider.signInWithGoogle();
-        if (account != null) {
-          onMensaje("Bienvenido, ${account.displayName}");
+        try {
+          final credential = await authProvider.signInWithGoogleFirebase();
+          if (credential?.user != null) {
+            onMensaje("Bienvenido, ${credential!.user!.displayName}");
+          }
+        } catch (e) {
+          onMensaje(e.toString(), esError: true);
         }
       },
       icon: const Icon(Icons.g_mobiledata, color: Colors.white, size: 30),

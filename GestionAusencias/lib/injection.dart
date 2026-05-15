@@ -51,11 +51,11 @@ import 'domain/usecases/get_guardias_usecase.dart';
 import 'domain/usecases/guardar_guardia_usecase.dart';
 import 'domain/usecases/eliminar_guardia_usecase.dart';
 import 'domain/usecases/get_sustituciones_semana_usecase.dart';
+import 'domain/usecases/guardar_observacion_usecase.dart';
 import 'domain/usecases/actualizar_estado_guardia_usecase.dart';
 import 'domain/usecases/auto_asignar_todo_usecase.dart'; // Nuevo import
 import 'data/services/horario_importer.dart';
 import 'data/services/supabase_service.dart';
-import 'core/services/karma_service.dart';
 import 'ui/providers/auth_provider.dart';
 import 'ui/providers/config_provider.dart';
 import 'ui/providers/notification_provider.dart';
@@ -66,7 +66,6 @@ Widget buildApp({
   required SupabaseClient supabase,
   required HorarioImporter horarioImporter,
   required SupabaseService supabaseService,
-  required KarmaService karmaService,
 }) {
   final profesorDs = ProfesorRemoteDataSource(supabase);
   final horarioDs = HorarioRemoteDataSource(supabase);
@@ -96,7 +95,6 @@ Widget buildApp({
       Provider<IHorarioImporter>.value(value: horarioImporter),
       Provider<SupabaseService>.value(value: supabaseService),
       Provider<SupabaseClient>.value(value: supabase),
-      Provider<KarmaService>.value(value: karmaService),
       Provider<LoginProfesorUseCase>(create: (_) => LoginProfesorUseCase(profesorRepo)),
       Provider<RegisterProfesorUseCase>(create: (_) => RegisterProfesorUseCase(profesorRepo)),
       Provider<GetProfesoresUseCase>(create: (_) => GetProfesoresUseCase(profesorRepo)),
@@ -137,6 +135,8 @@ Widget buildApp({
         create: (c) => EliminarGuardiaUseCase(c.read<GuardiaRepository>())),
       Provider<GetSustitucionesSemanaUseCase>(
         create: (c) => GetSustitucionesSemanaUseCase(c.read<SustitucionRepository>())),
+      Provider<GuardarObservacionUseCase>(
+        create: (c) => GuardarObservacionUseCase(c.read<SustitucionRepository>())),
       Provider<ActualizarEstadoGuardiaUseCase>(
         create: (c) => ActualizarEstadoGuardiaUseCase(c.read<ProfesorRepository>())),
       Provider<AutoAsignarTodoUseCase>(
@@ -155,7 +155,6 @@ Widget buildApp({
       ChangeNotifierProvider<NotificationProvider>(create: (_) => NotificationProvider()),
       ChangeNotifierProvider<GuardiaProvider>(
         create: (c) => GuardiaProvider(
-          karmaService: c.read<KarmaService>(),
           actualizarEstadoGuardia: c.read<ActualizarEstadoGuardiaUseCase>(),
         ),
       ),

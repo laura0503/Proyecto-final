@@ -98,7 +98,7 @@ Future<void> showAsignarGuardiaSheet(
       },
       onAsignarProfesor: (profId, nombre) async {
         Navigator.pop(ctx);
-        await _asignarProfesor(context, slot.ausenciaId, profId, nombre);
+        await _asignarProfesor(context, slot.ausenciaId, profId, nombre, hoy);
         onAsignado();
       },
     ),
@@ -110,6 +110,7 @@ Future<void> _asignarProfesor(
   int ausenciaId,
   int profId,
   String nombre,
+  DateTime fecha,
 ) async {
   final supabase = Supabase.instance.client;
   final messenger = ScaffoldMessenger.of(context);
@@ -120,6 +121,18 @@ Future<void> _asignarProfesor(
         .eq('id_ausencia', ausenciaId)
         .maybeSingle();
 
+    // Look up id_horario_sesion from the ausencia to use as id_horario_cubierto
+    final ausData = await supabase
+        .from('ausencia')
+        .select('id_horario_sesion')
+        .eq('id_ausencia', ausenciaId)
+        .maybeSingle();
+    final idHorarioCubierto = ausData?['id_horario_sesion'] as int?;
+
+    final dateStr = '${fecha.year.toString().padLeft(4, '0')}-'
+        '${fecha.month.toString().padLeft(2, '0')}-'
+        '${fecha.day.toString().padLeft(2, '0')}';
+
     if (sust != null) {
       await supabase
           .from('sustitucion')
@@ -129,6 +142,8 @@ Future<void> _asignarProfesor(
       await supabase.from('sustitucion').insert({
         'id_ausencia': ausenciaId,
         'id_profesor_sustituto': profId,
+        if (idHorarioCubierto != null) 'id_horario_cubierto': idHorarioCubierto,
+        'fecha': dateStr,
       });
     }
     messenger.showSnackBar(

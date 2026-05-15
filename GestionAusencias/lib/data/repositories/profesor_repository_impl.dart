@@ -47,18 +47,27 @@ class ProfesorRepositoryImpl implements ProfesorRepository {
 
   @override
   Future<bool> verificarLogin(String nombre) async {
-    final profesores = await obtenerProfesores();
     final nombreLimpio = nombre.trim().toLowerCase();
-    
+
+    // Búsqueda primaria: por nombre exacto en la lista de profesores
+    final profesores = await obtenerProfesores();
     try {
       final profesor = profesores.firstWhere(
         (p) => p.nombre.trim().toLowerCase() == nombreLimpio,
       );
-      _sesionEnMemoria = profesor; // Guardamos en memoria
+      _sesionEnMemoria = profesor;
       return true;
-    } catch (e) {
-      return false;
+    } catch (_) {}
+
+    // Fallback: buscar por columna email (para usuarios cuyo nombre en BD
+    // es diferente al email con el que inician sesión)
+    final porEmail = await remoteDataSource.buscarPorEmail(nombre.trim());
+    if (porEmail != null) {
+      _sesionEnMemoria = porEmail;
+      return true;
     }
+
+    return false;
   }
 
   @override
@@ -76,12 +85,10 @@ class ProfesorRepositoryImpl implements ProfesorRepository {
   Future<void> actualizarEstadoGuardia(
     String id, {
     required bool esGuardia,
-    double? karmaExtra,
   }) async {
     await remoteDataSource.actualizarEstadoGuardia(
       id,
       esGuardia: esGuardia,
-      karmaExtra: karmaExtra,
     );
   }
 }

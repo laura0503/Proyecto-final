@@ -12,9 +12,9 @@ class Profesor {
   final String? horarioSalida;
   final String? ubicacionActual;
   final String? estadoActual;
-  final double karma;
   final bool esGuardia;
   final String rol; // 'admin', 'directiva', 'profesor'
+  final int karma; // Puntos de prioridad/karma
 
   const Profesor({
     required this.id,
@@ -30,9 +30,9 @@ class Profesor {
     this.horarioSalida,
     this.ubicacionActual,
     this.estadoActual,
-    this.karma = 0.0,
     this.esGuardia = false,
     this.rol = 'profesor',
+    this.karma = 0,
   });
 
   // Helper para saber si es parte de la directiva o admin
@@ -52,9 +52,9 @@ class Profesor {
     String? horarioSalida,
     String? ubicacionActual,
     String? estadoActual,
-    double? karma,
     bool? esGuardia,
     String? rol,
+    int? karma,
   }) {
     return Profesor(
       id: id ?? this.id,
@@ -70,9 +70,9 @@ class Profesor {
       horarioSalida: horarioSalida ?? this.horarioSalida,
       ubicacionActual: ubicacionActual ?? this.ubicacionActual,
       estadoActual: estadoActual ?? this.estadoActual,
-      karma: karma ?? this.karma,
       esGuardia: esGuardia ?? this.esGuardia,
       rol: rol ?? this.rol,
+      karma: karma ?? this.karma,
     );
   }
 }

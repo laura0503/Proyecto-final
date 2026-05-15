@@ -124,31 +124,47 @@ class HorarioAulaRepositoryImpl implements HorarioAulaRepository {
       }
 
       if (nombreProfesor.isNotEmpty) {
-        final guardiasResp = await supabase
-            .from('guardias')
-            .select()
-            .eq('profesorGuardia', nombreProfesor);
+        final dias = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        
+        // 1. Obtener Sustituciones (tabla sustitucion) - Unión manual para evitar PGRST200
+        final sustRaw = await supabase.from('sustitucion').select('id_horario_cubierto, id_ausencia').eq('id_profesor_sustituto', profesorId);
+        final sustClases = <HorarioClaseModel>[];
+        
+        for (var s in sustRaw as List) {
+          final idH = s['id_horario_cubierto'];
+          final idA = s['id_ausencia'];
+          if (idH == null || idA == null) continue;
 
-        const dias = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
-        final guardiasClases = (guardiasResp as List).map((json) {
-          final fecha = DateTime.tryParse(json['fecha']?.toString() ?? '');
-          if (fecha == null) return null;
-          final wd = fecha.weekday;
-          if (wd < 1 || wd > 5) return null;
-          return HorarioClaseModel(
-            id: 0,
-            profesor: json['profesorGuardia'] ?? '',
-            aula: json['aula'] ?? '',
-            grupo: json['grupo'] ?? '',
-            asignatura: 'GUARDIA',
-            dia: dias[wd],
-            inicio: json['horaInicio'] ?? '',
-            fin: json['horaFin'] ?? '',
-            esGuardia: true,
-          );
-        }).whereType<HorarioClaseModel>().toList();
+          final results = await Future.wait([
+            supabase.from('horario').select('*, Asignaturas:id_asignatura(nombre), aulas:id_aula(nombre), grupo:id_grupo(nombre), tramo:id_tramo(horario_inicio, horario_fin)').eq('id', idH).maybeSingle(),
+            supabase.from('ausencia').select('*, profesores:id_profesor_ausente(nombre)').eq('id_ausencia', idA).maybeSingle(),
+          ]);
 
-        return [...clases, ...guardiasClases];
+          final h = results[0];
+          final a = results[1];
+
+          if (h != null && a != null) {
+            final fechaStr = (a['fecha'] ?? a['fecha_inicio'])?.toString();
+            final fecha = fechaStr != null ? DateTime.tryParse(fechaStr) : null;
+            if (fecha == null) continue;
+
+            sustClases.add(HorarioClaseModel(
+              id: h['id'] ?? 0,
+              profesor: nombreProfesor,
+              aula: h['aulas']?['nombre'] ?? '',
+              grupo: h['grupo']?['nombre'] ?? '',
+              asignatura: h['Asignaturas']?['nombre'] ?? 'Sustitución',
+              dia: dias[fecha.weekday],
+              inicio: h['tramo']?['horario_inicio'] ?? '',
+              fin: h['tramo']?['horario_fin'] ?? '',
+              profesorAusente: a['profesores']?['nombre'] ?? 'Compañero',
+              esGuardia: true, // Lo marcamos como guardia para que el Inicio lo pinte
+              fecha: fecha,
+            ));
+          }
+        }
+
+        return [...clases, ...sustClases];
       }
     } catch (e) {
       debugPrint("Error cargando guardias del profesor: $e");

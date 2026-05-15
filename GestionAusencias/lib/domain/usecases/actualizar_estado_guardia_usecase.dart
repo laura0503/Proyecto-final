@@ -8,12 +8,10 @@ class ActualizarEstadoGuardiaUseCase {
   Future<void> execute(
     String profesorId, {
     required bool esGuardia,
-    double? karmaExtra,
   }) {
     return _repository.actualizarEstadoGuardia(
       profesorId,
       esGuardia: esGuardia,
-      karmaExtra: karmaExtra,
     );
   }
 }

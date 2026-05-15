@@ -32,6 +32,7 @@ class HorarioClaseModel extends HorarioClase {
     final bool esG = (json['es_guardia'] as bool?) ?? 
                     (t['es_guardia'] as bool?) ?? false;
     final String n = (json['nota'] as String?) ?? '';
+    final String pAusente = (json['profesor_ausente'] as String?) ?? '';
 
     return HorarioClaseModel(
       id: json['id_horario'] is int ? json['id_horario'] : (int.tryParse(json['id_horario']?.toString() ?? '') ?? 0),
@@ -45,6 +46,7 @@ class HorarioClaseModel extends HorarioClase {
       fin: t['horario_fin']?.toString() ?? '',
       esGuardia: esG,
       nota: n,
+      profesorAusente: pAusente,
     );
   }
 

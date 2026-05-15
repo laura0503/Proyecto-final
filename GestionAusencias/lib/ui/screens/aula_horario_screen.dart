@@ -25,19 +25,23 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
 
   String get _titulo => widget.aula != null
       ? 'Aula ${widget.aula!.nombre}'
-      : (widget.profesor != null ? widget.profesor!.nombre : 'Grupo ${widget.grupo!.nombre}');
+      : (widget.profesor != null
+            ? widget.profesor!.nombre
+            : 'Grupo ${widget.grupo!.nombre}');
 
   String get _subtitulo => widget.aula != null
       ? 'Dept: ${widget.aula!.departamento} • Planta 1'
       : (widget.profesor != null
-          ? 'Dept: ${widget.profesor!.departamento}'
-          : 'Horario de Grupo');
+            ? 'Dept: ${widget.profesor!.departamento}'
+            : 'Horario de Grupo');
 
   int get _id => widget.aula != null
       ? widget.aula!.id
       : (widget.profesor != null
-          ? (widget.profesor!.idProfesor ?? int.tryParse(widget.profesor!.id) ?? 0)
-          : (widget.grupo?.id ?? 0));
+            ? (widget.profesor!.idProfesor ??
+                  int.tryParse(widget.profesor!.id) ??
+                  0)
+            : (widget.grupo?.id ?? 0));
 
   @override
   void initState() {
@@ -48,14 +52,17 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
   void _cargar() {
     setState(() {
       if (widget.aula != null) {
-        _futureHorario =
-            context.read<GetHorarioAulaDetalladoUseCase>().execute(_id);
+        _futureHorario = context.read<GetHorarioAulaDetalladoUseCase>().execute(
+          _id,
+        );
       } else if (widget.profesor != null) {
-        _futureHorario =
-            context.read<GetHorarioProfesorDetalladoUseCase>().execute(_id, nombreFallback: widget.profesor!.nombre);
+        _futureHorario = context
+            .read<GetHorarioProfesorDetalladoUseCase>()
+            .execute(_id, nombreFallback: widget.profesor!.nombre);
       } else if (widget.grupo != null) {
-        _futureHorario =
-            context.read<GetHorarioGrupoDetalladoUseCase>().execute(_id);
+        _futureHorario = context
+            .read<GetHorarioGrupoDetalladoUseCase>()
+            .execute(_id);
       }
     });
   }
@@ -63,7 +70,9 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9), // Fondo Slate claro como en la imagen
+      backgroundColor: const Color(
+        0xFFF1F5F9,
+      ), // Fondo Slate claro como en la imagen
       body: SafeArea(
         child: FutureBuilder<List<HorarioClase>>(
           future: _futureHorario,
@@ -90,10 +99,7 @@ class _AulaHorarioScreenState extends State<AulaHorarioScreen> {
             if (data.isEmpty) {
               return _buildSinHorario(_titulo);
             }
-            return CalendarioAulaWidget(
-              titulo: _titulo,
-              horario: data,
-            );
+            return CalendarioAulaWidget(titulo: _titulo, horario: data);
           },
         ),
       ),

@@ -19,6 +19,7 @@ class Ausencia {
   final TipoAusencia tipoDetalle;
   final bool esDiaCompleto;
   final String? observaciones;
+  final String? deberes; // Nuevo campo para tareas de alumnos
 
   const Ausencia({
     this.id,
@@ -27,11 +28,12 @@ class Ausencia {
     required this.fechaInicio,
     this.fechaFin,
     this.idHorario,
-    this.idTramo, // Nuevo
+    this.idTramo, 
     this.tipo,
     this.tipoDetalle = TipoAusencia.ausenciaPuntual,
     this.esDiaCompleto = false,
     this.observaciones,
+    this.deberes,
   });
 
   bool estaActivaEn(DateTime target) {
@@ -54,11 +56,12 @@ class Ausencia {
     DateTime? fechaInicio,
     DateTime? fechaFin,
     int? idHorario,
-    int? idTramo, // Nuevo
+    int? idTramo, 
     String? tipo,
     TipoAusencia? tipoDetalle,
     bool? esDiaCompleto,
     String? observaciones,
+    String? deberes,
   }) {
     return Ausencia(
       id: id ?? this.id,
@@ -67,11 +70,12 @@ class Ausencia {
       fechaInicio: fechaInicio ?? this.fechaInicio,
       fechaFin: fechaFin ?? this.fechaFin,
       idHorario: idHorario ?? this.idHorario,
-      idTramo: idTramo ?? this.idTramo, // Nuevo
+      idTramo: idTramo ?? this.idTramo,
       tipo: tipo ?? this.tipo,
       tipoDetalle: tipoDetalle ?? this.tipoDetalle,
       esDiaCompleto: esDiaCompleto ?? this.esDiaCompleto,
       observaciones: observaciones ?? this.observaciones,
+      deberes: deberes ?? this.deberes,
     );
   }
 }

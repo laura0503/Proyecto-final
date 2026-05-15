@@ -61,6 +61,9 @@ class CalendarioAulaWidget extends StatelessWidget {
   }
 
   Widget _buildTopHeader(BuildContext context) {
+    final guardias = horario.where((h) => h.esGuardia && h.profesorAusente.isEmpty).toList();
+    final sustituciones = horario.where((h) => h.profesorAusente.isNotEmpty).toList();
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -76,6 +79,23 @@ class CalendarioAulaWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 20),
+            if (guardias.isNotEmpty) ...[
+              const Icon(Icons.shield_rounded, color: Color(0xFFF59E0B), size: 16),
+              const SizedBox(width: 8),
+              Text(
+                "GUARDIA: ${guardias.map((g) => "${g.dia} ${g.inicio.substring(0, 5)}").join(' • ')}",
+                style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              const SizedBox(width: 20),
+            ],
+            if (sustituciones.isNotEmpty) ...[
+              const Icon(Icons.swap_horiz_rounded, color: Color(0xFF6366F1), size: 16),
+              const SizedBox(width: 8),
+              Text(
+                "SUSTITUYE A: ${sustituciones.map((s) => s.profesorAusente).toSet().join(', ')}",
+                style: const TextStyle(color: Color(0xFF4F46E5), fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ],
           ],
         ),
       ],

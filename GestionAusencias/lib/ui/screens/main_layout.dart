@@ -6,7 +6,6 @@ import 'package:gestion_ausencias/ui/screens/planning_screen.dart';
 import 'package:gestion_ausencias/ui/screens/profesor_screen.dart';
 import 'package:gestion_ausencias/ui/screens/home_screen.dart';
 import 'package:gestion_ausencias/ui/screens/monitor_screen.dart';
-import 'package:gestion_ausencias/ui/screens/karma_screen.dart';
 import '../widgets/grupo_section.dart';
 import '../widgets/asignaturas_section.dart';
 import '../widgets/aulas_section.dart';
@@ -57,7 +56,6 @@ class _MainLayoutState extends State<MainLayout> {
       AsignaturasSection(isDark: isDark),
       AulasSection(isDark: isDark),
       if (isAdmin) const MonitorScreen(),
-      if (isAdmin) const KarmaScreen(),
     ];
 
     return Scaffold(

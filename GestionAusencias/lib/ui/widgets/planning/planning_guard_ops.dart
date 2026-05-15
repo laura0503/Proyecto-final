@@ -111,6 +111,9 @@ Future<void> planningAsignarGuardia(
       await supabase.from('sustitucion').insert({
         'id_ausencia': ausencia.id,
         'id_profesor_sustituto': guardProfesorId,
+        if (ausencia.idHorario != null && ausencia.idHorario! > 0)
+          'id_horario_cubierto': ausencia.idHorario,
+        'fecha': ausencia.fecha.toIso8601String().substring(0, 10),
       });
     }
 

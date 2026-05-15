@@ -38,13 +38,12 @@ Future<void> planningReportarEstadoEnTramo(
       fecha: f,
       fechaInicio: f,
       idHorario: sesionReal?.id,
-      idTramo: tramo.id_horario, // Corregido: es id_horario
+      idTramo: tramo.id_horario, 
       tipo: 'FALTA',
-      observaciones: tareas.isNotEmpty
-          ? tareas
-          : (sesionReal != null
-              ? "Falta en ${sesionReal.asignatura} (${sesionReal.grupo})"
-              : "Falta en tramo general ${tramo.horario_inicio}"),
+      deberes: tareas, // Guardamos en el campo DEBERES
+      observaciones: sesionReal != null
+          ? "Falta en ${sesionReal.asignatura} (${sesionReal.grupo})"
+          : "Falta en tramo general ${tramo.horario_inicio}",
     );
 
     await reportarUseCase.executeConSustitucion(ausencia);

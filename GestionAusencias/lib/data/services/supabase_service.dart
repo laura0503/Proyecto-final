@@ -72,34 +72,4 @@ class SupabaseService {
     await _client.from('sustitucion').insert(sustitucionMap);
   }
 
-  /// 4. Lógica de Karma: Profesores disponibles en un tramo horario, ordenados por karma
-  /// 'diaSemana' debe ser un int (1-5 para Lunes-Viernes)
-  Future<List<ProfesorModel>> getAvailableProfesoresByKarma({
-    required int idHorario,
-    required int diaSemana,
-  }) async {
-    // Primero obtenemos los IDs de profesores que TIENEN clase en ese tramo y día
-    final occupiedResponse = await _client
-        .from('horario_clase')
-        .select('id_profesor')
-        .eq('id_horario', idHorario)
-        .eq('dia_semana', diaSemana);
-    
-    final List<String> occupiedIds = (occupiedResponse as List)
-        .map((item) => item['id_profesor'].toString())
-        .toList();
-
-    // Ahora obtenemos los profesores que NO están en esa lista, ordenados por karma
-    var query = _client.from('profesores').select();
-    
-    if (occupiedIds.isNotEmpty) {
-      query = query.not('id', 'in', occupiedIds);
-    }
-
-    final response = await query.order('karma', ascending: true);
-
-    return (response as List)
-        .map((json) => ProfesorModel.fromJson(json))
-        .toList();
-  }
 }

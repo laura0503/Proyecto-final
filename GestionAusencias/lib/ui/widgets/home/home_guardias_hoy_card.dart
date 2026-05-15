@@ -95,7 +95,7 @@ class HomeGuardiasHoyCard extends StatelessWidget {
                       style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.white38, letterSpacing: 0.5),
                     ),
                     Text(
-                      sust.profesor,
+                      sust.profesorAusente.isEmpty ? "Compañero" : sust.profesorAusente,
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white),
                     ),
                     const SizedBox(height: 4),

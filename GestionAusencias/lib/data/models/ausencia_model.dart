@@ -10,6 +10,7 @@ class AusenciaModel extends Ausencia {
     super.idHorario,
     super.idTramo, // Añadido
     super.observaciones,
+    super.deberes, // Añadido
     super.tipo,
     super.tipoDetalle = TipoAusencia.ausenciaPuntual,
     super.esDiaCompleto = false,
@@ -26,6 +27,7 @@ class AusenciaModel extends Ausencia {
       fechaFin: json['fecha_fin'] != null ? DateTime.parse(json['fecha_fin']) : null,
       idHorario: json['id_horario_sesion'],
       observaciones: json['observaciones'],
+      deberes: json['deberes'], // Añadido
       tipo: 'FALTA',
       esDiaCompleto: json['es_dia_completo'] ?? false,
       tipoDetalle: _mapTipoFromString(json['tipo_detalle']),
@@ -62,6 +64,7 @@ class AusenciaModel extends Ausencia {
       'fecha_inicio': fechaInicio.toIso8601String().substring(0, 10),
       if (fechaFin != null) 'fecha_fin': fechaFin!.toIso8601String().substring(0, 10),
       'observaciones': observaciones,
+      'deberes': deberes, // Añadido
       'tipo_detalle': _mapTipoToString(tipoDetalle),
       'es_dia_completo': esDiaCompleto,
     };
@@ -77,8 +80,9 @@ class AusenciaModel extends Ausencia {
       fechaInicio: ausencia.fechaInicio,
       fechaFin: ausencia.fechaFin,
       idHorario: ausencia.idHorario,
-      idTramo: ausencia.idTramo, // Pasamos el tramo
+      idTramo: ausencia.idTramo, 
       observaciones: ausencia.observaciones,
+      deberes: ausencia.deberes, // Añadido
       tipo: ausencia.tipo,
       tipoDetalle: ausencia.tipoDetalle,
       esDiaCompleto: ausencia.esDiaCompleto,

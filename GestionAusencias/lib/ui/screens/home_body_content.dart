@@ -7,7 +7,6 @@ import '../widgets/home/home_header_premium.dart';
 import '../widgets/home/home_absence_alert.dart';
 import '../widgets/home/home_weekly_schedule.dart';
 import '../widgets/home/home_active_guard_monitor.dart';
-import '../widgets/home/home_guardias_hoy_card.dart';
 import '../widgets/home/home_lounge_banner.dart';
 import '../widgets/home/home_sidebar_cards.dart';
 import '../widgets/planning/agenda_modal_content.dart';
@@ -24,7 +23,10 @@ class HomeBodyContent extends StatelessWidget {
   final List<Ausencia> ausenciasSemana;
   final List<HorarioClase> sustituciones;
   final List<HorarioClase> guardiasActivas;
+  final List<HorarioClase> proximasGuardias;
   final Future<void> Function() onDataChanged;
+  final int weekOffset;
+  final void Function(int offset) onWeekChanged;
 
   const HomeBodyContent({
     super.key,
@@ -37,7 +39,10 @@ class HomeBodyContent extends StatelessWidget {
     required this.ausenciasSemana,
     required this.sustituciones,
     required this.guardiasActivas,
+    required this.proximasGuardias,
     required this.onDataChanged,
+    required this.weekOffset,
+    required this.onWeekChanged,
   });
 
   bool _esHoy(DateTime d) {
@@ -100,6 +105,50 @@ class HomeBodyContent extends StatelessWidget {
     );
   }
 
+  Widget _buildSubstitutionBanner(List<HorarioClase> susts) {
+    if (susts.isEmpty) return const SizedBox.shrink();
+    
+    final ausentes = susts.map((s) => s.profesorAusente).toSet().join(', ');
+    final horas = susts.map((s) => s.inicio).toSet().join(' • ');
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.orangeAccent.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.shield, color: Colors.orangeAccent, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 13),
+                children: [
+                  TextSpan(
+                    text: "GUARDIA: $horas ",
+                    style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+                  ),
+                  const TextSpan(text: " • ", style: TextStyle(color: Colors.white38)),
+                  const WidgetSpan(child: Icon(Icons.sync, color: Colors.blueAccent, size: 14)),
+                  const TextSpan(text: " "),
+                  TextSpan(
+                    text: "SUSTITUYE A: $ausentes",
+                    style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ausenciaHoy = ausenciasSemana.where((a) => _esHoy(a.fecha)).firstOrNull;
@@ -111,11 +160,13 @@ class HomeBodyContent extends StatelessWidget {
           HomeAbsenceAlert(ausencia: ausenciaHoy),
           const SizedBox(height: 24),
         ],
-        HomeGuardiasHoyCard(sustituciones: sustituciones),
+        
         HomeWeeklySchedule(
           horario: horario,
           ausencias: ausenciasSemana,
-          sustituciones: sustituciones, // Ahora se pasan las guardias aquí
+          sustituciones: sustituciones,
+          weekOffset: weekOffset,
+          onWeekChanged: onWeekChanged,
           onAction: (_, fecha) {
             if (prof != null) _openAgendaDialog(context, fecha);
           },
@@ -130,7 +181,7 @@ class HomeBodyContent extends StatelessWidget {
       ],
     );
 
-    final sidebar = HomeSidebarCards(profesor: prof, sustituciones: sustituciones);
+    final sidebar = HomeSidebarCards(profesor: prof, sustituciones: proximasGuardias);
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),

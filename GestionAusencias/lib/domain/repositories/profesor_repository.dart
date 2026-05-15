@@ -14,6 +14,5 @@ abstract class ProfesorRepository {
   Future<void> actualizarEstadoGuardia(
     String id, {
     required bool esGuardia,
-    double? karmaExtra,
   });
 }

@@ -6,7 +6,6 @@ import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 import 'package:gestion_ausencias/ui/providers/guardia_provider.dart';
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
-import 'package:gestion_ausencias/core/services/karma_service.dart';
 import 'fichaje_timer_section.dart';
 import 'fichaje_team_section.dart';
 import 'fichaje_animated_button.dart';
@@ -64,10 +63,7 @@ class _FichajeDialogState extends State<FichajeDialog> {
         } catch (_) {
           _me = null;
         }
-        final karmaService = context.read<KarmaService>();
-        if (profes.isNotEmpty) {
-          _recommendedProfesor = karmaService.getRecommendedProfessor(profes);
-        }
+        _recommendedProfesor = null;
       });
     } catch (_) {
       if (mounted) setState(() => _isLoadingTeam = false);

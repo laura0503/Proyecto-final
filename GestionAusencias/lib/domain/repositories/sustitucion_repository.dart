@@ -8,4 +8,15 @@ abstract class SustitucionRepository {
     required DateTime fin,
     required bool isAdmin,
   });
+
+  Future<List<HorarioClase>> getMisAusenciasCubiertas({
+    required int profesorId,
+    required DateTime inicio,
+    required DateTime fin,
+  });
+
+  Future<void> guardarObservacion({
+    required int idAusencia,
+    required String observacion,
+  });
 }

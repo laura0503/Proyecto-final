@@ -165,26 +165,33 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
     // 2. BUSCAR CANDIDATOS: Profesores que tienen GUARDIA en este tramo y día índice
     final candidatosGuardia = await _supabase
         .from('horario')
-        .select('id_profesor, profesores:id_profesor(karma)')
+        .select('id_profesor')
         .eq('id_tramo', idTramo)
-        .eq('dia_semana', diaIndice) // Usamos el índice numérico
+        .eq('dia_semana', diaIndice)
         .eq('es_guardia', true);
 
     final listaCandidatos = candidatosGuardia as List;
     if (listaCandidatos.isEmpty) return;
 
-    // 3. FILTRAR DISPONIBILIDAD REAL
-    // 3a. Obtener lista de profesores ya ocupados sustituyendo en este tramo hoy
-    final ocupadosRes = await _supabase
-        .from('sustitucion')
-        .select('id_profesor_sustituto, ausencia!inner(id_horario_sesion, horario:id_horario_sesion(id_tramo))')
-        .eq('ausencia.fecha', dateStr)
-        .filter('ausencia.horario.id_tramo', 'eq', idTramo);
-    
-    final List ocupadosList = ocupadosRes as List;
-    final Set<int> idsOcupados = ocupadosList
-        .map((s) => s['id_profesor_sustituto'] as int)
-        .toSet();
+    // 3a. IDs de sesiones del mismo tramo/día (para saber quién ya está ocupado)
+    final tramoDayHorarios = await _supabase
+        .from('horario')
+        .select('id')
+        .eq('id_tramo', idTramo)
+        .eq('dia_semana', diaIndice);
+    final tramoDayIds = (tramoDayHorarios as List).map((h) => h['id'] as int).toList();
+
+    // 3b. Profesores ya asignados a ese tramo/día (usando id_horario_cubierto)
+    Set<int> idsOcupados = {};
+    if (tramoDayIds.isNotEmpty) {
+      final yaAsignados = await _supabase
+          .from('sustitucion')
+          .select('id_profesor_sustituto')
+          .inFilter('id_horario_cubierto', tramoDayIds);
+      idsOcupados = (yaAsignados as List)
+          .map((s) => s['id_profesor_sustituto'] as int)
+          .toSet();
+    }
 
     List<int> aptosIds = [];
     
@@ -225,11 +232,12 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
       aptosIds.shuffle(); 
       int elegidoId = aptosIds.first; 
 
-      // 4. CREAR SUSTITUCIÓN (guardamos qué sesión concreta cubre)
+      // 4. CREAR SUSTITUCIÓN (guardamos qué sesión y fecha concreta cubre)
       await _supabase.from('sustitucion').insert({
         'id_ausencia': ausenciaId,
         'id_profesor_sustituto': elegidoId,
         if (idHorario != null) 'id_horario_cubierto': idHorario,
+        'fecha': fecha.toIso8601String().substring(0, 10),
       });
 
       // Karma desactivado por petición del usuario
