@@ -27,8 +27,8 @@ android {
         applicationId = "com.tuempresa.guardiasapp"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = 36
+        minSdk = 24
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
     }

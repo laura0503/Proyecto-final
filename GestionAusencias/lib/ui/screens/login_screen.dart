@@ -1,9 +1,12 @@
+import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:gestion_ausencias/domain/entities/profesor.dart';
 import 'package:gestion_ausencias/ui/providers/auth_provider.dart';
 import '../widgets/login/login_form_card.dart';
+import 'login_screen_android.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback onLoginSuccess;
@@ -76,6 +79,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Si estamos en Android, usamos la pantalla optimizada para móvil
+    if (!kIsWeb && Platform.isAndroid) {
+      return LoginScreenAndroid(onLoginSuccess: widget.onLoginSuccess);
+    }
+
     final authProvider = context.watch<AuthProvider>();
     return Scaffold(
       body: Stack(
@@ -97,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-            child: Container(color: Colors.black.withOpacity(0.3)),
+            child: Container(color: Colors.black.withValues(alpha: 0.3)),
           ),
           LoginFormCard(
             userController: _userController,
@@ -118,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Text(
                 "Versión 2.0 • Diseñado para Centros Educativos",
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   fontSize: 10, letterSpacing: 1),
               ),
             ),

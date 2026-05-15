@@ -20,7 +20,6 @@ class AuthProvider extends ChangeNotifier {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: '867000121620-m6vu65l321er11q0t3cifpbdsjk00tkq.apps.googleusercontent.com',
     hostedDomain: 'g.educaand.es',
   );
 
@@ -160,31 +159,38 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final String email = nombre.contains('@') ? nombre : "$nombre@g.educaand.es";
+      // Normalizamos el email
+      final String email = nombre.contains('@') ? nombre.toLowerCase().trim() : "${nombre.toLowerCase().trim()}@g.educaand.es";
       
-      // Si quieres usar Firebase Auth real con contraseña:
-      if (password != null) {
+      bool success = false;
+
+      if (password != null && password.isNotEmpty) {
+        // Autenticación REAL con Firebase
         final credential = await _auth.signInWithEmailAndPassword(
           email: email,
           password: password,
         );
-        if (credential.user != null) {
-          // Aquí buscamos al profesor en tu base de datos actual (Supabase)
-          final success = await _loginUseCase.execute(email);
-          if (success) {
-            _profesorActual = await _getSesionActualUseCase.execute();
-          }
-          return success;
-        }
-        return false;
+        success = credential.user != null;
       } else {
-        // Login "rápido" (solo nombre) que ya tenías
-        final success = await _loginUseCase.execute(email);
-        if (success) {
-          _profesorActual = await _getSesionActualUseCase.execute();
-        }
-        return success;
+        // Autenticación por nombre (Legacy/Búsqueda directa)
+        success = await _loginUseCase.execute(email);
       }
+
+      if (success) {
+        // Buscamos los datos completos del profesor en la base de datos
+        _profesorActual = await _getSesionActualUseCase.execute();
+        
+        // Si tras el loginUseCase no tenemos profesor (ej: no existe en la tabla)
+        // intentamos buscarlo por email directamente
+        if (_profesorActual == null) {
+          final profesores = await _getProfesoresUseCase.execute();
+          _profesorActual = profesores.cast<Profesor?>().firstWhere(
+            (p) => p?.nombre.toLowerCase().trim() == email,
+            orElse: () => null,
+          );
+        }
+      }
+      return _profesorActual != null;
     } catch (e) {
       debugPrint("Error en login: $e");
       return false;

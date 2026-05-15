@@ -162,40 +162,73 @@ class _HomeWeeklyScheduleState extends State<HomeWeeklySchedule> {
   }
 
   Widget _buildHeader(int total) {
+    final isSmall = MediaQuery.of(context).size.width < 600;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmall ? 16 : 24,
+        vertical: isSmall ? 14 : 20,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.calendar_month_outlined, color: _accentColor, size: 28),
-              const SizedBox(width: 12),
-              const Text(
-                "Mi Agenda Semanal",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: -1.2,
+      child: isSmall
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_month_outlined, color: _accentColor, size: 22),
+                    const SizedBox(width: 10),
+                    const Text(
+                      "Mi Agenda Semanal",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                        letterSpacing: -0.8,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              _buildWeekNavigator(),
-              const SizedBox(width: 16),
-              _buildWeekBadge(total),
-            ],
-          ),
-        ],
-      ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    _buildWeekNavigator(),
+                    const SizedBox(width: 12),
+                    _buildWeekBadge(total),
+                  ],
+                ),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_month_outlined, color: _accentColor, size: 28),
+                    const SizedBox(width: 12),
+                    const Text(
+                      "Mi Agenda Semanal",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                        letterSpacing: -1.2,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    _buildWeekNavigator(),
+                    const SizedBox(width: 16),
+                    _buildWeekBadge(total),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 
@@ -363,7 +396,6 @@ class _HomeWeeklyScheduleState extends State<HomeWeeklySchedule> {
 
   Widget _buildGuardiaCard(HorarioClase s) {
     final nombreAusente = s.profesorAusente;
-    final tieneAsignacion = nombreAusente != null && nombreAusente.isNotEmpty;
     
     // Color dinámico basado en el nombre, hora y día para asegurar variedad
     final salt = "${s.profesorAusente}_${s.inicio}_${s.dia}";
@@ -415,7 +447,7 @@ class _HomeWeeklyScheduleState extends State<HomeWeeklySchedule> {
               ),
               const SizedBox(height: 12),
               Text(
-                nombreAusente ?? "Sustitución",
+                nombreAusente.isEmpty ? "Sustitución" : nombreAusente,
                 style: const TextStyle(
                   color: Color(0xFF1E293B),
                   fontWeight: FontWeight.w900,
@@ -476,6 +508,8 @@ class _HomeWeeklyScheduleState extends State<HomeWeeklySchedule> {
   void _showGuardiaDetail(HorarioClase s) {
     final obsController = TextEditingController(text: s.observacion);
     final guardiaUseCase = context.read<GuardarObservacionUseCase>();
+    final screenW = MediaQuery.of(context).size.width;
+    final dialogWidth = screenW < 452 ? screenW - 32 : 420.0;
 
     showDialog(
       context: context,
@@ -490,7 +524,7 @@ class _HomeWeeklyScheduleState extends State<HomeWeeklySchedule> {
           return Dialog(
             backgroundColor: Colors.transparent,
             child: Container(
-              width: 420,
+              width: dialogWidth,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: const Color(0xFF1E293B).withValues(alpha: 0.97),
