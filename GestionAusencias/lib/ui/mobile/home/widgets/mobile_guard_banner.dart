@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../domain/entities/horario_clase.dart';
-import '../../screens/guard_session_screen.dart';
+import '../../../../domain/entities/horario_clase.dart';
 
 class MobileGuardBanner extends StatelessWidget {
   final List<HorarioClase> guardias;
@@ -50,31 +49,18 @@ class _GuardCard extends StatelessWidget {
                         fontWeight: FontWeight.w600)),
                 Text(
                     '${guardia.inicio} · Aula ${guardia.aula.isNotEmpty ? guardia.aula : "—"}',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
                 if (guardia.profesorAusente.isNotEmpty)
                   Text('Por: ${guardia.profesorAusente}',
-                      style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                      style: const TextStyle(color: Colors.white60, fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => GuardSessionScreen(guardia: guardia))),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Text('Fichar',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700)),
-            ),
-          ),
+          // Botón 'Fichar' eliminado a petición del usuario
         ],
       ),
     );

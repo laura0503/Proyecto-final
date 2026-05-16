@@ -45,43 +45,57 @@ class LoginCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 35),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(35),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 30, offset: const Offset(0, 15)),
-        ],
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "USUARIO O EMAIL",
-            style: TextStyle(color: Color(0xFF374151), fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.2),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+            ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: controller,
-            style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             decoration: InputDecoration(
-              hintText: "admin@guardiamaster.com",
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
-              prefixIcon: Icon(Icons.person_outline_rounded, color: Colors.grey.shade300),
+              hintText: "Nombre de usuario",
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 15),
+              prefixIcon: Icon(Icons.person_outline_rounded, color: Colors.white.withValues(alpha: 0.4)),
+              suffixIcon: Padding(
+                padding: const EdgeInsets.only(right: 15, top: 15),
+                child: Text(
+                  "@g.educaand.es",
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
               filled: true,
-              fillColor: const Color(0xFFF9FAFB),
+              fillColor: Colors.white.withValues(alpha: 0.05),
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
-                borderSide: BorderSide(color: Colors.grey.shade100),
+                borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(18),
-                borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 1.5),
+                borderSide: const BorderSide(color: Color(0xFF818CF8), width: 1.5),
               ),
             ),
           ),
           const SizedBox(height: 30),
           if (isLoading)
-            const Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5)))
+            const Center(child: CircularProgressIndicator(color: Colors.white))
           else ...[
             _buildEntrarButton(),
             const SizedBox(height: 16),
@@ -99,18 +113,17 @@ class LoginCard extends StatelessWidget {
       child: ElevatedButton(
         onPressed: esModoRegistro ? onRegistrar : onLogin,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF3730A3),
+          backgroundColor: const Color(0xFF4F46E5),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          elevation: 8,
-          shadowColor: const Color(0xFF3730A3).withValues(alpha: 0.4),
+          elevation: 0,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               esModoRegistro ? "REGISTRARME" : "ENTRAR",
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 1),
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1),
             ),
             const SizedBox(width: 10),
             const Icon(Icons.login_rounded, size: 20),
@@ -127,20 +140,26 @@ class LoginCard extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onGoogle,
         style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF374151),
-          side: BorderSide(color: Colors.grey.shade200, width: 1.5),
+          foregroundColor: Colors.white,
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.white.withValues(alpha: 0.05),
+          elevation: 0,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.network(
-              'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png',
+              'https://www.google.com/images/branding/googleg/1x/googleg_standard_color_128dp.png',
               height: 24,
+              width: 24,
+              errorBuilder: (context, error, stackTrace) => const Icon(Icons.account_circle_outlined, color: Colors.white, size: 24),
             ),
             const SizedBox(width: 12),
-            const Text("ENTRAR CON GOOGLE", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: 0.5)),
+            const Text(
+              "ACCEDER CON GOOGLE",
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 0.2),
+            ),
           ],
         ),
       ),

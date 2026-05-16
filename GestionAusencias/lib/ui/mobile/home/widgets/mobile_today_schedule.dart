@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../domain/entities/horario_clase.dart';
+import '../../../../domain/entities/horario_clase.dart';
 
 class MobileTodaySchedule extends StatelessWidget {
   final List<HorarioClase> horario;
@@ -91,15 +91,23 @@ class _MobileClassCard extends StatelessWidget {
                     if (clase.grupo.isNotEmpty) ...[
                       const Icon(Icons.group_outlined, size: 12, color: Colors.white54),
                       const SizedBox(width: 4),
-                      Text(clase.grupo,
-                          style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                      Flexible(
+                        child: Text(clase.grupo,
+                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                      ),
                       const SizedBox(width: 10),
                     ],
                     if (clase.aula.isNotEmpty) ...[
                       const Icon(Icons.room_outlined, size: 12, color: Colors.white54),
                       const SizedBox(width: 4),
-                      Text(clase.aula,
-                          style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                      Flexible(
+                        child: Text(clase.aula,
+                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                      ),
                     ],
                   ],
                 ),

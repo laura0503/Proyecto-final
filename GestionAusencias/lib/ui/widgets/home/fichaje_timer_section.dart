@@ -54,7 +54,7 @@ class FichajeTimerSection extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  "+${points.toStringAsFixed(2)} Puntos de Karma",
+                  "+${points.toStringAsFixed(2)} Puntos",
                   style: const TextStyle(
                     color: Color(0xFF34C759),
                     fontWeight: FontWeight.w900,

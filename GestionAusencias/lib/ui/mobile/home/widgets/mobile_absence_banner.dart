@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../domain/entities/ausencia.dart';
+import '../../../../domain/entities/ausencia.dart';
 
 class MobileAbsenceBanner extends StatelessWidget {
   final Ausencia ausencia;

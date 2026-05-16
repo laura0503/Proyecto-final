@@ -1,3 +1,5 @@
+import 'horario_clase.dart';
+
 enum TipoAusencia {
   bajaMedica,
   vacaciones,
@@ -20,6 +22,7 @@ class Ausencia {
   final bool esDiaCompleto;
   final String? observaciones;
   final String? deberes; // Nuevo campo para tareas de alumnos
+  final HorarioClase? horario; // Campo opcional para datos de sesión unidos
 
   const Ausencia({
     this.id,
@@ -34,6 +37,7 @@ class Ausencia {
     this.esDiaCompleto = false,
     this.observaciones,
     this.deberes,
+    this.horario,
   });
 
   bool estaActivaEn(DateTime target) {
@@ -62,6 +66,7 @@ class Ausencia {
     bool? esDiaCompleto,
     String? observaciones,
     String? deberes,
+    HorarioClase? horario,
   }) {
     return Ausencia(
       id: id ?? this.id,
@@ -76,6 +81,7 @@ class Ausencia {
       esDiaCompleto: esDiaCompleto ?? this.esDiaCompleto,
       observaciones: observaciones ?? this.observaciones,
       deberes: deberes ?? this.deberes,
+      horario: horario ?? this.horario,
     );
   }
 }

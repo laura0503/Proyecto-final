@@ -32,14 +32,38 @@ void abrirGestionAvanzada(
           }
         } catch (e) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+            final msg = _mensajeAmigable(e);
+            final esAviso = msg != null;
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(esAviso ? msg : 'No se pudo registrar la ausencia. Inténtalo de nuevo.'),
+              backgroundColor: esAviso ? Colors.orange[700] : Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 5),
+            ));
           }
           setLoading(false);
         }
       },
     ),
   );
+}
+
+/// Devuelve un mensaje legible si el error es de solapamiento o duplicado.
+/// Devuelve null si es un error inesperado (se mostrará mensaje genérico).
+String? _mensajeAmigable(Object e) {
+  final texto = e.toString().toLowerCase();
+  if (texto.contains('ya tiene una ausencia') ||
+      texto.contains('duplicate') ||
+      texto.contains('unique') ||
+      texto.contains('23505')) {
+    // Extraer el mensaje limpio si viene de nuestra Exception
+    final raw = e.toString();
+    if (raw.startsWith('Exception: ')) return raw.substring('Exception: '.length);
+    return 'Este profesor ya tiene una ausencia registrada en esas fechas. '
+        'Revísala en el planning o elimínala antes de crear una nueva.';
+  }
+  return null;
 }
 
 Future<void> ejecutarAutoAsignacion(

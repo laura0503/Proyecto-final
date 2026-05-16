@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../domain/entities/ausencia.dart';
-import '../../../domain/entities/horario_clase.dart';
-import '../../../domain/usecases/get_horario_profesor_detallado_usecase.dart';
-import '../../../domain/usecases/get_ausencias_usecase.dart';
-import '../../../domain/usecases/get_sustituciones_semana_usecase.dart';
-import '../../providers/auth_provider.dart';
-import '../../screens/home_screen_helpers.dart';
+import '../../../../domain/entities/ausencia.dart';
+import '../../../../domain/entities/horario_clase.dart';
+import '../../../../domain/usecases/get_horario_profesor_detallado_usecase.dart';
+import '../../../../domain/usecases/get_ausencias_usecase.dart';
+import '../../../../domain/usecases/get_sustituciones_semana_usecase.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../screens/home_screen_helpers.dart';
 import '../widgets/mobile_home_body.dart';
 
 class MobileHomeScreen extends StatefulWidget {

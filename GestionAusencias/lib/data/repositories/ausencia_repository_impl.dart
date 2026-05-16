@@ -15,11 +15,19 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
     try {
       final dateFin = fin.toIso8601String().substring(0, 10);
       final dateInicio = inicio.toIso8601String().substring(0, 10);
+      
       final response = await _supabase
           .from('ausencia')
-          .select()
+          .select('''
+            *,
+            horario:id_horario_sesion (
+              id, asignatura:id_asignatura(nombre), aula:id_aula(nombre), grupo:id_grupo(nombre),
+              horario_tramo!inner(horario_inicio, horario_fin, id_horario)
+            )
+          ''')
           .or('fecha_inicio.lte.$dateFin, fecha.lte.$dateFin')
           .or('fecha_fin.is.null, fecha_fin.gte.$dateInicio, fecha.gte.$dateInicio');
+          
       return (response as List).map((json) => AusenciaModel.fromJson(json)).toList();
     } catch (e) {
       debugPrint("Error fetching ausencias: $e");
@@ -46,6 +54,26 @@ class AusenciaRepositoryImpl implements AusenciaRepository {
 
       final profId = ausencia.profesorId;
       final dateStr = ausencia.fecha.toIso8601String().substring(0, 10);
+
+      // Comprobar solapamiento: buscar cualquier ausencia de este profesor
+      // cuyo rango se solape con el nuevo período.
+      if (ausencia.esDiaCompleto) {
+        final inicioStr = ausencia.fechaInicio.toIso8601String().substring(0, 10);
+        final finStr = fechaFinEfectiva.toIso8601String().substring(0, 10);
+        final overlap = await _supabase
+            .from('ausencia')
+            .select('id_ausencia')
+            .eq('id_profesor_ausente', profId)
+            .lte('fecha_inicio', finStr)
+            .or('fecha_fin.is.null, fecha_fin.gte.$inicioStr')
+            .maybeSingle();
+        if (overlap != null) {
+          throw Exception(
+            'Este profesor ya tiene una ausencia registrada en esas fechas. '
+            'Revisa el planning para consultarla o elimínala antes de crear una nueva.',
+          );
+        }
+      }
 
       var query = _supabase.from('ausencia').select('id_ausencia').eq('id_profesor_ausente', profId);
       if (ausencia.esDiaCompleto) {

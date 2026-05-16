@@ -23,44 +23,42 @@ class AbsenceDateStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      key: const ValueKey(2),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 4,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _DateInputBox(label: "INICIO", date: start),
-              const SizedBox(height: 16),
-              _DateInputBox(label: "FINALIZACIÓN", date: end),
-              const SizedBox(height: 32),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text("Jornada Completa", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                subtitle: const Text("Automatizar cobertura total", style: TextStyle(fontSize: 11)),
-                value: esDiaCompleto,
-                onChanged: onDiaCompletoChanged,
-                activeThumbColor: primaryColor,
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                "Tip: Pulsa primero el día de inicio y luego el de finalización para marcar el rango completo.",
-                style: TextStyle(color: Colors.grey, fontSize: 11, fontStyle: FontStyle.italic),
-              ),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        
+        final inputs = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _DateInputBox(label: "INICIO", date: start),
+            const SizedBox(height: 12),
+            _DateInputBox(label: "FINALIZACIÓN", date: end),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: const Text("Jornada Completa",
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+              subtitle: const Text("Automatizar cobertura total",
+                  style: TextStyle(fontSize: 10)),
+              value: esDiaCompleto,
+              onChanged: onDiaCompletoChanged,
+              activeTrackColor: primaryColor.withValues(alpha: 0.3),
+              activeColor: primaryColor,
+            ),
+          ],
+        );
+
+        final calendar = Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFF1F5F9)),
           ),
-        ),
-        const SizedBox(width: 40),
-        Expanded(
-          flex: 6,
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: ColorScheme.light(primary: primaryColor),
             ),
             child: CalendarDatePicker(
               initialDate: DateTime.now(),
@@ -78,8 +76,35 @@ class AbsenceDateStep extends StatelessWidget {
               },
             ),
           ),
-        ),
-      ],
+        );
+
+        if (isMobile) {
+          return Column(
+            key: const ValueKey(2),
+            children: [
+              inputs,
+              const SizedBox(height: 16),
+              calendar,
+              const SizedBox(height: 12),
+              const Text(
+                "Tip: Pulsa primero el día de inicio y luego el de finalización para marcar el rango completo.",
+                style: TextStyle(color: Colors.grey, fontSize: 11, fontStyle: FontStyle.italic),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          key: const ValueKey(2),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 4, child: inputs),
+            const SizedBox(width: 40),
+            Expanded(flex: 6, child: calendar),
+          ],
+        );
+      },
     );
   }
 }

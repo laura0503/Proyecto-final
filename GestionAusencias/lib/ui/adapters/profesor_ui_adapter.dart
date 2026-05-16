@@ -81,11 +81,17 @@ class ProfesorUIAdapter {
   }
 
   static String _formatearNombre(String nombre) {
-    if (nombre.contains(',')) {
-      final partes = nombre.split(',');
+    var result = nombre;
+    // Quitar paréntesis y su contenido redundante (ej: "(Ibáñez Porcel Ibáñez Porcel")
+    if (result.contains('(')) {
+      result = result.split('(')[0].trim();
+    }
+
+    if (result.contains(',')) {
+      final partes = result.split(',');
       return "${partes[1].trim()} ${partes[0].trim()}";
     }
-    return nombre;
+    return result;
   }
 
   static List<ProfesorUIModel> toUIModelList(List<Profesor> profesores) {

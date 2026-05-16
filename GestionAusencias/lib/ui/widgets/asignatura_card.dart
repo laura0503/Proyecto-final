@@ -47,36 +47,48 @@ class AsignaturaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final sigla = StringUtils.abbreviateAsignatura(asignatura.nombre);
     final accentColor = _getAccentColor(asignatura.nombre);
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
             decoration: BoxDecoration(
-              color: isDark ? Colors.black.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.85),
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.85),
               border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 8, vertical: isMobile ? 12 : 12),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: EdgeInsets.all(isMobile ? 6 : 8),
                     decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.15), shape: BoxShape.circle),
-                    child: Icon(_getIcon(asignatura.nombre), color: accentColor, size: 22),
+                    child: Icon(_getIcon(asignatura.nombre), color: accentColor, size: isMobile ? 20 : 22),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: isMobile ? 8 : 10),
                   Text(
                     sigla.toUpperCase(),
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isDark ? Colors.white : const Color(0xFF1E293B), letterSpacing: 0.5),
+                    style: TextStyle(
+                      fontSize: isMobile ? 13 : 14, 
+                      fontWeight: FontWeight.w900, 
+                      color: isDark ? Colors.white : const Color(0xFF1E293B), 
+                      letterSpacing: 0.5
+                    ),
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -84,16 +96,24 @@ class AsignaturaCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     grupos.isNotEmpty ? grupos.first : 'General',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isDark ? Colors.white54 : Colors.grey[600]),
+                    style: TextStyle(
+                      fontSize: isMobile ? 9 : 10, 
+                      fontWeight: FontWeight.w600, 
+                      color: isDark ? Colors.white54 : Colors.grey[600]
+                    ),
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const Spacer(),
+                  if (!isMobile) const Spacer(),
+                  if (isMobile) const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(color: accentColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                    child: Text(_getDeptAbbr(asignatura.departamento), style: TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: accentColor)),
+                    child: Text(
+                      _getDeptAbbr(asignatura.departamento), 
+                      style: TextStyle(fontSize: isMobile ? 6.5 : 7, fontWeight: FontWeight.w800, color: accentColor)
+                    ),
                   ),
                 ],
               ),

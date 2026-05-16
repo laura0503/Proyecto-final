@@ -11,49 +11,48 @@ class GrupoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle("LISTADO DE GRUPOS"),
-          const SizedBox(height: 20),
-          FutureBuilder<List<Grupo>>(
-            future: Provider.of<GetGruposUseCase>(context, listen: false).call(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(40),
-                    child: CircularProgressIndicator(color: Colors.white),
-                  ),
-                );
-              } else if (snapshot.hasError) {
-                return _buildErrorState(snapshot.error.toString());
-              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return _buildEmptyState();
-              }
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, kToolbarHeight, 16, 24),
+        child: FutureBuilder<List<Grupo>>(
+          future: Provider.of<GetGruposUseCase>(context, listen: false).call(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              );
+            } else if (snapshot.hasError) {
+              return _buildErrorState(snapshot.error.toString());
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return _buildEmptyState();
+            }
 
-              final grupos = _filtrarGrupos(snapshot.data!);
+            final grupos = _filtrarGrupos(snapshot.data!);
 
-              return LayoutBuilder(builder: (context, constraints) {
-                final cols = (constraints.maxWidth / 180).floor().clamp(2, 6);
-                return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: cols,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.4,
-                  ),
-                  itemCount: grupos.length,
-                  itemBuilder: (context, index) => GrupoCard(grupo: grupos[index]),
-                );
-              });
-            },
-          ),
-        ],
+            return LayoutBuilder(builder: (context, constraints) {
+              final isSmallMobile = constraints.maxWidth < 500;
+              final cols = isSmallMobile ? 1 : (constraints.maxWidth / 220).floor().clamp(2, 6);
+              final aspectRatio = isSmallMobile ? 2.6 : (constraints.maxWidth < 400 ? 1.05 : 1.4);
+              
+              return GridView.builder(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: aspectRatio,
+                ),
+                itemCount: grupos.length,
+                itemBuilder: (context, index) => GrupoCard(grupo: grupos[index]),
+              );
+            });
+          },
+        ),
       ),
     );
   }
@@ -67,16 +66,6 @@ class GrupoSection extends StatelessWidget {
       if (nombre.contains(';') || nombre.contains(',')) return false;
       return true;
     }).toList();
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 4),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5),
-      ),
-    );
   }
 
   Widget _buildEmptyState() {

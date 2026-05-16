@@ -80,20 +80,26 @@ Future<void> asignarSustitutoAutomatico(
   final listaCandidatos = candidatosGuardia as List;
   if (listaCandidatos.isEmpty) return;
 
-  final tramoDayHorarios = await supabase
+  // Regla: un profesor no puede cubrir dos ausencias distintas en el mismo tramo horario.
+  // Si tiene guardia en varios tramos del mismo día (según su horario/CSV), puede cubrir
+  // una ausencia por tramo — cada tramo se evalúa de forma independiente.
+  final horariosDelTramo = await supabase
       .from('horario')
       .select('id')
       .eq('id_tramo', idTramo)
       .eq('dia_semana', diaIndice);
-  final tramoDayIds = (tramoDayHorarios as List).map((h) => h['id'] as int).toList();
+  final idsHorarioTramo =
+      (horariosDelTramo as List).map((h) => h['id'] as int).toList();
 
   Set<int> idsOcupados = {};
-  if (tramoDayIds.isNotEmpty) {
-    final yaAsignados = await supabase
+  if (idsHorarioTramo.isNotEmpty) {
+    final sustEnTramo = await supabase
         .from('sustitucion')
         .select('id_profesor_sustituto')
-        .inFilter('id_horario_cubierto', tramoDayIds);
-    idsOcupados = (yaAsignados as List)
+        .eq('fecha', dateStr)
+        .inFilter('id_horario_cubierto', idsHorarioTramo);
+    idsOcupados = (sustEnTramo as List)
+        .where((s) => s['id_profesor_sustituto'] != null)
         .map((s) => s['id_profesor_sustituto'] as int)
         .toSet();
   }

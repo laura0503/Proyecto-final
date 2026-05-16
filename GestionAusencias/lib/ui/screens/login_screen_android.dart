@@ -78,15 +78,25 @@ class _LoginScreenAndroidState extends State<LoginScreenAndroid> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FF),
       body: Stack(
         children: [
           Container(
             decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: NetworkImage('https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=1200&q=80'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFFE0E7FF), Color(0xFFF8F9FF)],
+                colors: [
+                  const Color(0xFF1E293B).withValues(alpha: 0.8),
+                  const Color(0xFF0F172A),
+                ],
               ),
             ),
           ),
@@ -95,18 +105,27 @@ class _LoginScreenAndroidState extends State<LoginScreenAndroid> {
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Column(
                 children: [
-                  SizedBox(height: size.height * 0.08),
+                  SizedBox(height: size.height * 0.1),
                   const LoginTopIcon(),
                   const SizedBox(height: 25),
                   const Text(
-                    "GuardiaMaster",
-                    style: TextStyle(color: Color(0xFF312E81), fontSize: 38, fontWeight: FontWeight.w800, letterSpacing: -1),
+                    "EduGestion",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 42,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.5,
+                    ),
                   ),
-                  const Text(
-                    "Gestión de accesos inteligente",
-                    style: TextStyle(color: Color(0xFF6B7280), fontSize: 16, fontWeight: FontWeight.w400),
+                  Text(
+                    "Control de ausencias inteligente",
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 50),
                   LoginCard(
                     esModoRegistro: _esModoRegistro,
                     controller: _userController,
@@ -126,16 +145,7 @@ class _LoginScreenAndroidState extends State<LoginScreenAndroid> {
                     esModoRegistro: _esModoRegistro,
                     onToggle: () => setState(() => _esModoRegistro = !_esModoRegistro),
                   ),
-                  const SizedBox(height: 30),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _linkText("SOPORTE"),
-                      const SizedBox(width: 25),
-                      _linkText("PRIVACIDAD"),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),

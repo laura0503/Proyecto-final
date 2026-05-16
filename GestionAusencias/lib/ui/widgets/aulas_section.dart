@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/layout/app_breakpoints.dart';
 import '../../domain/entities/aula.dart';
 import '../../domain/usecases/get_aulas_usecase.dart';
 import 'aula_card.dart';
@@ -51,48 +52,14 @@ class _AulasSectionState extends State<AulasSection> {
   @override
   Widget build(BuildContext context) {
     final textColor = widget.isDark ? Colors.white : Colors.black;
+    final isMobile = MediaQuery.of(context).size.width < AppBreakpoints.mobile;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                "Listado de Aulas",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black26,
-                      offset: Offset(0, 2),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  "${_aulas.length} Registradas",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 30),
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(isMobile ? 12 : 24, kToolbarHeight, isMobile ? 12 : 24, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
 
           if (_isLoading)
             const Center(child: CircularProgressIndicator())
@@ -118,7 +85,7 @@ class _AulasSectionState extends State<AulasSection> {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                        color: widget.isDark ? Colors.white.withValues(alpha:0.05) : Colors.black.withValues(alpha:0.05),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -141,7 +108,7 @@ class _AulasSectionState extends State<AulasSection> {
                       "Parece que la base de datos de aulas está vacía.",
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: textColor.withOpacity(0.6),
+                        color: textColor.withValues(alpha:0.6),
                         fontSize: 15,
                       ),
                     ),
@@ -157,15 +124,16 @@ class _AulasSectionState extends State<AulasSection> {
             )
           else
             LayoutBuilder(builder: (context, constraints) {
-              final cols = (constraints.maxWidth / 110).floor().clamp(2, 10);
+              final cols = isMobile ? 2 : (constraints.maxWidth / 140).floor().clamp(2, 10);
               return GridView.builder(
                 shrinkWrap: true,
+                padding: EdgeInsets.zero,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 0.85,
+                  childAspectRatio: isMobile ? 1.2 : 0.85,
                 ),
                 itemCount: _aulas.length,
                 itemBuilder: (context, index) {
@@ -174,7 +142,8 @@ class _AulasSectionState extends State<AulasSection> {
                 },
               );
             }),
-        ],
+          ],
+        ),
       ),
     );
   }

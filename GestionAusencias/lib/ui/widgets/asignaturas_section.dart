@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/layout/app_breakpoints.dart';
 import '../../domain/entities/asignatura.dart';
 import '../../domain/usecases/get_asignaturas_usecase.dart';
 import 'asignatura_card.dart';
@@ -96,15 +97,26 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+    final isMobile = MediaQuery.of(context).size.width < AppBreakpoints.mobile;
+
+    return SafeArea(
+      top: isMobile,
+      child: SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        isMobile ? 12 : 24,
+        isMobile ? kToolbarHeight : 24,
+        isMobile ? 12 : 24,
+        24,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AsignaturasHeader(count: _filteredAsignaturas.length),
-          const SizedBox(height: 24),
+          if (!isMobile) ...[
+            AsignaturasHeader(count: _filteredAsignaturas.length),
+            const SizedBox(height: 24),
+          ],
           AsignaturasSearchBar(controller: _searchController),
-          const SizedBox(height: 32),
+          SizedBox(height: isMobile ? 20 : 32),
           if (_isLoading)
             const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: Colors.white)))
           else if (_errorMessage != null)
@@ -113,15 +125,15 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
             _buildEmptyState()
           else
             LayoutBuilder(builder: (context, constraints) {
-              final cols = (constraints.maxWidth / 150).floor().clamp(2, 8);
+              final cols = isMobile ? 2 : (constraints.maxWidth / 150).floor().clamp(2, 8);
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
-                  crossAxisSpacing: 18,
-                  mainAxisSpacing: 18,
-                  childAspectRatio: 0.78,
+                  crossAxisSpacing: isMobile ? 12 : 18,
+                  mainAxisSpacing: isMobile ? 12 : 18,
+                  childAspectRatio: isMobile ? 0.85 : 0.78,
                 ),
                 itemCount: _filteredAsignaturas.length,
                 itemBuilder: (context, i) => AsignaturaCard(
@@ -131,9 +143,12 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
                 ),
               );
             }),
+          // Espaciado extra al final para scroll en mobile
+          if (isMobile) const SizedBox(height: 100),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildEmptyState() => Center(

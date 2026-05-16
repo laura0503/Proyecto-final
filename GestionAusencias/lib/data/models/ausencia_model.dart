@@ -1,4 +1,5 @@
 import '../../domain/entities/ausencia.dart';
+import '../../domain/entities/horario_clase.dart';
 
 class AusenciaModel extends Ausencia {
   const AusenciaModel({
@@ -14,6 +15,7 @@ class AusenciaModel extends Ausencia {
     super.tipo,
     super.tipoDetalle = TipoAusencia.ausenciaPuntual,
     super.esDiaCompleto = false,
+    super.horario,
   });
 
   factory AusenciaModel.fromJson(Map<String, dynamic> json) {
@@ -31,6 +33,23 @@ class AusenciaModel extends Ausencia {
       tipo: 'FALTA',
       esDiaCompleto: json['es_dia_completo'] ?? false,
       tipoDetalle: _mapTipoFromString(json['tipo_detalle']),
+      horario: json['horario'] != null ? _parseHorario(json['horario']) : null,
+    );
+  }
+
+  static HorarioClase? _parseHorario(dynamic h) {
+    if (h == null) return null;
+    final t = h['horario_tramo'];
+    return HorarioClase(
+      id: h['id'] ?? 0,
+      asignatura: h['asignatura']?['nombre'] ?? 'N/A',
+      aula: h['aula']?['nombre'] ?? 'N/A',
+      grupo: h['grupo']?['nombre'] ?? 'N/A',
+      dia: '', // No viene en el join
+      inicio: t != null ? t['horario_inicio'].toString().substring(0, 5) : '08:00',
+      fin: t != null ? t['horario_fin'].toString().substring(0, 5) : '21:00',
+      profesor: '',
+      idTramo: t != null ? t['id_horario'] : null,
     );
   }
 
@@ -86,6 +105,7 @@ class AusenciaModel extends Ausencia {
       tipo: ausencia.tipo,
       tipoDetalle: ausencia.tipoDetalle,
       esDiaCompleto: ausencia.esDiaCompleto,
+      horario: ausencia.horario,
     );
   }
 }

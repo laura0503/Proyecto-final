@@ -16,6 +16,9 @@ class AppBreakpoints {
 
   /// Punto de corte para mostrar el sidebar lateral en MainLayout
   static const double sidebar = 850;
+
+  /// Tamaño mínimo de fuente legible en cualquier dispositivo.
+  static const double minFontSize = 11.0;
 }
 
 extension ResponsiveContext on BuildContext {

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gestion_ausencias/domain/entities/ausencia.dart';
 
+/// Returns ALL guards scheduled for the tramo, each with an `available` bool.
+/// available=true  → free to cover (no guard today, no class in this slot)
+/// available=false → already covering another guard today OR has a class in this slot
 Future<List<Map<String, dynamic>>> fetchGuardiasParaTramo(
   Ausencia ausencia,
   DateTime fecha,
@@ -16,7 +19,6 @@ Future<List<Map<String, dynamic>>> fetchGuardiasParaTramo(
         .select('id_tramo, dia_semana')
         .eq('id', idHorario)
         .maybeSingle();
-
     if (horData == null) return [];
 
     final idTramo = horData['id_tramo'];
@@ -29,58 +31,70 @@ Future<List<Map<String, dynamic>>> fetchGuardiasParaTramo(
         .eq('dia_semana', diaSemana)
         .eq('es_guardia', true);
     final todosGuardias = List<Map<String, dynamic>>.from(result as List);
-
-    final sameTramoResp = await supabase
-        .from('horario')
-        .select('id')
-        .eq('id_tramo', idTramo)
-        .eq('dia_semana', diaSemana);
-    final sameTramoIds = (sameTramoResp as List).map((h) => h['id'] as int).toList();
+    if (todosGuardias.isEmpty) return [];
 
     final dateStr = '${fecha.year.toString().padLeft(4, '0')}-'
         '${fecha.month.toString().padLeft(2, '0')}-'
         '${fecha.day.toString().padLeft(2, '0')}';
-    final otrasAusencias = await supabase
-        .from('ausencia')
-        .select('id_ausencia')
-        .inFilter('id_horario_sesion', sameTramoIds)
-        .eq('fecha', dateStr)
-        .neq('id_ausencia', ausencia.id ?? 0);
 
-    final otrasIds = (otrasAusencias as List).map((a) => a['id_ausencia'] as int).toList();
-    final Set<int> yaAsignados = {};
-    if (otrasIds.isNotEmpty) {
-      final sustResp = await supabase
+    // Regla: un profesor no puede cubrir dos ausencias distintas en el mismo tramo.
+    // Si su CSV marca guardia en varios tramos del día, puede cubrir una ausencia por tramo.
+    // Se excluye la ausencia actual para permitir reasignación.
+    final horariosTramoResp = await supabase
+        .from('horario')
+        .select('id')
+        .eq('id_tramo', idTramo)
+        .eq('dia_semana', diaSemana);
+    final idsHorarioTramo =
+        (horariosTramoResp as List).map((h) => h['id'] as int).toList();
+
+    final Set<int> yaGuardiaOcupado = {};
+    if (idsHorarioTramo.isNotEmpty) {
+      final sustTramoResp = await supabase
           .from('sustitucion')
           .select('id_profesor_sustituto')
-          .inFilter('id_ausencia', otrasIds);
-      for (final s in sustResp as List) {
+          .eq('fecha', dateStr)
+          .inFilter('id_horario_cubierto', idsHorarioTramo)
+          .neq('id_ausencia', ausencia.id ?? 0);
+      for (final s in sustTramoResp as List) {
         final pid = s['id_profesor_sustituto'];
-        if (pid != null) yaAsignados.add(pid as int);
+        if (pid != null) yaGuardiaOcupado.add(pid as int);
       }
     }
 
-    final List<Map<String, dynamic>> aptos = [];
-    for (var g in todosGuardias) {
+    // Build result: all guards with availability flag.
+    final List<Map<String, dynamic>> guards = [];
+    for (final g in todosGuardias) {
       final pid = g['id_profesor'] as int?;
-      if (pid == null || yaAsignados.contains(pid)) continue;
+      if (pid == null) continue;
 
-      // REGLA: No puede tener una clase lectiva en el mismo tramo
-      final tieneClase = await supabase
-          .from('horario')
-          .select('id')
-          .eq('id_profesor', pid)
-          .eq('id_tramo', idTramo)
-          .eq('dia_semana', diaSemana)
-          .eq('es_guardia', false)
+      // Si el guardia está ausente en esta fecha (vacaciones, baja, etc.) se excluye completamente.
+      final estaAusente = await supabase
+          .from('ausencia')
+          .select('id_ausencia')
+          .eq('id_profesor_ausente', pid)
+          .lte('fecha_inicio', dateStr)
+          .or('fecha_fin.is.null, fecha_fin.gte.$dateStr')
           .maybeSingle();
-      
-      if (tieneClase == null) {
-        aptos.add(g);
-      }
-    }
+      if (estaAusente != null) continue;
 
-    return aptos;
+      bool available = true;
+      if (yaGuardiaOcupado.contains(pid)) {
+        available = false;
+      } else {
+        final tieneClase = await supabase
+            .from('horario')
+            .select('id')
+            .eq('id_profesor', pid)
+            .eq('id_tramo', idTramo)
+            .eq('dia_semana', diaSemana)
+            .eq('es_guardia', false)
+            .maybeSingle();
+        if (tieneClase != null) available = false;
+      }
+      guards.add({...g, 'available': available});
+    }
+    return guards;
   } catch (e) {
     debugPrint("Error cargando guardias del tramo: $e");
     return [];
