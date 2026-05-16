@@ -1,10 +1,10 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/asignatura.dart';
 import '../../domain/usecases/get_asignaturas_usecase.dart';
 import 'asignatura_card.dart';
+import 'asignaturas_header.dart';
 
 class AsignaturasSection extends StatefulWidget {
   final bool isDark;
@@ -21,8 +21,6 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
   List<Asignatura> _filteredAsignaturas = [];
   bool _isLoading = true;
   String? _errorMessage;
-
-  // asignatura_id → lista de grupos únicos
   Map<int, List<String>> _gruposPorAsignatura = {};
 
   @override
@@ -39,14 +37,9 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
     super.dispose();
   }
 
-  String _norm(String t) => t
-      .toLowerCase()
-      .trim()
-      .replaceAll('á', 'a')
-      .replaceAll('é', 'e')
-      .replaceAll('í', 'i')
-      .replaceAll('ó', 'o')
-      .replaceAll('ú', 'u');
+  String _norm(String t) => t.toLowerCase().trim()
+      .replaceAll('á', 'a').replaceAll('é', 'e')
+      .replaceAll('í', 'i').replaceAll('ó', 'o').replaceAll('ú', 'u');
 
   void _applyFilters() {
     if (!mounted) return;
@@ -61,12 +54,8 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
 
   Future<void> _load() async {
     setState(() { _isLoading = true; _errorMessage = null; });
-
     try {
-      final useCase = context.read<GetAsignaturasUseCase>();
-      final list = await useCase.call();
-
-      // Filtrar basura
+      final list = await context.read<GetAsignaturasUseCase>().call();
       final validas = list.where((a) {
         final n = a.nombre.trim().toUpperCase();
         if (n.isEmpty) return false;
@@ -77,7 +66,6 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
         return true;
       }).toList();
 
-      // Obtener grupos desde horario
       final horarioRows = await Supabase.instance.client
           .from('horario')
           .select('id_asignatura, grupo!id_grupo(nombre)')
@@ -92,12 +80,11 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
         if (asigId == null || grupoNombre == null || grupoNombre.isEmpty) continue;
         gruposMap.putIfAbsent(asigId, () => {}).add(grupoNombre);
       }
-      final grupos = gruposMap.map((k, v) => MapEntry(k, v.toList()..sort()));
 
       if (mounted) {
         setState(() {
           _allAsignaturas = validas;
-          _gruposPorAsignatura = grupos;
+          _gruposPorAsignatura = gruposMap.map((k, v) => MapEntry(k, v.toList()..sort()));
           _isLoading = false;
           _applyFilters();
         });
@@ -114,65 +101,10 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Asignaturas',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white),
-                  ),
-                  Text(
-                    'Selecciona una asignatura para ver detalles',
-                    style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha:0.6), fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha:0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${_filteredAsignaturas.length} Registradas',
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
-                ),
-              ),
-            ],
-          ),
+          AsignaturasHeader(count: _filteredAsignaturas.length),
           const SizedBox(height: 24),
-
-          // Buscador Minimalista
-          Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha:0.15),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha:0.1)),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: const InputDecoration(
-                    hintText: 'Buscar por nombre...',
-                    prefixIcon: Icon(Icons.search_rounded, color: Colors.white70, size: 22),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 14),
-                    hintStyle: TextStyle(color: Colors.white38, fontSize: 14),
-                  ),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                ),
-              ),
-            ),
-          ),
+          AsignaturasSearchBar(controller: _searchController),
           const SizedBox(height: 32),
-
           if (_isLoading)
             const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: Colors.white)))
           else if (_errorMessage != null)
@@ -189,7 +121,7 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
                   crossAxisCount: cols,
                   crossAxisSpacing: 18,
                   mainAxisSpacing: 18,
-                  childAspectRatio: 0.78, 
+                  childAspectRatio: 0.78,
                 ),
                 itemCount: _filteredAsignaturas.length,
                 itemBuilder: (context, i) => AsignaturaCard(
@@ -204,28 +136,20 @@ class _AsignaturasSectionState extends State<AsignaturasSection> {
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        children: [
-          Icon(Icons.auto_stories_rounded, size: 64, color: Colors.white.withValues(alpha:0.1)),
-          const SizedBox(height: 16),
-          const Text('No se encontraron asignaturas', style: TextStyle(color: Colors.white54)),
-        ],
-      ),
-    );
-  }
+  Widget _buildEmptyState() => Center(
+    child: Column(children: [
+      Icon(Icons.auto_stories_rounded, size: 64, color: Colors.white.withValues(alpha: 0.1)),
+      const SizedBox(height: 16),
+      const Text('No se encontraron asignaturas', style: TextStyle(color: Colors.white54)),
+    ]),
+  );
 
-  Widget _buildErrorState() {
-    return Center(
-      child: Column(
-        children: [
-          const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 40),
-          const SizedBox(height: 12),
-          Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
-          TextButton(onPressed: _load, child: const Text('Reintentar', style: TextStyle(color: Colors.white))),
-        ],
-      ),
-    );
-  }
+  Widget _buildErrorState() => Center(
+    child: Column(children: [
+      const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 40),
+      const SizedBox(height: 12),
+      Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+      TextButton(onPressed: _load, child: const Text('Reintentar', style: TextStyle(color: Colors.white))),
+    ]),
+  );
 }

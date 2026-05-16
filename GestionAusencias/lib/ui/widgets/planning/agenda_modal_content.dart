@@ -11,6 +11,7 @@ import '../../../domain/usecases/eliminar_ausencia_usecase.dart';
 import '../../screens/planning_screen.dart' show DatosSlot;
 import 'agenda_guardia_card.dart';
 import 'agenda_accion_sheet.dart';
+import 'agenda_tareas_dialog.dart';
 
 class AgendaModalContent extends StatefulWidget {
   final Profesor profesor;
@@ -113,30 +114,8 @@ class _AgendaModalContentState extends State<AgendaModalContent> {
     }
   }
 
-  void _mostrarDialogoTareas(HorarioClase sesion, Ausencia? ausenciaActual) {
-    final ctrl = TextEditingController(text: ausenciaActual?.observaciones ?? "");
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Plan de Tareas para la Guardia", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: TextField(
-          controller: ctrl,
-          maxLines: 5,
-          decoration: const InputDecoration(hintText: "Escribe aquí las tareas para los alumnos...", border: OutlineInputBorder()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCELAR")),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _reportarEstado(sesion, "FALTA", ausenciaActual, obs: ctrl.text);
-            },
-            child: const Text("GUARDAR Y NOTIFICAR"),
-          ),
-        ],
-      ),
-    );
-  }
+  void _mostrarDialogoTareas(HorarioClase sesion, Ausencia? ausenciaActual) =>
+      mostrarDialogoTareas(context, sesion, ausenciaActual, _reportarEstado);
 
   void _mostrarOpcionesAccion(HorarioClase sesion, Ausencia? ausencia) {
     showModalBottomSheet(

@@ -2,17 +2,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../domain/entities/profesor.dart';
-import '../shared/profesor_avatar.dart';
+import 'home_estado_dia_row.dart';
 
 class HomeEstadoDia extends StatefulWidget {
   final List<Profesor> profesores;
   final List<int> idsOcupados;
 
-  const HomeEstadoDia({
-    super.key,
-    required this.profesores,
-    required this.idsOcupados,
-  });
+  const HomeEstadoDia({super.key, required this.profesores, required this.idsOcupados});
 
   @override
   State<HomeEstadoDia> createState() => _HomeEstadoDiaState();
@@ -51,7 +47,6 @@ class _HomeEstadoDiaState extends State<HomeEstadoDia> {
 
     final visible = _verTodos ? sorted : sorted.take(5).toList();
     final extra = sorted.length - 5;
-
     final dia = DateFormat('EEEE, d MMMM', 'es').format(DateTime.now());
 
     return ClipRRect(
@@ -84,21 +79,10 @@ class _HomeEstadoDiaState extends State<HomeEstadoDia> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Estado del día',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: isDark ? Colors.white : const Color(0xFF1E293B),
-                            ),
-                          ),
-                          Text(
-                            dia,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isDark ? Colors.white60 : Colors.grey[500],
-                            ),
-                          ),
+                          Text('Estado del día',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800,
+                                  color: isDark ? Colors.white : const Color(0xFF1E293B))),
+                          Text(dia, style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.grey[500])),
                         ],
                       ),
                     ),
@@ -106,7 +90,7 @@ class _HomeEstadoDiaState extends State<HomeEstadoDia> {
                 ),
               ),
               const Divider(height: 1, indent: 20, endIndent: 20),
-              ...visible.map((p) => _ProfesorRow(
+              ...visible.map((p) => HomeEstadoDiaRow(
                     profesor: p,
                     estado: _saludo(p),
                     color: _color(p),
@@ -118,86 +102,14 @@ class _HomeEstadoDiaState extends State<HomeEstadoDia> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Center(
-                      child: Text(
-                        'Ver $extra más',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF5A6F54),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      child: Text('Ver $extra más',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF5A6F54), fontWeight: FontWeight.w700)),
                     ),
                   ),
                 ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ProfesorRow extends StatelessWidget {
-  final Profesor profesor;
-  final String estado;
-  final Color color;
-  final bool isDark;
-
-  const _ProfesorRow({
-    required this.profesor,
-    required this.estado,
-    required this.color,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
-        children: [
-          ProfesorAvatar(profesor: profesor, radius: 18),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  profesor.nombre,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : const Color(0xFF1E293B),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  profesor.asignatura,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? Colors.white54 : Colors.grey[500],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              estado,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: color,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

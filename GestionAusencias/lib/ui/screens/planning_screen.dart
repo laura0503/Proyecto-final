@@ -10,9 +10,7 @@ import '../../domain/entities/sustitucion.dart';
 import '../../domain/usecases/get_profesores_usecase.dart';
 import '../../domain/usecases/get_ausencias_usecase.dart';
 import '../../domain/usecases/get_all_horarios_usecase.dart';
-import '../../domain/usecases/reportar_ausencia_usecase.dart';
 import '../../domain/usecases/eliminar_ausencia_usecase.dart';
-import '../../domain/usecases/auto_asignar_todo_usecase.dart'; // Nuevo
 import '../../data/models/sustitucion_model.dart';
 import '../widgets/planning/planning_body.dart';
 import '../widgets/planning/planning_action_sheet.dart';
@@ -20,18 +18,14 @@ import '../widgets/planning/planning_professor_dialog.dart';
 import '../widgets/planning/planning_task_dialog.dart';
 import '../widgets/planning/planning_guard_ops.dart';
 import '../widgets/planning/planning_report_ops.dart';
-import '../widgets/planning/advanced_absence_form.dart';
+import 'planning_screen_ops.dart';
 
 class DatosSlot {
   final TextEditingController controller;
   Color color;
   String tipo;
 
-  DatosSlot({
-    required this.controller,
-    this.color = Colors.grey,
-    this.tipo = "NINGUNO",
-  });
+  DatosSlot({required this.controller, this.color = Colors.grey, this.tipo = "NINGUNO"});
 }
 
 class PlanningScreen extends StatefulWidget {
@@ -62,8 +56,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
   Future<void> _cargarDatos() async {
     setState(() => _isLoading = true);
     try {
-      final inicioSemana = _fechaSeleccionada.subtract(
-          Duration(days: _fechaSeleccionada.weekday - 1));
+      final inicioSemana = _fechaSeleccionada.subtract(Duration(days: _fechaSeleccionada.weekday - 1));
       final finSemana = inicioSemana.add(const Duration(days: 6));
 
       final results = await Future.wait([
@@ -94,7 +87,6 @@ class _PlanningScreenState extends State<PlanningScreen> {
           }
         } catch (_) {}
       }
-
       if (mounted) setState(() => _isLoading = false);
     } catch (e, st) {
       debugPrint("Error _cargarDatos planning: $e\n$st");
@@ -112,12 +104,8 @@ class _PlanningScreenState extends State<PlanningScreen> {
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: ColorScheme.light(
-            primary: primaryColor,
-            onPrimary: Colors.white,
-            onSurface: const Color(0xFF1E293B),
-          ),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(foregroundColor: primaryColor)),
+            primary: primaryColor, onPrimary: Colors.white, onSurface: const Color(0xFF1E293B)),
+          textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: primaryColor)),
         ),
         child: child!,
       ),
@@ -125,72 +113,6 @@ class _PlanningScreenState extends State<PlanningScreen> {
     if (picked != null && picked != _fechaSeleccionada) {
       setState(() => _fechaSeleccionada = picked);
       _cargarDatos();
-    }
-  }
-
-  void _abrirGestionAvanzada() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => AdvancedAbsenceForm(
-        profesores: _profesores,
-        primaryColor: primaryColor,
-        onSave: (ausencia) async {
-          setState(() => _isLoading = true);
-          try {
-            await context.read<ReportarAusenciaUseCase>().executeConSustitucion(ausencia);
-            await _cargarDatos();
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text("Ausencia de larga duración registrada correctamente"),
-                backgroundColor: Colors.green,
-              ));
-            }
-          } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text("Error: $e"),
-                backgroundColor: Colors.red,
-              ));
-            }
-            setState(() => _isLoading = false);
-          }
-        },
-      ),
-    );
-  }
-
-  void _cambiarSemana(int semanas) {
-    setState(() => _fechaSeleccionada =
-        _fechaSeleccionada.add(Duration(days: semanas * 7)));
-    _cargarDatos();
-  }
-
-  Future<void> _ejecutarAutoAsignacion() async {
-    setState(() => _isLoading = true);
-    try {
-      final inicioSemana = _fechaSeleccionada.subtract(
-          Duration(days: _fechaSeleccionada.weekday - 1));
-      final finSemana = inicioSemana.add(const Duration(days: 4)); // De Lunes a Viernes
-
-      await context.read<AutoAsignarTodoUseCase>().execute(inicioSemana, finSemana);
-      
-      await _cargarDatos();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Auto-asignación completada para toda la semana ✨"),
-          backgroundColor: Colors.orange,
-        ));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Error en auto-asignación: $e"),
-          backgroundColor: Colors.red,
-        ));
-      }
-      setState(() => _isLoading = false);
     }
   }
 
@@ -208,8 +130,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
       context, _profesores, tramo, fecha, primaryColor,
       (p, f, t) => showPlanningTaskDialog(
         context, p, f, t, primaryColor,
-        (p2, f2, t2, tareas) => planningReportarEstadoEnTramo(
-            context, p2, f2, t2, tareas, _horarios, _cargarDatos),
+        (p2, f2, t2, tareas) => planningReportarEstadoEnTramo(context, p2, f2, t2, tareas, _horarios, _cargarDatos),
       ),
     );
   }
@@ -220,11 +141,9 @@ class _PlanningScreenState extends State<PlanningScreen> {
     try {
       await context.read<EliminarAusenciaUseCase>().execute(ausencia.id!);
       await _cargarDatos();
-      messenger.showSnackBar(const SnackBar(
-        content: Text("Ausencia eliminada"), backgroundColor: Colors.blueGrey));
+      messenger.showSnackBar(const SnackBar(content: Text("Ausencia eliminada"), backgroundColor: Colors.blueGrey));
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+      messenger.showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
     }
   }
 
@@ -244,10 +163,14 @@ class _PlanningScreenState extends State<PlanningScreen> {
               onAction: _showActionMenu,
               onEmptySlotClick: _showProfessorSelectionDialog,
               onClear: _onClearAusencia,
-              onCambiarSemana: _cambiarSemana,
+              onCambiarSemana: (s) { setState(() => _fechaSeleccionada = _fechaSeleccionada.add(Duration(days: s * 7))); _cargarDatos(); },
               onSeleccionarFecha: _seleccionarFecha,
-              onGestionarAusencias: _abrirGestionAvanzada,
-              onAutoAsignar: _ejecutarAutoAsignacion, // Nuevo
+              onGestionarAusencias: () => abrirGestionAvanzada(context,
+                  profesores: _profesores, primaryColor: primaryColor,
+                  onSuccess: _cargarDatos, setLoading: (v) => setState(() => _isLoading = v)),
+              onAutoAsignar: () => ejecutarAutoAsignacion(context,
+                  fechaSeleccionada: _fechaSeleccionada,
+                  onSuccess: _cargarDatos, setLoading: (v) => setState(() => _isLoading = v)),
               primaryColor: primaryColor,
               cardColor: cardColor,
             ),
