@@ -8,7 +8,7 @@ import 'package:gestion_ausencias/domain/usecases/cerrar_sesion_usecase.dart';
 import 'package:gestion_ausencias/domain/usecases/get_profesores_usecase.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide OAuthProvider;
 import '../../core/utils/profesor_matcher.dart';
 import 'google_auth_service.dart';
 
@@ -21,7 +21,11 @@ class AuthProvider extends ChangeNotifier {
   final SupabaseClient _supabase;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(hostedDomain: 'g.educaand.es');
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    hostedDomain: 'g.educaand.es',
+    clientId:
+        '617066914619-q69p968n6v6h0g0q69p968n6v6h0g0q.apps.googleusercontent.com', // Reemplaza con tu Client ID de Firebase Web si es distinto
+  );
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -39,12 +43,12 @@ class AuthProvider extends ChangeNotifier {
     required CerrarSesionUseCase cerrarSesionUseCase,
     required GetProfesoresUseCase getProfesoresUseCase,
     required SupabaseClient supabase,
-  })  : _loginUseCase = loginUseCase,
-        _registerUseCase = registerUseCase,
-        _getSesionActualUseCase = getSesionActualUseCase,
-        _cerrarSesionUseCase = cerrarSesionUseCase,
-        _getProfesoresUseCase = getProfesoresUseCase,
-        _supabase = supabase {
+  }) : _loginUseCase = loginUseCase,
+       _registerUseCase = registerUseCase,
+       _getSesionActualUseCase = getSesionActualUseCase,
+       _cerrarSesionUseCase = cerrarSesionUseCase,
+       _getProfesoresUseCase = getProfesoresUseCase,
+       _supabase = supabase {
     _listenToAuthChanges();
   }
 
@@ -70,16 +74,25 @@ class AuthProvider extends ChangeNotifier {
 
         try {
           final googleEmail = session.user.email?.toLowerCase().trim();
-          final googleName = session.user.userMetadata?['full_name']?.toString().toLowerCase().trim();
+          final googleName = session.user.userMetadata?['full_name']
+              ?.toString()
+              .toLowerCase()
+              .trim();
 
           if (googleEmail != null) {
             final profesores = await _getProfesoresUseCase.execute();
-            final matched = matchProfesorByGoogle(profesores, googleEmail, googleName);
+            final matched = matchProfesorByGoogle(
+              profesores,
+              googleEmail,
+              googleName,
+            );
 
             if (matched != null) {
               _profesorActual = matched;
             } else {
-              debugPrint("Sin match para $googleEmail — creando perfil temporal en memoria");
+              debugPrint(
+                "Sin match para $googleEmail — creando perfil temporal en memoria",
+              );
               _profesorActual = Profesor(
                 id: session.user.id,
                 nombre: googleEmail,
@@ -115,7 +128,10 @@ class AuthProvider extends ChangeNotifier {
       bool success = false;
 
       if (password != null && password.isNotEmpty) {
-        final credential = await _auth.signInWithEmailAndPassword(email: email, password: password);
+        final credential = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
         success = credential.user != null;
       } else {
         success = await _loginUseCase.execute(email);
@@ -166,13 +182,29 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      final userCredential = await signInWithGoogle(googleSignIn: _googleSignIn, auth: _auth);
+      // Si estamos en Windows Desktop, usamos Supabase porque google_sign_in no lo soporta
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
+        await _supabase.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: kIsWeb
+              ? null
+              : 'io.supabase.guardiasapp://login-callback/',
+        );
+        // En Windows el flujo es asíncrono vía deep links (manejado en main.dart)
+        return null;
+      }
+
+      // Para Web y Móvil seguimos con el flujo de Firebase
+      final userCredential = await signInWithGoogle(
+        googleSignIn: _googleSignIn,
+        auth: _auth,
+      );
       if (userCredential?.user != null) {
         await login(userCredential!.user!.email!);
       }
       return userCredential;
     } catch (e) {
-      debugPrint('Error en Google Sign-In Firebase: $e');
+      debugPrint('Error en Google Sign-In: $e');
       rethrow;
     } finally {
       _isLoading = false;

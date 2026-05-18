@@ -11,15 +11,11 @@ import '../../../../domain/usecases/get_profesores_usecase.dart';
 import '../../../../domain/usecases/get_ausencias_usecase.dart';
 import '../../../../domain/usecases/get_horarios_usecase.dart';
 import '../../../../domain/usecases/get_all_horarios_usecase.dart';
-import '../../../../domain/usecases/eliminar_ausencia_usecase.dart';
 import '../../../../data/models/sustitucion_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../screens/planning_screen_ops.dart';
-import '../../../widgets/planning/planning_action_sheet.dart';
-import '../../../widgets/planning/planning_guard_ops.dart';
-import '../../../widgets/planning/planning_professor_dialog.dart';
-import '../../../widgets/planning/planning_task_dialog.dart';
-import '../../../widgets/planning/planning_report_ops.dart';
+import 'planning_event_handlers.dart';
+import '../widgets/mobile_planning_header.dart';
 import '../widgets/mobile_planning_day_view.dart';
 
 class MobilePlanningScreen extends StatefulWidget {
@@ -82,11 +78,9 @@ class _MobilePlanningScreenState extends State<MobilePlanningScreen>
         try {
           final resp = await Supabase.instance.client
               .from('sustitucion')
-              .select(
-                  'id_sustitucion, id_ausencia, id_profesor_sustituto, id_horario_cubierto, profesores:id_profesor_sustituto(nombre)')
+              .select('id_sustitucion, id_ausencia, id_profesor_sustituto, id_horario_cubierto, profesores:id_profesor_sustituto(nombre)')
               .inFilter('id_ausencia', ids);
-          sustituciones =
-              (resp as List).map((j) => SustitucionModel.fromJson(j)).toList();
+          sustituciones = (resp as List).map((j) => SustitucionModel.fromJson(j)).toList();
         } catch (_) {}
       }
 
@@ -106,71 +100,6 @@ class _MobilePlanningScreenState extends State<MobilePlanningScreen>
     }
   }
 
-  void _showActionMenu(Profesor profesor, DateTime fecha, Ausencia ausencia) async {
-    final guardas = await fetchGuardiasParaTramo(ausencia, fecha);
-    if (!mounted) return;
-    showPlanningActionSheet(
-      context, guardas, ausencia, profesor, _primary,
-      (aus, id, nombre) =>
-          planningAsignarGuardia(context, aus, id, nombre, _cargarDatos),
-    );
-  }
-
-  void _reportarMiAusencia() {
-    final prof = context.read<AuthProvider>().profesorActual;
-    if (prof == null) return;
-    final miProf = _profesores.firstWhere(
-      (p) => p.id == prof.id || p.idProfesor == prof.idProfesor,
-      orElse: () => prof,
-    );
-    abrirGestionAvanzada(context,
-        profesores: [miProf],
-        primaryColor: _primary,
-        onSuccess: _cargarDatos,
-        setLoading: (v) => setState(() => _isLoading = v));
-  }
-
-  void _showProfessorDialog(Horario tramo, DateTime fecha) {
-    showPlanningProfessorDialog(
-      context, _profesores, tramo, fecha, _primary,
-      (p, f, t) => showPlanningTaskDialog(
-        context, p, f, t, _primary,
-        (p2, f2, t2, tareas) => planningReportarEstadoEnTramo(
-            context, p2, f2, t2, tareas, _horarios, _cargarDatos),
-      ),
-    );
-  }
-
-  Future<void> _onClear(Ausencia ausencia) async {
-    if (ausencia.id == null) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar ausencia'),
-        content: const Text('¿Eliminar esta ausencia?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Eliminar')),
-        ],
-      ),
-    );
-    if (ok != true || !mounted) return;
-    try {
-      await context.read<EliminarAusenciaUseCase>().execute(ausencia.id!);
-      await _cargarDatos();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
-      }
-    }
-  }
-
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -179,8 +108,7 @@ class _MobilePlanningScreenState extends State<MobilePlanningScreen>
       lastDate: DateTime(2030),
       locale: const Locale('es', 'ES'),
       builder: (context, child) => Theme(
-        data: Theme.of(context)
-            .copyWith(colorScheme: const ColorScheme.dark(primary: _primary)),
+        data: Theme.of(context).copyWith(colorScheme: const ColorScheme.dark(primary: _primary)),
         child: child!,
       ),
     );
@@ -192,11 +120,9 @@ class _MobilePlanningScreenState extends State<MobilePlanningScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin =
-        context.watch<AuthProvider>().profesorActual?.isAdmin ?? false;
+    final isAdmin = context.watch<AuthProvider>().profesorActual?.isAdmin ?? false;
     final lunesStr = DateFormat('d MMM', 'es').format(_lunes);
-    final viernesStr =
-        DateFormat('d MMM', 'es').format(_lunes.add(const Duration(days: 4)));
+    final viernesStr = DateFormat('d MMM', 'es').format(_lunes.add(const Duration(days: 4)));
     final diasSemana = List.generate(5, (i) => _lunes.add(Duration(days: i)));
 
     return Scaffold(
@@ -204,29 +130,16 @@ class _MobilePlanningScreenState extends State<MobilePlanningScreen>
       body: SafeArea(
         child: Column(
           children: [
-            _MobilePlanningHeader(
+            MobilePlanningHeader(
               lunesStr: lunesStr,
               viernesStr: viernesStr,
               isAdmin: isAdmin,
-              onPrev: () {
-                setState(() => _fecha = _fecha.subtract(const Duration(days: 7)));
-                _cargarDatos();
-              },
-              onNext: () {
-                setState(() => _fecha = _fecha.add(const Duration(days: 7)));
-                _cargarDatos();
-              },
+              onPrev: () { setState(() => _fecha = _fecha.subtract(const Duration(days: 7))); _cargarDatos(); },
+              onNext: () { setState(() => _fecha = _fecha.add(const Duration(days: 7))); _cargarDatos(); },
               onDatePick: _pickDate,
-              onReportarPropia: _reportarMiAusencia,
-              onGestionar: () => abrirGestionAvanzada(context,
-                  profesores: _profesores,
-                  primaryColor: _primary,
-                  onSuccess: _cargarDatos,
-                  setLoading: (v) => setState(() => _isLoading = v)),
-              onAutoAsignar: () => ejecutarAutoAsignacion(context,
-                  fechaSeleccionada: _fecha,
-                  onSuccess: _cargarDatos,
-                  setLoading: (v) => setState(() => _isLoading = v)),
+              onReportarPropia: () => planningReportarPropia(context, _profesores, _primary, _cargarDatos, (v) => setState(() => _isLoading = v)),
+              onGestionar: () => abrirGestionAvanzada(context, profesores: _profesores, primaryColor: _primary, onSuccess: _cargarDatos, setLoading: (v) => setState(() => _isLoading = v)),
+              onAutoAsignar: () => ejecutarAutoAsignacion(context, fechaSeleccionada: _fecha, onSuccess: _cargarDatos, setLoading: (v) => setState(() => _isLoading = v)),
             ),
             TabBar(
               controller: _tabController,
@@ -241,8 +154,7 @@ class _MobilePlanningScreenState extends State<MobilePlanningScreen>
             ),
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: Colors.white))
+                  ? const Center(child: CircularProgressIndicator(color: Colors.white))
                   : TabBarView(
                       controller: _tabController,
                       children: List.generate(
@@ -257,9 +169,9 @@ class _MobilePlanningScreenState extends State<MobilePlanningScreen>
                             tramos: _tramos,
                             horarios: _horarios,
                             sustituciones: _sustituciones,
-                            onAction: _showActionMenu,
-                            onEmptySlotClick: _showProfessorDialog,
-                            onClear: _onClear,
+                            onAction: (p, f, a) => planningShowActionMenu(context, p, f, a, _primary, _cargarDatos),
+                            onEmptySlotClick: (t, f) => planningShowProfessorDialog(context, _profesores, _horarios, t, f, _primary, _cargarDatos),
+                            onClear: (a) => confirmarEliminarAusencia(context, a, _cargarDatos),
                           ),
                         ),
                       ),
@@ -267,89 +179,6 @@ class _MobilePlanningScreenState extends State<MobilePlanningScreen>
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _MobilePlanningHeader extends StatelessWidget {
-  final String lunesStr;
-  final String viernesStr;
-  final bool isAdmin;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
-  final VoidCallback onDatePick;
-  final VoidCallback onGestionar;
-  final VoidCallback onAutoAsignar;
-  final VoidCallback onReportarPropia;
-
-  const _MobilePlanningHeader({
-    required this.lunesStr,
-    required this.viernesStr,
-    required this.isAdmin,
-    required this.onPrev,
-    required this.onNext,
-    required this.onDatePick,
-    required this.onGestionar,
-    required this.onAutoAsignar,
-    required this.onReportarPropia,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: onPrev,
-            icon: const Icon(Icons.chevron_left_rounded, color: Colors.white70),
-            visualDensity: VisualDensity.compact,
-          ),
-          Expanded(
-            child: GestureDetector(
-              onTap: onDatePick,
-              child: Column(children: [
-                const Text('Planning',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800)),
-                Text('$lunesStr – $viernesStr',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-              ]),
-            ),
-          ),
-          IconButton(
-            onPressed: onNext,
-            icon: const Icon(Icons.chevron_right_rounded, color: Colors.white70),
-            visualDensity: VisualDensity.compact,
-          ),
-          if (isAdmin) ...[
-            IconButton(
-              onPressed: onGestionar,
-              icon: const Icon(Icons.add_circle_outline_rounded,
-                  color: Color(0xFF818CF8)),
-              tooltip: 'Registrar ausencia',
-              visualDensity: VisualDensity.compact,
-            ),
-            IconButton(
-              onPressed: onAutoAsignar,
-              icon: const Icon(Icons.auto_awesome_rounded,
-                  color: Color(0xFFF59E0B)),
-              tooltip: 'Auto-asignar',
-              visualDensity: VisualDensity.compact,
-            ),
-          ] else
-            IconButton(
-              onPressed: onReportarPropia,
-              icon: const Icon(Icons.sick_rounded, color: Color(0xFFF87171)),
-              tooltip: 'Reportar mi ausencia',
-              visualDensity: VisualDensity.compact,
-            ),
-        ],
       ),
     );
   }

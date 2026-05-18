@@ -159,38 +159,42 @@ class _TorreControlSectionState extends State<TorreControlSection> {
     final desiertas = _slots.where((s) => s.esDesierta).length;
     final cubiertas = _slots.length - desiertas;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Monitor de Centro",
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-            shadows: [Shadow(blurRadius: 10, color: Colors.black45)],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Monitor de Centro",
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              shadows: [Shadow(blurRadius: 10, color: Colors.black45)],
+            ),
           ),
-        ),
-        const SizedBox(height: 24),
-        TorreControlKpiRow(
-          totalAusentes: _slots.length,
-          cubiertas: cubiertas,
-          desiertas: desiertas,
-        ),
-        const SizedBox(height: 24),
-        TorreControlGestionCard(
-          slots: _slots,
-          guardias: _guardias,
-          isLoading: false,
-          onRefresh: _cargarDatos,
-          onAsignar: (slot) => showAsignarGuardiaSheet(context, slot, _cargarDatos),
-        ),
-        const SizedBox(height: 32),
-        TorreControlGuardTeam(
-          guardias: _guardias,
-          isLoading: false,
-        ),
-      ],
+          const SizedBox(height: 24),
+          TorreControlKpiRow(
+            totalAusentes: _slots.length,
+            cubiertas: cubiertas,
+            desiertas: desiertas,
+          ),
+          const SizedBox(height: 24),
+          TorreControlGestionCard(
+            slots: _slots,
+            guardias: _guardias,
+            isLoading: false,
+            onRefresh: _cargarDatos,
+            onAsignar: (slot) => showAsignarGuardiaSheet(context, slot, _cargarDatos),
+          ),
+          const SizedBox(height: 32),
+          TorreControlGuardTeam(
+            guardias: _guardias,
+            isLoading: false,
+          ),
+          const SizedBox(height: 60), // Espacio extra al final
+        ],
+      ),
     );
   }
 }
